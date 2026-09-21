@@ -1,20 +1,6 @@
 {
-  "name": "jk-noova-academy",
-  "version": "2.0.0",
-  "description": "Sistema integral de gestión de clubes de fútbol base: jugadores, equipos, calendario de partidos, pizarra táctica interactiva, control de asistencia, equipaciones Adidas y logística de transporte.",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "test": "node -c server.js js/tattica.js js/i18n.js"
-  },
-  "keywords": [
-    "football",
-    "soccer",
-    "tactical-board",
-    "sports-management",
-    "academy",
-    "pwa"
-  ],
-  "author": "JK Noova Academy",
-  "license": "MIT"
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "qrcode-generator": "^2.0.4"
+  }
 }

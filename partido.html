@@ -120,27 +120,55 @@
       font-weight: 700;
       white-space: nowrap;
     }
+    .family-lang-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.25rem 0.55rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .family-lang-btn:hover, .family-lang-btn.active {
+      background: rgba(6, 182, 212, 0.2);
+      border-color: #06b6d4;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
 
   <div class="family-container">
+    <!-- Selector rápido de idiomas para familias -->
+    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 0.65rem; gap: 0.35rem; flex-wrap: wrap;" id="family-lang-selector">
+      <button type="button" class="family-lang-btn" data-lang="es" onclick="switchFamilyLang('es')">🇪🇸 ES</button>
+      <button type="button" class="family-lang-btn" data-lang="en" onclick="switchFamilyLang('en')">🇬🇧 EN</button>
+      <button type="button" class="family-lang-btn" data-lang="et" onclick="switchFamilyLang('et')">🇪🇪 ET</button>
+      <button type="button" class="family-lang-btn" data-lang="ru" onclick="switchFamilyLang('ru')">🇷🇺 RU</button>
+      <button type="button" class="family-lang-btn" data-lang="uk" onclick="switchFamilyLang('uk')">🇺🇦 UK</button>
+    </div>
+
     <!-- Cabecera institucional -->
     <header class="family-header">
       <div class="family-badge">
         <span>🛡️</span> JK Noova Academy
       </div>
-      <h1 id="pub-match-title" style="font-size: 1.4rem; font-weight: 900; color: #fff; line-height: 1.3;">
+      <h1 id="pub-match-title" style="font-size: 1.4rem; font-weight: 900; color: #fff; line-height: 1.3;" data-i18n="family.loading">
         Cargando partido...
       </h1>
-      <p id="pub-match-team" style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 600; margin-top: 0.25rem;">
+      <p id="pub-match-team" style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 600; margin-top: 0.25rem;" data-i18n="family.officialCategory">
         Categoría oficial
       </p>
     </header>
 
     <!-- Cuenta atrás y horario -->
     <div class="family-card" style="text-align: center;">
-      <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 1px;">
+      <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 1px;" data-i18n="family.kickoff">
         Pitido inicial
       </div>
       <div id="pub-match-datetime" style="font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 0.35rem;">
@@ -148,18 +176,18 @@
       </div>
 
       <div class="countdown-box">
-        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">Tiempo restante</div>
+        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;" data-i18n="family.remainingTime">Tiempo restante</div>
         <div class="countdown-num" id="pub-countdown-display">Calculando...</div>
       </div>
 
       <!-- Ubicación y botón Google Maps -->
       <div style="text-align: left; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.85rem;">
-        <div style="font-size: 0.72rem; color: var(--text-muted);">Instalación deportiva / Campo:</div>
-        <div id="pub-match-location" style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-top: 2px;">
+        <div style="font-size: 0.72rem; color: var(--text-muted);" data-i18n="family.pitch">Instalación deportiva / Campo:</div>
+        <div id="pub-match-location" style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-top: 2px;" data-i18n="family.fieldDefault">
           Campo de juego
         </div>
         <a id="pub-maps-button" href="#" target="_blank" rel="noopener noreferrer" class="location-btn">
-          <span>📍</span> Cómo llegar en Google Maps
+          <span>📍</span> <span data-i18n="family.getDirections">Cómo llegar en Google Maps</span>
         </a>
       </div>
     </div>
@@ -168,9 +196,9 @@
     <div class="family-card" id="pub-transport-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
         <div style="font-size: 0.9rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 0.4rem;">
-          <span>🚐</span> Transporte y Furgonetas
+          <span>🚐</span> <span data-i18n="family.transportTitle">Transporte y Furgonetas</span>
         </div>
-        <span id="pub-transport-badge" style="font-size: 0.7rem; background: rgba(6, 182, 212, 0.15); color: #06b6d4; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">
+        <span id="pub-transport-badge" style="font-size: 0.7rem; background: rgba(6, 182, 212, 0.15); color: #06b6d4; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;" data-i18n="family.officialFleet">
           Flota oficial
         </span>
       </div>
@@ -181,7 +209,7 @@
 
       <div id="pub-seat-assigned-box" style="margin-top: 0.85rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem;">
-          💺 <strong>Asientos asignados en furgoneta:</strong>
+          💺 <strong data-i18n="family.seatsAssigned">Asientos asignados en furgoneta:</strong>
         </div>
         <div id="pub-seats-list" style="display: flex; flex-direction: column; gap: 0.35rem;"></div>
       </div>
@@ -191,7 +219,7 @@
     <div class="family-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.6rem;">
         <div style="font-size: 0.9rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 0.4rem;">
-          <span>⚽</span> Lista de Convocados
+          <span>⚽</span> <span data-i18n="family.callupTitle">Lista de Convocados</span>
         </div>
         <span id="pub-callup-count" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">
           0 jugadores
@@ -203,8 +231,8 @@
 
     <!-- Contacto del club -->
     <div style="text-align: center; margin-top: 1.5rem; margin-bottom: 2rem; font-size: 0.75rem; color: var(--text-muted);">
-      <p>JK Noova Academy • Fútbol Base Formatívo</p>
-      <p style="margin-top: 4px;">Para cualquier duda o incidencia, contacta con tu entrenador o coordinador.</p>
+      <p data-i18n="family.footerAcademy">JK Noova Academy • Fútbol Base Formativo</p>
+      <p style="margin-top: 4px;" data-i18n="family.footerContact">Para cualquier duda o incidencia, contacta con tu entrenador o coordinador.</p>
     </div>
   </div>
 
