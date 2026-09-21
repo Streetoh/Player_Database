@@ -2,14 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Transporte | Renault Trafic (8 plazas) | JK Noova</title>
-  <meta name="description" content="Organizador gráfico y distribución de plazas en furgoneta Renault Trafic (8 plazas) y flota del club JK Noova">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" type="text/css" href="css/style.css">
+  <style>
+    :root { --bg-darkest: #070a12; --text-primary: #f8fafc; }
+    html, body { background-color: #070a12 !important; color: #f8fafc !important; }
+    .modal-overlay { display: none !important; }
+    .modal-overlay.active { display: flex !important; }
+  </style>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1322">
+  <link rel="icon" type="image/png" href="icons/app-icon.png">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/app-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="JK Noova">
@@ -72,25 +78,29 @@
         <p data-i18n="transport.subtitle">Organizador interactivo de viaje. Asigna gráficamente los asientos arrastrando o pulsando sobre cada plaza.</p>
       </div>
 
-      <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
-        <label style="font-size: 0.85rem; color: var(--text-secondary);" data-i18n="transport.match">Partido:</label>
-        <select class="custom-select" id="transport-event-select" style="min-width: 200px;"></select>
-
-        <label style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 0.25rem;" data-i18n="transport.vehicle">Vehículo:</label>
-        <select class="custom-select" id="transport-van-select" style="min-width: 220px;"></select>
-        <button type="button" class="btn btn-primary btn-sm" id="btn-manage-fleet" data-i18n="transport.officialFleet" title="Gestionar vehículos y matrículas de la flota oficial">
-          🚐 Flota oficial
-        </button>
-
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-auto-assign-seats" data-i18n="transport.autoAssign" title="Autocompletar asientos con los convocados sin asignar">
-          ⚡ Auto-asignar
-        </button>
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-all-seats" data-i18n="transport.clearSeats" title="Vaciar todos los asientos de pasajeros">
-          🗑️ Vaciar plazas
-        </button>
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-print-transport" data-i18n="transport.print" title="Imprimir hoja de viaje para el cuerpo técnico">
-          🖨️ Imprimir
-        </button>
+      <div class="transport-header-controls">
+        <div class="transport-control-field">
+          <label for="transport-event-select" data-i18n="transport.match">Partido:</label>
+          <select class="custom-select" id="transport-event-select"></select>
+        </div>
+        <div class="transport-control-field">
+          <label for="transport-van-select" data-i18n="transport.vehicle">Vehículo:</label>
+          <select class="custom-select" id="transport-van-select"></select>
+        </div>
+        <div class="transport-actions-group">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-manage-fleet" data-i18n="transport.officialFleet" title="Gestionar vehículos y matrículas de la flota oficial">
+            🚐 Flota oficial
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-auto-assign-seats" data-i18n="transport.autoAssign" title="Autocompletar asientos con los convocados sin asignar">
+            ⚡ Auto-asignar
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-all-seats" data-i18n="transport.clearSeats" title="Vaciar todos los asientos de pasajeros">
+            🗑️ Vaciar plazas
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-print-transport" data-i18n="transport.print" title="Imprimir hoja de viaje para el cuerpo técnico">
+            🖨️ Imprimir
+          </button>
+        </div>
       </div>
     </div>
 

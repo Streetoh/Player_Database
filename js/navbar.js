@@ -13,6 +13,43 @@ function initSharedNavbar(activePage) {
     link.setAttribute('aria-selected', isActive);
   });
 
+  // 1.1 Inyectar y activar barra de navegación inferior móvil (Bottom Nav)
+  let bottomNav = document.querySelector('.mobile-bottom-nav');
+  if (!bottomNav) {
+    bottomNav = document.createElement('nav');
+    bottomNav.className = 'mobile-bottom-nav';
+    bottomNav.setAttribute('aria-label', 'Navegación móvil');
+    bottomNav.innerHTML = `
+      <a href="index.html" class="mobile-nav-item ${activePage === 'database' || activePage === 'jugadores' ? 'active' : ''}" data-page="database">
+        <span class="mobile-nav-icon">📋</span>
+        <span class="mobile-nav-label" data-i18n="nav.database">Jugadores</span>
+      </a>
+      <a href="equipos.html" class="mobile-nav-item ${activePage === 'teams' || activePage === 'equipos' ? 'active' : ''}" data-page="teams">
+        <span class="mobile-nav-icon">🛡️</span>
+        <span class="mobile-nav-label" data-i18n="nav.teams">Equipos</span>
+      </a>
+      <a href="calendario.html" class="mobile-nav-item ${activePage === 'events' || activePage === 'calendario' ? 'active' : ''}" data-page="events">
+        <span class="mobile-nav-icon">⚽</span>
+        <span class="mobile-nav-label" data-i18n="nav.events">Partidos</span>
+      </a>
+      <a href="transporte.html" class="mobile-nav-item ${activePage === 'transport' || activePage === 'transporte' ? 'active' : ''}" data-page="transport">
+        <span class="mobile-nav-icon">🚐</span>
+        <span class="mobile-nav-label" data-i18n="nav.transport">Transporte</span>
+      </a>
+    `;
+    document.body.appendChild(bottomNav);
+  } else {
+    bottomNav.querySelectorAll('.mobile-nav-item').forEach(item => {
+      const p = item.getAttribute('data-page');
+      const isAct = p === activePage || (p === 'database' && activePage === 'jugadores') || (p === 'teams' && activePage === 'equipos') || (p === 'events' && activePage === 'calendario') || (p === 'transport' && activePage === 'transporte');
+      item.classList.toggle('active', isAct);
+    });
+  }
+
+  if (window.i18n && typeof window.i18n.translatePage === 'function') {
+    window.i18n.translatePage();
+  }
+
   // 2. Actualizar contadores del header
   if (window.JKNoovaData && window.JKNoovaData.StorageService) {
     const storage = window.JKNoovaData.StorageService;

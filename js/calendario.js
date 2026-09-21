@@ -1063,6 +1063,82 @@ function deleteEvent(eventId) {
 
 let shareQrInstance = null;
 
+function buildCompactMatchPayload(event) {
+  if (!event) return null;
+  const team = teamsList.find(t => t.id === event.teamId) || { name: 'Equipo', category: '' };
+  const allTransport = (storage.getTransport && storage.getTransport()) || {};
+  const evTransport = allTransport[event.id] || {};
+  const allVans = (storage.getVans && storage.getVans()) || [];
+  const van = allVans.find(v => v.id === evTransport.vanId) || (allVans.length > 0 ? allVans[0] : null);
+  const allPlayers = (storage.getPlayers && storage.getPlayers()) || [];
+
+  const seatMap = evTransport.seats || {};
+
+  // Convocatoria compacta: [dorsal, nombre_completo, esMinibus (1/0), pagado (1/0), plazaAsiento]
+  const compactCall = (event.callUp || []).map(item => {
+    const p = allPlayers.find(x => x.id === item.playerId);
+    const dorsal = (p && p.mainDorsal) ? String(p.mainDorsal) : '';
+    const fullName = p ? `${p.name} ${p.lastName || ''}`.trim() : (item.name || 'Jugador');
+    const isBus = item.transport === 'minibus' ? 1 : 0;
+    const isPaid = item.paymentStatus === 'paid' ? 1 : 0;
+
+    let seatNumber = '';
+    for (const [sKey, pId] of Object.entries(seatMap)) {
+      if (pId === item.playerId) {
+        seatNumber = sKey.replace('seat_', '');
+        break;
+      }
+    }
+
+    return [dorsal, fullName, isBus, isPaid, seatNumber];
+  });
+
+  const payload = {
+    i: event.id || '',
+    t: event.title || `JK Noova vs ${event.rival || 'Rival'}`,
+    m: `${team.name || 'Equipo'}${team.category ? ' • ' + team.category : ''}`,
+    d: event.date || '',
+    h: event.time || '',
+    l: event.location || '',
+    tp: Number(event.tournamentPrice) || 0,
+    rp: Number(event.transportPrice) || 0,
+    v: van ? [van.name || '', van.plate || '', evTransport.departureTime || '', evTransport.driver || ''] : [],
+    c: compactCall
+  };
+
+  try {
+    const jsonStr = JSON.stringify(payload);
+    const utf8Bytes = encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (m, p) => String.fromCharCode('0x' + p));
+    return btoa(utf8Bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch (err) {
+    console.error('Error generando payload de partido:', err);
+    return null;
+  }
+}
+
+function getPublicShareBaseUrl() {
+  const savedUrl = localStorage.getItem('jknoova_custom_public_url');
+  if (savedUrl && savedUrl.trim().length > 4) {
+    let clean = savedUrl.trim();
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = 'https://' + clean;
+    }
+    if (!clean.endsWith('/')) clean += '/';
+    return clean;
+  }
+
+  const isFile = window.location.protocol === 'file:';
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  if (!isFile && !isLocalhost && window.location.origin) {
+    const pathname = window.location.pathname;
+    const basePath = pathname.substring(0, pathname.lastIndexOf('/') + 1);
+    return `${window.location.origin}${basePath}`;
+  }
+
+  return '';
+}
+
 function openShareFamilyModal(event) {
   if (!event) return;
   const modal = document.getElementById('modal-share-family');
@@ -1074,44 +1150,150 @@ function openShareFamilyModal(event) {
     labelEl.textContent = `${event.title || ('JK Noova vs ' + event.rival)} (${team.name})`;
   }
 
-  // Generar URL pública
-  const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
-  const pathname = window.location.pathname;
-  const basePath = pathname.substring(0, pathname.lastIndexOf('/') + 1);
-  const shareUrl = `${origin}${basePath}partido.html?event=${event.id}`;
+  const isFile = window.location.protocol === 'file:';
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isAppOffline = isFile || isLocalhost;
+
+  const baseUrl = getPublicShareBaseUrl();
+  const hasUrl = !!baseUrl;
+
+  // Manejo de tarjetas de configuración de URL
+  const alertBox = document.getElementById('share-url-alert-box');
+  const activeBox = document.getElementById('share-url-active-box');
+  const activeText = document.getElementById('share-active-url-text');
+  const inputTop = document.getElementById('share-custom-base-url-top');
+  const btnSaveTop = document.getElementById('btn-save-custom-base-url-top');
+  const btnEditActive = document.getElementById('btn-edit-active-url');
+  const configInputs = document.getElementById('share-url-config-inputs');
+  const customUrlInput = document.getElementById('share-custom-base-url');
+  const btnSaveCustomUrl = document.getElementById('btn-save-custom-base-url');
+
+  if (isAppOffline && !hasUrl) {
+    if (alertBox) alertBox.style.display = 'block';
+    if (activeBox) activeBox.style.display = 'none';
+  } else if (hasUrl) {
+    if (alertBox) alertBox.style.display = 'none';
+    if (activeBox) {
+      activeBox.style.display = 'block';
+      if (activeText) activeText.textContent = baseUrl;
+    }
+  } else {
+    if (alertBox) alertBox.style.display = 'none';
+    if (activeBox) activeBox.style.display = 'none';
+  }
+
+  function handleSaveUrl(val) {
+    let clean = (val || '').trim();
+    if (clean) {
+      if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+        clean = 'https://' + clean;
+      }
+      if (!clean.endsWith('/')) clean += '/';
+      localStorage.setItem('jknoova_custom_public_url', clean);
+      showToast('Dirección web guardada. ¡Código QR y WhatsApp listos!', 'success');
+    } else {
+      localStorage.removeItem('jknoova_custom_public_url');
+      showToast('Dirección web restablecida', 'info');
+    }
+    if (configInputs) configInputs.style.display = 'none';
+    openShareFamilyModal(event);
+  }
+
+  if (btnSaveTop && inputTop) {
+    btnSaveTop.onclick = () => handleSaveUrl(inputTop.value);
+  }
+
+  if (btnEditActive) {
+    btnEditActive.onclick = () => {
+      if (configInputs) {
+        configInputs.style.display = configInputs.style.display === 'none' ? 'block' : 'none';
+        if (customUrlInput) customUrlInput.value = localStorage.getItem('jknoova_custom_public_url') || '';
+      }
+    };
+  }
+
+  if (btnSaveCustomUrl && customUrlInput) {
+    btnSaveCustomUrl.onclick = () => handleSaveUrl(customUrlInput.value);
+  }
+
+  // Construir payload autónomo
+  const payloadData = buildCompactMatchPayload(event);
+  const effectiveBase = hasUrl ? baseUrl : 'https://tu-usuario.github.io/JK-Noova-Academy/';
+  const shareUrl = `${effectiveBase}partido.html?event=${event.id}${payloadData ? '&d=' + payloadData : ''}`;
 
   const inputUrl = document.getElementById('share-direct-url-input');
   if (inputUrl) {
     inputUrl.value = shareUrl;
   }
 
-  // Generar QR
+  const hintEl = document.getElementById('share-url-origin-hint');
+  if (hintEl) {
+    if (hasUrl) {
+      hintEl.textContent = '🟢 Web en línea';
+      hintEl.style.color = '#34d399';
+    } else if (isAppOffline) {
+      hintEl.textContent = '⚠️ Web pendiente';
+      hintEl.style.color = '#fbbf24';
+    } else {
+      hintEl.textContent = '🟢 Web activa';
+      hintEl.style.color = '#34d399';
+    }
+  }
+
+  // Generar QR de alta resolución con estándar ISO/IEC 18004
   const qrContainer = document.getElementById('share-qr-canvas-container');
   if (qrContainer && typeof QRCode !== 'undefined') {
     qrContainer.innerHTML = '';
     shareQrInstance = new QRCode(qrContainer, {
       text: shareUrl,
-      width: 180,
-      height: 180,
-      colorDark: '#0d1322',
-      colorLight: '#ffffff'
+      width: 200,
+      height: 200,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: 'M',
+      margin: 4
     });
+  }
+
+  // Botón Descargar QR en PNG
+  const btnDownloadQr = document.getElementById('btn-download-qr');
+  if (btnDownloadQr) {
+    btnDownloadQr.onclick = () => {
+      const dataUrl = shareQrInstance?.getDataURL();
+      if (!dataUrl) {
+        showToast('Generando código QR...', 'info');
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      const cleanName = (event.title || event.rival || 'partido').replace(/[^a-zA-Z0-9]/g, '_');
+      a.download = `QR_Convocatoria_${cleanName}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Imagen del código QR descargada en alta resolución', 'success');
+    };
   }
 
   // Botón Copiar URL
   const btnCopyUrl = document.getElementById('btn-copy-family-url');
   if (btnCopyUrl) {
     btnCopyUrl.onclick = () => {
+      if (isAppOffline && !hasUrl) {
+        showToast('⚠️ Introduce arriba la dirección web de tu academia antes de copiar', 'warning');
+        if (inputTop) inputTop.focus();
+        return;
+      }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(shareUrl).then(() => {
           showToast('Enlace de consulta copiado al portapapeles', 'success');
         }).catch(() => {
-          inputUrl.select();
+          inputUrl?.select();
           document.execCommand('copy');
           showToast('Enlace copiado al portapapeles', 'success');
         });
       } else {
-        inputUrl.select();
+        inputUrl?.select();
         document.execCommand('copy');
         showToast('Enlace copiado', 'success');
       }
@@ -1122,11 +1304,17 @@ function openShareFamilyModal(event) {
   const btnWa = document.getElementById('btn-open-whatsapp-share');
   if (btnWa) {
     btnWa.onclick = () => {
+      if (isAppOffline && !hasUrl) {
+        showToast('⚠️ Introduce arriba la dirección web de tu academia antes de compartir por WhatsApp', 'warning');
+        if (inputTop) inputTop.focus();
+        return;
+      }
+
       let waText = `⚽ *CONVOCATORIA Y DETALLES DEL ENCUENTRO*\n`;
       waText += `🏆 *${event.title || ('JK Noova vs ' + event.rival)}*\n`;
       waText += `🛡️ ${team.name} • 📅 ${formatDate(event.date)} a las ${event.time || ''}\n`;
       waText += `📍 Campo: ${event.location || ''}\n\n`;
-      waText += `📲 Consulta la convocatoria, horario, ubicación y asiento asignado en furgoneta aquí:\n${shareUrl}`;
+      waText += `📲 Consulta la convocatoria, horario, ubicación y plaza asignada en furgoneta aquí:\n${shareUrl}`;
 
       const waUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
       window.open(waUrl, '_blank');

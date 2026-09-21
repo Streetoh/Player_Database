@@ -289,6 +289,23 @@ function initTacticalBoardLogic() {
   if (btnSave) {
     btnSave.onclick = saveTacticalLineup;
   }
+  const btnSavePane = document.getElementById('btn-save-tactical-lineup-pane');
+  if (btnSavePane) {
+    btnSavePane.onclick = saveTacticalLineup;
+  }
+
+  const exitBtnTop = document.getElementById('btn-close-tactical-top');
+  if (exitBtnTop) {
+    exitBtnTop.onclick = closeTacticalModal;
+  }
+
+  // Pestañas móviles del dock táctico
+  document.querySelectorAll('.tactical-tab-btn').forEach(btn => {
+    btn.onclick = () => {
+      const tabKey = btn.getAttribute('data-tactical-tab');
+      if (tabKey) switchTacticalTab(tabKey);
+    };
+  });
 
   const btnShare = document.getElementById('btn-copy-tactical-lineup');
   if (btnShare) {
@@ -357,25 +374,7 @@ function initTacticalBoardLogic() {
   const btnAddRival = document.getElementById('btn-add-rival');
   if (btnAddRival) {
     btnAddRival.onclick = () => {
-      const rivalCount = tacticalRivals.length + 1;
-      const col = (rivalCount - 1) % 5;
-      const row = Math.floor((rivalCount - 1) / 5);
-      const startX = 20 + col * 15;
-      const startY = 16 + row * 18;
-      const defaultLabel = getDefaultRivalPosition(rivalCount);
-      const newRival = {
-        id: 'rival_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
-        number: String(rivalCount),
-        label: defaultLabel,
-        color: currentRivalColor,
-        x: Math.min(85, Math.max(15, startX)),
-        y: Math.min(48, Math.max(10, startY))
-      };
-      tacticalRivals.push(newRival);
-      renderTacticalStage();
-      if (typeof showToast === 'function') {
-        showToast(`Ficha rival #${rivalCount} (${defaultLabel}) añadida. Haz clic para editar su nombre/posición`, 'info');
-      }
+      addRivalAtPosition();
     };
   }
 
@@ -408,6 +407,11 @@ function initTacticalBoardLogic() {
     };
   });
 
+  // Inicializar menú radial (long-press en zona vacía) y barra superior de dibujo
+  setupPitchLongPress();
+  setupRadialMenuInteractions();
+  setupDrawingTopbar();
+
   window.addEventListener('resize', () => {
     const modal = document.getElementById('modal-tactical-board');
     if (modal && modal.classList.contains('active')) {
@@ -415,6 +419,437 @@ function initTacticalBoardLogic() {
     }
   });
 }
+
+/* ==========================================================================
+   GESTIÓN DE RIVALES, MENÚ RADIAL CIRCULAR Y MODO DIBUJO SUPERIOR
+   ========================================================================== */
+
+function addRivalAtPosition(xNorm, yNorm) {
+  const rivalCount = tacticalRivals.length + 1;
+  const col = (rivalCount - 1) % 5;
+  const row = Math.floor((rivalCount - 1) / 5);
+  const defaultX = 20 + col * 15;
+  const defaultY = 16 + row * 18;
+  const defaultLabel = getDefaultRivalPosition(rivalCount);
+
+  const posX = typeof xNorm === 'number' ? Math.max(5, Math.min(95, xNorm)) : Math.min(85, Math.max(15, defaultX));
+  const posY = typeof yNorm === 'number' ? Math.max(5, Math.min(95, yNorm)) : Math.min(48, Math.max(10, defaultY));
+
+  const newRival = {
+    id: 'rival_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+    number: String(rivalCount),
+    label: defaultLabel,
+    color: currentRivalColor || '#ef4444',
+    x: posX,
+    y: posY
+  };
+
+  tacticalRivals.push(newRival);
+  renderTacticalStage();
+
+  if (typeof showToast === 'function') {
+    showToast(`Ficha rival #${rivalCount} (${defaultLabel}) añadida`, 'info');
+  }
+  return newRival;
+}
+
+// Variables para menú radial y pulsación prolongada (Long Press)
+let pitchLongPressTimer = null;
+let pitchLongPressStart = null;
+let radialMenuCoords = { normX: 50, normY: 50, safeX: 100, safeY: 100 };
+
+function setupPitchLongPress() {
+  const stage = document.getElementById('tactical-pitch-stage');
+  const wrapper = document.getElementById('tactical-pitch-wrapper');
+  if (!stage || !wrapper) return;
+
+  const handlePointerDown = (e) => {
+    // Si estamos en modo dibujo, o es botón derecho/secundario, no abrir menú radial
+    if (currentDrawingTool !== 'move') return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    // Si el toque fue sobre una ficha de jugador, rival, balón o control interactivo, no activar long press
+    if (e.target.closest('.tactical-slot') ||
+        e.target.closest('.tactical-rival-token') ||
+        e.target.closest('.tactical-ball-token') ||
+        e.target.closest('.tactical-radial-menu') ||
+        e.target.closest('.tactical-drawing-topbar') ||
+        e.target.closest('button') ||
+        e.target.closest('input') ||
+        e.target.closest('select')) {
+      return;
+    }
+
+    const rect = wrapper.getBoundingClientRect();
+    const clientX = typeof e.clientX === 'number' ? e.clientX : (e.touches && e.touches[0]?.clientX);
+    const clientY = typeof e.clientY === 'number' ? e.clientY : (e.touches && e.touches[0]?.clientY);
+    if (typeof clientX !== 'number' || typeof clientY !== 'number') return;
+
+    const normX = Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100));
+    const normY = Math.max(5, Math.min(95, ((clientY - rect.top) / rect.height) * 100));
+
+    pitchLongPressStart = { clientX, clientY, normX, normY };
+
+    clearTimeout(pitchLongPressTimer);
+    pitchLongPressTimer = setTimeout(() => {
+      triggerPitchLongPress(normX, normY, clientX, clientY);
+    }, 450);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!pitchLongPressStart) return;
+    const clientX = typeof e.clientX === 'number' ? e.clientX : (e.touches && e.touches[0]?.clientX);
+    const clientY = typeof e.clientY === 'number' ? e.clientY : (e.touches && e.touches[0]?.clientY);
+    if (typeof clientX !== 'number' || typeof clientY !== 'number') return;
+
+    const dist = Math.hypot(clientX - pitchLongPressStart.clientX, clientY - pitchLongPressStart.clientY);
+    if (dist > 12) {
+      clearTimeout(pitchLongPressTimer);
+      pitchLongPressTimer = null;
+      pitchLongPressStart = null;
+    }
+  };
+
+  const handlePointerUp = () => {
+    clearTimeout(pitchLongPressTimer);
+    pitchLongPressTimer = null;
+    pitchLongPressStart = null;
+  };
+
+  stage.addEventListener('pointerdown', handlePointerDown);
+  stage.addEventListener('pointermove', handlePointerMove);
+  stage.addEventListener('pointerup', handlePointerUp);
+  stage.addEventListener('pointercancel', handlePointerUp);
+}
+
+function triggerPitchLongPress(normX, normY, clientX, clientY) {
+  pitchLongPressTimer = null;
+  pitchLongPressStart = null;
+
+  if (navigator.vibrate) {
+    try { navigator.vibrate(40); } catch (_) {}
+  }
+  openRadialMenu(normX, normY);
+}
+
+function openRadialMenu(normX, normY) {
+  const menu = document.getElementById('tactical-radial-menu');
+  const dismissLayer = document.getElementById('tactical-radial-dismiss-layer');
+  const wrapper = document.getElementById('tactical-pitch-wrapper');
+  if (!menu || !dismissLayer || !wrapper) return;
+
+  const wRect = wrapper.getBoundingClientRect();
+  const pxX = (normX / 100) * wRect.width;
+  const pxY = (normY / 100) * wRect.height;
+
+  // Acotar centro para que el radio de 110px no se desborde fuera del campo
+  const radius = 95;
+  const safeX = Math.max(radius + 10, Math.min(wRect.width - radius - 10, pxX));
+  const safeY = Math.max(radius + 10, Math.min(wRect.height - radius - 10, pxY));
+
+  radialMenuCoords = {
+    normX: (pxX / wRect.width) * 100,
+    normY: (pxY / wRect.height) * 100,
+    safeX,
+    safeY
+  };
+
+  menu.style.left = `${safeX}px`;
+  menu.style.top = `${safeY}px`;
+
+  // Colocar los 6 botones en círculo simétrico alrededor del centro con radio R = 74px
+  const items = menu.querySelectorAll('.radial-action-item');
+  const anglesDeg = [-90, -30, 30, 90, 150, 210];
+  const R = 74;
+
+  items.forEach((item, idx) => {
+    const angle = anglesDeg[idx];
+    const rad = angle * (Math.PI / 180);
+    const ix = 110 + R * Math.cos(rad);
+    const iy = 110 + R * Math.sin(rad);
+    item.style.left = `${ix}px`;
+    item.style.top = `${iy}px`;
+  });
+
+  menu.style.display = 'block';
+  dismissLayer.style.display = 'block';
+}
+
+function closeRadialMenu() {
+  const menu = document.getElementById('tactical-radial-menu');
+  const dismissLayer = document.getElementById('tactical-radial-dismiss-layer');
+  if (menu) menu.style.display = 'none';
+  if (dismissLayer) dismissLayer.style.display = 'none';
+}
+
+function setupRadialMenuInteractions() {
+  const menu = document.getElementById('tactical-radial-menu');
+  const dismissLayer = document.getElementById('tactical-radial-dismiss-layer');
+  const closeBtn = document.getElementById('radial-close-btn');
+
+  if (dismissLayer) dismissLayer.onclick = closeRadialMenu;
+  if (closeBtn) closeBtn.onclick = closeRadialMenu;
+
+  if (menu) {
+    menu.querySelectorAll('.radial-action-item[data-radial-action]').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const action = btn.getAttribute('data-radial-action');
+        executeRadialAction(action);
+      };
+    });
+  }
+}
+
+function executeRadialAction(action) {
+  closeRadialMenu();
+  const targetX = radialMenuCoords.normX;
+  const targetY = radialMenuCoords.normY;
+
+  switch (action) {
+    case 'add-rival':
+      addRivalAtPosition(targetX, targetY);
+      break;
+
+    case 'place-ball':
+      tacticalBall.attachedToSlot = null;
+      tacticalBall.attachedToRivalId = null;
+      tacticalBall.x = Math.max(5, Math.min(95, targetX));
+      tacticalBall.y = Math.max(5, Math.min(95, targetY));
+      renderTacticalStage();
+      if (typeof showToast === 'function') {
+        showToast('⚽ Balón trasladado a esta posición', 'info');
+      }
+      break;
+
+    case 'start-drawing':
+      activateDrawingMode('pencil');
+      break;
+
+    case 'open-bench':
+      switchTacticalTab('tactical-pane-bench');
+      break;
+
+    case 'clear-drawings':
+      tacticalDrawings = [];
+      renderTacticalDrawings();
+      if (typeof showToast === 'function') {
+        showToast('Trazos de dibujo borrados', 'info');
+      }
+      break;
+
+    case 'reset-positions':
+      tacticalCustomPositions = {};
+      renderTacticalStage();
+      if (typeof showToast === 'function') {
+        showToast('Posiciones originales restablecidas', 'info');
+      }
+      break;
+  }
+}
+
+function activateDrawingMode(tool = 'pencil') {
+  currentDrawingTool = tool;
+  const topbar = document.getElementById('tactical-drawing-topbar');
+  if (topbar) {
+    topbar.style.display = 'flex';
+  }
+  updateCanvasModeClass();
+  updateTopbarActiveButtons();
+
+  // Asegurar dimensiones del canvas sincronizadas al 100% con la pantalla visible
+  initTacticalCanvas();
+
+  // Sincronizar botones en barra lateral si está abierta
+  document.querySelectorAll('.draw-tool-btn[data-tool]').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-tool') === tool);
+  });
+
+  // Bloqueo total de scroll en body y html para evitar arrastres en la ventana de atrás
+  document.body.classList.add('tactical-drawing-locked');
+  document.documentElement.classList.add('tactical-drawing-locked');
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.touchAction = 'none';
+
+  if (typeof showToast === 'function') {
+    const toolLabel = tool === 'arrow' ? 'Flecha ➡️' : (tool === 'eraser' ? 'Borrador 🧽' : 'Lápiz ✏️');
+    showToast(`Herramienta ${toolLabel} activa. Arrastra sobre el campo para dibujar. Pulsa "✕ Salir de dibujo" al terminar.`, 'info');
+  }
+}
+
+function exitDrawingMode() {
+  currentDrawingTool = 'move';
+  const topbar = document.getElementById('tactical-drawing-topbar');
+  if (topbar) {
+    topbar.style.display = 'none';
+  }
+  updateCanvasModeClass();
+
+  // Sincronizar botones en barra lateral
+  document.querySelectorAll('.draw-tool-btn[data-tool]').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-tool') === 'move');
+  });
+
+  document.body.classList.remove('tactical-drawing-locked');
+  document.documentElement.classList.remove('tactical-drawing-locked');
+  document.body.style.touchAction = '';
+
+  if (typeof showToast === 'function') {
+    showToast('🖐️ Modo interactivo: mueve jugadores o mantén pulsado para el menú táctico', 'info');
+  }
+}
+
+function setupDrawingTopbar() {
+  const exitBtn = document.getElementById('btn-exit-drawing');
+  if (exitBtn) {
+    exitBtn.onclick = exitDrawingMode;
+  }
+
+  // Herramientas en barra superior (Lápiz, Flecha, Borrador)
+  const topTools = document.querySelectorAll('.topbar-tool-btn[data-top-tool]');
+  topTools.forEach(btn => {
+    btn.onclick = () => {
+      const tool = btn.getAttribute('data-top-tool');
+      currentDrawingTool = tool;
+      updateCanvasModeClass();
+      updateTopbarActiveButtons();
+
+      const sideTool = document.querySelector(`.draw-tool-btn[data-tool="${tool}"]`);
+      if (sideTool) {
+        document.querySelectorAll('.draw-tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+        sideTool.classList.add('active');
+      }
+    };
+  });
+
+  // Selector de colores en barra superior
+  const topColors = document.querySelectorAll('.topbar-color-btn[data-top-color]');
+  topColors.forEach(btn => {
+    btn.onclick = () => {
+      topColors.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentDrawingColor = btn.getAttribute('data-top-color');
+
+      const sideColor = document.querySelector(`.color-swatch-btn[data-color="${currentDrawingColor}"]`);
+      if (sideColor) {
+        document.querySelectorAll('.color-swatch-btn[data-color]').forEach(b => b.classList.remove('active'));
+        sideColor.classList.add('active');
+      }
+    };
+  });
+
+  // Deshacer trazo en barra superior
+  const btnTopUndo = document.getElementById('btn-top-undo');
+  if (btnTopUndo) {
+    btnTopUndo.onclick = () => {
+      if (tacticalDrawings.length > 0) {
+        tacticalDrawings.pop();
+        renderTacticalDrawings();
+      }
+    };
+  }
+
+  // Limpiar trazos en barra superior
+  const btnTopClear = document.getElementById('btn-top-clear');
+  if (btnTopClear) {
+    btnTopClear.onclick = () => {
+      if (tacticalDrawings.length > 0) {
+        tacticalDrawings = [];
+        renderTacticalDrawings();
+        if (typeof showToast === 'function') {
+          showToast('Pizarra táctica despejada', 'info');
+        }
+      }
+    };
+  }
+}
+
+function updateTopbarActiveButtons() {
+  document.querySelectorAll('.topbar-tool-btn[data-top-tool]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-top-tool') === currentDrawingTool);
+  });
+}
+
+/**
+ * Alterna entre las pestañas móviles del dock táctico (Rivales, Suplentes, Dibujar, Menú)
+ */
+function switchTacticalTab(tabName) {
+  const panel = document.getElementById('tactical-sidebar-panel');
+  const clickedBtn = document.querySelector(`.tactical-tab-btn[data-tactical-tab="${tabName}"]`);
+  const isMobile = window.innerWidth <= 860;
+
+  // En móvil, si se pulsa la pestaña que ya está activa y abierta, se cierra el cajón (toggle)
+  if (isMobile && panel && panel.classList.contains('is-open') && clickedBtn && clickedBtn.classList.contains('active')) {
+    closeTacticalDrawer();
+    return;
+  }
+
+  if (panel && isMobile) {
+    panel.classList.add('is-open');
+  }
+
+  const tabs = document.querySelectorAll('.tactical-tab-btn');
+  const panes = document.querySelectorAll('.tactical-tab-pane');
+  tabs.forEach(t => {
+    t.classList.toggle('active', t.getAttribute('data-tactical-tab') === tabName);
+  });
+  panes.forEach(p => {
+    p.classList.toggle('active', p.id === tabName);
+  });
+
+  const drawerTitle = document.getElementById('tactical-drawer-title');
+  if (drawerTitle) {
+    if (tabName === 'tactical-pane-drawing') {
+      drawerTitle.textContent = '🎨 Herramientas de Dibujo';
+      activateDrawingMode(currentDrawingTool === 'move' ? 'pencil' : currentDrawingTool);
+    } else if (tabName === 'tactical-pane-rivals') {
+      drawerTitle.textContent = '⚽ Rivales y Balón';
+    } else if (tabName === 'tactical-pane-bench') {
+      drawerTitle.textContent = '🟡 Banquillo de Suplentes';
+    } else if (tabName === 'tactical-pane-options') {
+      drawerTitle.textContent = '⚙️ Menú y Guardado';
+    }
+  }
+}
+
+/**
+ * Cierra o pliega el panel inferior en móviles para ver el campo táctico gigante
+ */
+function closeTacticalDrawer() {
+  const panel = document.getElementById('tactical-sidebar-panel');
+  if (panel) {
+    panel.classList.remove('is-open');
+  }
+  document.querySelectorAll('.tactical-tab-btn').forEach(btn => btn.classList.remove('active'));
+}
+window.closeTacticalDrawer = closeTacticalDrawer;
+
+/**
+ * Cierra limpiamente el modal de la pizarra táctica
+ */
+function closeTacticalModal() {
+  closeTacticalDrawer();
+  closeRadialMenu();
+  exitDrawingMode();
+  document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
+  document.body.style.touchAction = '';
+  document.body.classList.remove('tactical-drawing-locked');
+  document.documentElement.classList.remove('tactical-drawing-locked');
+
+  const modal = document.getElementById('modal-tactical-board');
+  if (modal) {
+    if (typeof closeModal === 'function') {
+      closeModal(modal);
+    } else {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  }
+}
+window.closeTacticalModal = closeTacticalModal;
 
 /**
  * Abre la pizarra táctica para un partido específico
@@ -424,6 +859,17 @@ function openTacticalModal(event) {
   if (!event) return;
   currentTacticalEvent = event;
   selectedTacticalToken = null;
+  closeRadialMenu();
+  exitDrawingMode();
+
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+
+  if (window.innerWidth <= 860) {
+    closeTacticalDrawer();
+  } else {
+    switchTacticalTab('tactical-pane-rivals');
+  }
 
   const modal = document.getElementById('modal-tactical-board');
   if (!modal) return;
@@ -741,6 +1187,11 @@ function renderTacticalStage() {
 
   pitchEl.innerHTML = '';
   benchEl.innerHTML = '';
+
+  const benchBadge = document.getElementById('mobile-bench-badge');
+  if (benchBadge) {
+    benchBadge.textContent = tacticalBench.length;
+  }
 
   const storage = window.JKNoovaData.StorageService;
   const allPlayers = storage.getPlayers();
@@ -1400,19 +1851,89 @@ function initTacticalCanvas() {
   const wrapper = document.getElementById('tactical-pitch-wrapper');
   if (wrapper) {
     const rect = wrapper.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    tacticalCanvasEl.width = Math.round(rect.width * dpr);
-    tacticalCanvasEl.height = Math.round(rect.height * dpr);
+    if (rect.width > 0 && rect.height > 0) {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      tacticalCanvasEl.width = Math.round(rect.width * dpr);
+      tacticalCanvasEl.height = Math.round(rect.height * dpr);
+    }
   }
-
-  // Pointer events (unifica ratón, stylus y táctil)
-  tacticalCanvasEl.onpointerdown = handleCanvasPointerDown;
-  tacticalCanvasEl.onpointermove = handleCanvasPointerMove;
-  tacticalCanvasEl.onpointerup = handleCanvasPointerUp;
-  tacticalCanvasEl.onpointercancel = handleCanvasPointerUp;
 
   updateCanvasModeClass();
   renderTacticalDrawings();
+
+  // Asegurar registro único de listeners
+  if (tacticalCanvasEl._drawListenersAttached) return;
+  tacticalCanvasEl._drawListenersAttached = true;
+
+  // 1. TOUCH EVENTS DIRECTOS (Prioridad móvil absoluta para bloquear scroll del fondo)
+  tacticalCanvasEl.addEventListener('touchstart', (e) => {
+    if (currentDrawingTool === 'move') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const coords = getCanvasCoords(e);
+    startStroke(coords);
+  }, { passive: false });
+
+  tacticalCanvasEl.addEventListener('touchmove', (e) => {
+    if (currentDrawingTool === 'move') return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDrawingActive) return;
+    const coords = getCanvasCoords(e);
+    moveStroke(coords);
+  }, { passive: false });
+
+  tacticalCanvasEl.addEventListener('touchend', (e) => {
+    if (currentDrawingTool === 'move') return;
+    e.preventDefault();
+    e.stopPropagation();
+    endStroke();
+  }, { passive: false });
+
+  tacticalCanvasEl.addEventListener('touchcancel', (e) => {
+    if (currentDrawingTool === 'move') return;
+    e.preventDefault();
+    endStroke();
+  }, { passive: false });
+
+  // 2. POINTER EVENTS (Para ratón y stylus en escritorio o híbridos)
+  tacticalCanvasEl.addEventListener('pointerdown', (e) => {
+    if (currentDrawingTool === 'move') return;
+    if (e.pointerType === 'touch') {
+      // Ya manejado por touchstart
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    try { tacticalCanvasEl.setPointerCapture(e.pointerId); } catch (_) {}
+    const coords = getCanvasCoords(e);
+    startStroke(coords);
+  });
+
+  tacticalCanvasEl.addEventListener('pointermove', (e) => {
+    if (currentDrawingTool === 'move') return;
+    if (e.pointerType === 'touch') {
+      e.preventDefault();
+      return;
+    }
+    if (!isDrawingActive) return;
+    e.preventDefault();
+    const coords = getCanvasCoords(e);
+    moveStroke(coords);
+  });
+
+  tacticalCanvasEl.addEventListener('pointerup', (e) => {
+    if (currentDrawingTool === 'move') return;
+    if (e.pointerType === 'touch') return;
+    try { tacticalCanvasEl.releasePointerCapture(e.pointerId); } catch (_) {}
+    endStroke();
+  });
+
+  tacticalCanvasEl.addEventListener('pointercancel', (e) => {
+    if (e.pointerType === 'touch') return;
+    try { tacticalCanvasEl.releasePointerCapture(e.pointerId); } catch (_) {}
+    endStroke();
+  });
 }
 
 function updateCanvasModeClass() {
@@ -1426,21 +1947,31 @@ function updateCanvasModeClass() {
 
 function getCanvasCoords(e) {
   if (!tacticalCanvasEl) return { normX: 0, normY: 0 };
+  let clientX = e.clientX;
+  let clientY = e.clientY;
+
+  if (typeof clientX !== 'number' || isNaN(clientX)) {
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    }
+  }
+
   const rect = tacticalCanvasEl.getBoundingClientRect();
-  const rawX = e.clientX - rect.left;
-  const rawY = e.clientY - rect.top;
+  if (!rect || rect.width <= 0 || rect.height <= 0) return { normX: 0, normY: 0 };
+
+  const rawX = clientX - rect.left;
+  const rawY = clientY - rect.top;
   const normX = Math.max(0, Math.min(1, rawX / rect.width));
   const normY = Math.max(0, Math.min(1, rawY / rect.height));
   return { normX, normY };
 }
 
-function handleCanvasPointerDown(e) {
-  if (currentDrawingTool === 'move') return;
-  e.preventDefault();
+function startStroke(coords) {
   isDrawingActive = true;
-  try { tacticalCanvasEl.setPointerCapture(e.pointerId); } catch (_) {}
-
-  const coords = getCanvasCoords(e);
 
   if (currentDrawingTool === 'pencil') {
     currentStroke = {
@@ -1453,7 +1984,7 @@ function handleCanvasPointerDown(e) {
     currentStroke = {
       type: 'arrow',
       color: currentDrawingColor,
-      width: 3.5,
+      width: 3.8,
       start: { x: coords.normX, y: coords.normY },
       end: { x: coords.normX, y: coords.normY }
     };
@@ -1462,10 +1993,8 @@ function handleCanvasPointerDown(e) {
   }
 }
 
-function handleCanvasPointerMove(e) {
+function moveStroke(coords) {
   if (!isDrawingActive) return;
-  e.preventDefault();
-  const coords = getCanvasCoords(e);
 
   if (currentDrawingTool === 'pencil' && currentStroke) {
     currentStroke.points.push({ x: coords.normX, y: coords.normY });
@@ -1478,17 +2007,16 @@ function handleCanvasPointerMove(e) {
   }
 }
 
-function handleCanvasPointerUp(e) {
+function endStroke() {
   if (!isDrawingActive) return;
   isDrawingActive = false;
-  try { tacticalCanvasEl.releasePointerCapture(e.pointerId); } catch (_) {}
 
   if (currentStroke) {
     if (currentStroke.type === 'pencil' && currentStroke.points && currentStroke.points.length > 1) {
       tacticalDrawings.push(currentStroke);
     } else if (currentStroke.type === 'arrow') {
       const dist = Math.hypot(currentStroke.end.x - currentStroke.start.x, currentStroke.end.y - currentStroke.start.y);
-      if (dist > 0.015) {
+      if (dist > 0.008) {
         tacticalDrawings.push(currentStroke);
       }
     }
@@ -1552,18 +2080,21 @@ function renderTacticalDrawings(previewStroke = null) {
 }
 
 function drawArrow(ctx, fromX, fromY, toX, toY, lineWidth) {
-  const headlen = Math.max(16, lineWidth * 3.5);
   const dx = toX - fromX;
   const dy = toY - fromY;
+  const len = Math.hypot(dx, dy);
+  if (len < 4) return;
+
+  const headlen = Math.min(len * 0.42, Math.max(14, lineWidth * 3.2));
   const angle = Math.atan2(dy, dx);
 
-  // Línea principal
+  // Línea principal con parada antes de la punta
   ctx.beginPath();
   ctx.moveTo(fromX, fromY);
-  ctx.lineTo(toX, toY);
+  ctx.lineTo(toX - (headlen * 0.4) * Math.cos(angle), toY - (headlen * 0.4) * Math.sin(angle));
   ctx.stroke();
 
-  // Punta de flecha (triángulo)
+  // Punta de flecha (triángulo sólido nítido)
   ctx.beginPath();
   ctx.moveTo(toX, toY);
   ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
@@ -1575,6 +2106,8 @@ function drawArrow(ctx, fromX, fromY, toX, toY, lineWidth) {
 // Exponer globalmente
 window.initTacticalBoardLogic = initTacticalBoardLogic;
 window.openTacticalModal = openTacticalModal;
+window.closeTacticalModal = closeTacticalModal;
+window.switchTacticalTab = switchTacticalTab;
 window.initTacticalCanvas = initTacticalCanvas;
 window.renderTacticalDrawings = renderTacticalDrawings;
 

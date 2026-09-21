@@ -2,14 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Base de datos | JK Noova Gestión Deportiva</title>
-  <meta name="description" content="Base de datos de jugadores del club JK Noova con fichas completas, contactos familiares y notas técnicas">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" type="text/css" href="css/style.css">
+  <style>
+    :root { --bg-darkest: #070a12; --text-primary: #f8fafc; }
+    html, body { background-color: #070a12 !important; color: #f8fafc !important; }
+    .modal-overlay { display: none !important; }
+    .modal-overlay.active { display: flex !important; }
+  </style>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1322">
+  <link rel="icon" type="image/png" href="icons/app-icon.png">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/app-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="JK Noova">
@@ -56,9 +62,6 @@
       <div class="header-actions">
         <button type="button" class="btn btn-secondary btn-sm" id="btn-open-settings" data-i18n="nav.settings" data-i18n-title="nav.settingsTitle" title="Copias de seguridad y datos">
           ⚙️ Config
-        </button>
-        <button type="button" class="btn btn-primary btn-sm" id="btn-quick-new-player" data-i18n="nav.newPlayer">
-          ➕ Nuevo jugador
         </button>
       </div>
     </div>
@@ -586,6 +589,69 @@
     </div>
   </div>
 
+  <!-- Modal: Pasar Lista / Control de Asistencia -->
+  <div class="modal-backdrop" id="modal-attendance" data-no-backdrop-close="true">
+    <div class="modal-window" style="max-width: 680px;">
+      <div class="modal-header" style="flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h3>📋 Control de Asistencia a Entrenamientos</h3>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+            Marca el estado de cada jugador para la sesión de hoy.
+          </p>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-attendance">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 0.85rem 1rem;">
+        <!-- Selector de equipo, fecha y botones rápidos -->
+        <div style="display: flex; gap: 0.65rem; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; margin-bottom: 0.85rem; background: var(--bg-secondary); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-subtle);">
+          <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; flex: 1;">
+            <div class="form-group" style="margin: 0; min-width: 150px; flex: 1;">
+              <label class="form-label" for="attendance-team-select">Grupo / Equipo</label>
+              <select class="form-select" id="attendance-team-select"></select>
+            </div>
+            <div class="form-group" style="margin: 0; min-width: 130px;">
+              <label class="form-label" for="attendance-date-input">Fecha</label>
+              <input type="date" class="form-input" id="attendance-date-input">
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-attendance-all-present" style="white-space: nowrap; font-weight: 700; color: #34d399; border-color: rgba(16, 185, 129, 0.4);">
+              ✔ Todos presentes
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-attendance-all-absent" style="white-space: nowrap; font-weight: 700; color: #f87171; border-color: rgba(239, 68, 68, 0.4);">
+              ✖ Todos ausentes
+            </button>
+          </div>
+        </div>
+
+        <!-- Contadores en vivo simplificados -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;">
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 0.35rem 0.5rem; text-align: center;">
+            <div style="font-size: 0.68rem; color: #34d399; font-weight: 700;">✔ Presentes</div>
+            <strong id="att-count-present" style="color: #34d399; font-size: 1rem;">0</strong>
+          </div>
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 0.35rem 0.5rem; text-align: center;">
+            <div style="font-size: 0.68rem; color: #f87171; font-weight: 700;">✖ Ausentes</div>
+            <strong id="att-count-absent" style="color: #f87171; font-size: 1rem;">0</strong>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 0.35rem 0.5rem; text-align: center;">
+            <div style="font-size: 0.68rem; color: var(--text-muted);">👥 Convocados</div>
+            <strong id="att-count-total" style="color: #fff; font-size: 1rem;">0</strong>
+          </div>
+        </div>
+
+        <!-- Lista de jugadores con botones de tick verde ✔ y tick rojo ✖ -->
+        <div id="attendance-roster-list" style="max-height: 50vh; overflow-y: auto;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-attendance">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-save-attendance" style="background: #10b981; border-color: #059669;">💾 Guardar asistencia</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
@@ -593,6 +659,7 @@
   <script src="js/i18n.js"></script>
   <script src="js/navbar.js"></script>
   <script src="js/photo-cropper.js"></script>
+  <script src="js/asistencia.js"></script>
   <script src="js/jugadores.js"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
  * JK Noova Academy - Service Worker (Offline Cache & PWA Support)
  */
 
-const CACHE_NAME = 'jknoova-cache-v5';
+const CACHE_NAME = 'jknoova-cache-v7';
 const STATIC_ASSETS = [
   './',
   './index.html',

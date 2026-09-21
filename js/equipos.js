@@ -38,7 +38,7 @@ function renderTeamsBoard() {
   teamsList.forEach(team => {
     const teamPlayers = playersList.filter(p => p.teamId === team.id);
     const col = document.createElement('div');
-    col.className = 'team-column';
+    col.className = 'team-column team-accordion-card is-collapsed';
     col.style.setProperty('--team-accent', team.color);
     col.setAttribute('data-team-id', team.id);
 
@@ -70,7 +70,7 @@ function renderTeamsBoard() {
     ` : '';
 
     col.innerHTML = `
-      <div class="team-column-header">
+      <div class="team-column-header" style="cursor: pointer;">
         <div class="team-header-main">
           <span class="team-header-title">${escapeHTML(team.name)}</span>
           <span class="team-header-badge">${teamPlayers.length}</span>
@@ -82,17 +82,20 @@ function renderTeamsBoard() {
           <span>⚡ MED: ${medCount}</span>
           <span>🎯 DEL: ${delCount}</span>
         </div>
-        <div style="margin-top: 0.5rem; display: flex; gap: 0.35rem;">
-          <button type="button" class="btn btn-secondary btn-xs btn-view-full-team" data-team-id="${team.id}" style="flex: 1; font-size: 0.72rem; padding: 0.25rem 0.4rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(255,255,255,0.06);">
-            <span>👁️ Ver plantilla</span>
+        <div style="margin-top: 0.5rem; display: flex; gap: 0.35rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-xs btn-toggle-team-fold" data-team-id="${team.id}" style="flex: 1.3; font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.35); font-weight: 700;">
+            <span class="fold-chevron">▼</span> <span class="fold-text">Ver jugadores (${teamPlayers.length})</span>
           </button>
-          <button type="button" class="btn btn-secondary btn-xs btn-att-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.25rem 0.45rem; display: flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.35);" title="Pasar lista para ${escapeHTML(team.name)}">
+          <button type="button" class="btn btn-secondary btn-xs btn-view-full-team" data-team-id="${team.id}" style="flex: 1; font-size: 0.72rem; padding: 0.28rem 0.4rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(255,255,255,0.06);" title="Ver ficha y detalles del equipo">
+            <span>👁️ Plantilla</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-xs btn-att-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.35);" title="Pasar lista para ${escapeHTML(team.name)}">
             <span>📋 Lista</span>
           </button>
         </div>
       </div>
       ${conflictBannerHtml}
-      <div class="team-column-body" data-team-id="${team.id}">
+      <div class="team-column-body" data-team-id="${team.id}" style="display: none;">
         ${teamPlayers.length === 0 ? `
           <div class="team-empty-state">
             Arrastra jugadores aquí para asignarlos a este equipo
@@ -101,16 +104,47 @@ function renderTeamsBoard() {
       </div>
     `;
 
-    // REQUISITO ESTRICTO: Clic en la cabecera (header señalado con flecha roja) para ver equipo completo
-    const header = col.querySelector('.team-column-header');
-    if (header) {
-      header.title = `Pulsa para ver el equipo completo: ${team.name}`;
-      header.onclick = (e) => {
-        openTeamViewModal(team.id);
+    // Función para alternar el plegado/desplegado del equipo
+    const toggleFold = () => {
+      const isCollapsed = col.classList.contains('is-collapsed');
+      const body = col.querySelector('.team-column-body');
+      const chevron = col.querySelector('.fold-chevron');
+      const text = col.querySelector('.fold-text');
+
+      if (isCollapsed) {
+        col.classList.remove('is-collapsed');
+        col.classList.add('is-expanded');
+        if (body) body.style.display = 'flex';
+        if (chevron) chevron.textContent = '▲';
+        if (text) text.textContent = `Ocultar jugadores (${teamPlayers.length})`;
+      } else {
+        col.classList.remove('is-expanded');
+        col.classList.add('is-collapsed');
+        if (body) body.style.display = 'none';
+        if (chevron) chevron.textContent = '▼';
+        if (text) text.textContent = `Ver jugadores (${teamPlayers.length})`;
+      }
+    };
+
+    // Clic en el botón de desplegar/plegar
+    const btnFold = col.querySelector('.btn-toggle-team-fold');
+    if (btnFold) {
+      btnFold.onclick = (e) => {
+        e.stopPropagation();
+        toggleFold();
       };
     }
 
-    // Botón para ver equipo completo
+    // Clic en la cabecera para desplegar/plegar (sin interferir con botones)
+    const header = col.querySelector('.team-column-header');
+    if (header) {
+      header.onclick = (e) => {
+        if (e.target.closest('button')) return;
+        toggleFold();
+      };
+    }
+
+    // Botón para ver plantilla en modal
     const btnView = col.querySelector('.btn-view-full-team');
     if (btnView) {
       btnView.onclick = (e) => {

@@ -2,14 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Calendario y Convocatorias | JK Noova Gestión Deportiva</title>
-  <meta name="description" content="Programación de partidos, precios de torneo y transporte, y gestión de convocatorias para JK Noova">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" type="text/css" href="css/style.css">
+  <style>
+    :root { --bg-darkest: #070a12; --text-primary: #f8fafc; }
+    html, body { background-color: #070a12 !important; color: #f8fafc !important; }
+    .modal-overlay { display: none !important; }
+    .modal-overlay.active { display: flex !important; }
+  </style>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1322">
+  <link rel="icon" type="image/png" href="icons/app-icon.png">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/app-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="JK Noova">
@@ -94,7 +100,7 @@
             <p style="font-size: 0.85rem; color: var(--text-secondary);" id="detail-event-subtitle">Consulta o modifica la lista de jugadores convocados</p>
           </div>
           
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <div class="convocatoria-actions-grid">
             <button type="button" class="btn btn-secondary btn-sm" id="btn-edit-squad-callup" data-i18n="calendar.modifyCallup">
               ✏️ Modificar convocatoria
             </button>
@@ -453,7 +459,10 @@
           <button type="button" class="btn btn-secondary btn-xs" id="btn-reset-formation-positions" title="Restablecer posiciones originales de la formación" style="font-size: 0.75rem; padding: 0.25rem 0.55rem;" data-i18n="tactical.reset">
             ↺ Resetear
           </button>
-          <button type="button" class="modal-close-btn" data-close-modal="modal-tactical-board">&times;</button>
+          <button type="button" class="btn btn-danger btn-sm tactical-exit-btn" id="btn-close-tactical-top" onclick="closeTacticalModal()" title="Cerrar pizarra táctica" style="font-weight: 700; font-size: 0.78rem; padding: 0.28rem 0.65rem; background: #dc2626; color: #fff; border: 1px solid #ef4444; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
+            ✕ Salir
+          </button>
+          <button type="button" class="modal-close-btn" data-close-modal="modal-tactical-board" onclick="closeTacticalModal()" aria-label="Cerrar">&times;</button>
         </div>
       </div>
 
@@ -476,115 +485,211 @@
             <canvas id="tactical-drawing-canvas" class="tactical-drawing-canvas"></canvas>
             <!-- Contenedor dinámico de posiciones de jugadores -->
             <div class="tactical-pitch-stage" id="tactical-pitch-stage"></div>
+
+            <!-- Barra Superior Flotante de Dibujo Táctico (visible al activar modo dibujo) -->
+            <div class="tactical-drawing-topbar" id="tactical-drawing-topbar" style="display: none;">
+              <button type="button" class="btn-topbar-exit" id="btn-exit-drawing" title="Salir de dibujo y volver a mover fichas">
+                ✕ Salir de dibujo
+              </button>
+              <div class="topbar-draw-tools">
+                <button type="button" class="topbar-tool-btn active" id="top-tool-pencil" data-top-tool="pencil" title="Lápiz libre">✏️</button>
+                <button type="button" class="topbar-tool-btn" id="top-tool-arrow" data-top-tool="arrow" title="Flecha de desmarque o pase">➡️</button>
+                <button type="button" class="topbar-tool-btn" id="top-tool-eraser" data-top-tool="eraser" title="Borrador">🧽</button>
+              </div>
+              <div class="topbar-draw-colors">
+                <button type="button" class="topbar-color-btn active" data-top-color="#facc15" style="background: #facc15;" title="Amarillo táctico"></button>
+                <button type="button" class="topbar-color-btn" data-top-color="#ef4444" style="background: #ef4444;" title="Rojo"></button>
+                <button type="button" class="topbar-color-btn" data-top-color="#38bdf8" style="background: #38bdf8;" title="Azul"></button>
+                <button type="button" class="topbar-color-btn" data-top-color="#ffffff" style="background: #ffffff;" title="Blanco"></button>
+              </div>
+              <div class="topbar-draw-actions">
+                <button type="button" class="topbar-tool-btn" id="btn-top-undo" title="Deshacer último trazo">↩️</button>
+                <button type="button" class="topbar-tool-btn" id="btn-top-clear" title="Limpiar todos los dibujos">🗑️</button>
+              </div>
+            </div>
+
+            <!-- Capa de fondo para cerrar menú radial -->
+            <div class="tactical-radial-dismiss-layer" id="tactical-radial-dismiss-layer" style="display: none;"></div>
+
+            <!-- Menú Radial Circular Flotante (se abre con pulsación prolongada en zona vacía) -->
+            <div class="tactical-radial-menu" id="tactical-radial-menu" style="display: none;">
+              <button type="button" class="radial-center-btn" id="radial-close-btn" title="Cerrar menú">✕</button>
+              <button type="button" class="radial-action-item item-rival" data-radial-action="add-rival" title="Añadir rival en esta posición">
+                <span class="radial-icon">🔴</span>
+                <span class="radial-text">+ Rival</span>
+              </button>
+              <button type="button" class="radial-action-item item-ball" data-radial-action="place-ball" title="Mover balón a esta posición">
+                <span class="radial-icon">⚽</span>
+                <span class="radial-text">Balón</span>
+              </button>
+              <button type="button" class="radial-action-item item-draw" data-radial-action="start-drawing" title="Activar dibujo táctico">
+                <span class="radial-icon">✏️</span>
+                <span class="radial-text">Dibujar</span>
+              </button>
+              <button type="button" class="radial-action-item item-bench" data-radial-action="open-bench" title="Banquillo de suplentes">
+                <span class="radial-icon">🟡</span>
+                <span class="radial-text">Suplentes</span>
+              </button>
+              <button type="button" class="radial-action-item item-clear" data-radial-action="clear-drawings" title="Limpiar trazos de dibujo">
+                <span class="radial-icon">🗑️</span>
+                <span class="radial-text">Limpiar</span>
+              </button>
+              <button type="button" class="radial-action-item item-reset" data-radial-action="reset-positions" title="Restablecer posiciones originales">
+                <span class="radial-icon">↺</span>
+                <span class="radial-text">Reset</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Columna Derecha: Herramientas de Dibujo, Banquillo y Acciones -->
-        <div class="tactical-sidebar-panel">
-          <!-- Barra de Herramientas de Dibujo Táctico -->
-          <div class="tactical-drawing-toolbar">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <strong style="font-size: 0.78rem; color: #f8fafc; display: flex; align-items: center; gap: 0.35rem;">
-                🎨 <span data-i18n="tactical.drawingTitle">Herramientas de Dibujo</span>
-              </strong>
-              <div style="display: flex; gap: 0.3rem;">
-                <button type="button" class="draw-tool-btn" id="btn-undo-drawing" title="Deshacer último trazo" data-i18n-title="tactical.toolUndo">
-                  ↩️
-                </button>
-                <button type="button" class="draw-tool-btn" id="btn-clear-drawing" title="Limpiar pizarra" data-i18n-title="tactical.toolClear">
-                  🗑️
-                </button>
-              </div>
-            </div>
-
-            <!-- Modos de cursor/herramienta -->
-            <div class="drawing-tool-row">
-              <button type="button" class="draw-tool-btn active" id="tool-move" data-tool="move" title="Arrastrar fichas y mover libremente">
-                🖐️ <span data-i18n="tactical.toolMove">Mover</span>
-              </button>
-              <button type="button" class="draw-tool-btn" id="tool-pencil" data-tool="pencil" title="Dibujar trazo libre">
-                ✏️ <span data-i18n="tactical.toolPencil">Lápiz</span>
-              </button>
-              <button type="button" class="draw-tool-btn" id="tool-arrow" data-tool="arrow" title="Dibujar flecha de desmarque o pase">
-                ➡️ <span data-i18n="tactical.toolArrow">Flecha</span>
-              </button>
-              <button type="button" class="draw-tool-btn" id="tool-eraser" data-tool="eraser" title="Borrar trazos">
-                🧽 <span data-i18n="tactical.toolEraser">Borrador</span>
-              </button>
-            </div>
-
-            <!-- Selector de color -->
-            <div class="drawing-tool-row" style="margin-top: 0.1rem; justify-content: flex-start; gap: 0.6rem;">
-              <span style="font-size: 0.72rem; color: var(--text-muted);">Color:</span>
-              <button type="button" class="color-swatch-btn active" data-color="#facc15" style="background: #facc15;" title="Amarillo táctico"></button>
-              <button type="button" class="color-swatch-btn" data-color="#ef4444" style="background: #ef4444;" title="Rojo presión"></button>
-              <button type="button" class="color-swatch-btn" data-color="#38bdf8" style="background: #38bdf8;" title="Azul jugada"></button>
-              <button type="button" class="color-swatch-btn" data-color="#ffffff" style="background: #ffffff;" title="Blanco"></button>
-            </div>
-          </div>
-
-          <!-- Elementos Tácticos: Balón y Jugadores Rivales -->
-          <div class="tactical-elements-toolbar" style="background: rgba(15, 23, 42, 0.75); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.5rem 0.75rem; display: flex; flex-direction: column; gap: 0.45rem;">
-            <!-- Fila Balón de Fútbol -->
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.76rem; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 0.35rem;">
-                ⚽ <span data-i18n="tactical.ballTitle">Balón de fútbol</span>
-              </span>
-              <div style="display: flex; gap: 0.35rem; align-items: center;">
-                <span id="tactical-ball-status-hint" style="font-size: 0.68rem; color: var(--accent-cyan);"></span>
-                <button type="button" class="btn btn-secondary btn-xs" id="btn-center-ball" style="font-size: 0.72rem; padding: 0.2rem 0.45rem;" data-i18n="tactical.ballCenter" title="Colocar el balón en el centro del campo">
-                  🎯 Centrar
-                </button>
-              </div>
-            </div>
-
-            <!-- Fila Rivales con Controles y Color Picker -->
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 0.4rem;">
-              <span style="font-size: 0.76rem; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 0.35rem;">
-                🔴 <span data-i18n="tactical.rivalsTitle">Rivales / Oponentes</span>
-              </span>
-              <div style="display: flex; gap: 0.3rem;">
-                <button type="button" class="btn btn-secondary btn-xs" id="btn-add-rival" style="font-size: 0.72rem; padding: 0.2rem 0.45rem;" data-i18n="tactical.addRival" title="Añadir una ficha rival al campo">
-                  ➕ Añadir
-                </button>
-                <button type="button" class="btn btn-secondary btn-xs" id="btn-clear-rivals" style="font-size: 0.72rem; padding: 0.2rem 0.45rem; color: #f87171;" data-i18n="tactical.clearRivals" title="Eliminar todos los rivales de la pizarra">
-                  🗑️
-                </button>
-              </div>
-            </div>
-
-            <!-- Selector de color para los rivales -->
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="font-size: 0.7rem; color: var(--text-muted);" data-i18n="tactical.rivalColor">Color rival:</span>
-              <div class="rival-color-picker" style="display: flex; gap: 0.35rem;">
-                <button type="button" class="rival-color-swatch active" data-rival-color="#ef4444" style="background: #ef4444;" title="Rojo"></button>
-                <button type="button" class="rival-color-swatch" data-rival-color="#8b5cf6" style="background: #8b5cf6;" title="Morado"></button>
-                <button type="button" class="rival-color-swatch" data-rival-color="#f97316" style="background: #f97316;" title="Naranja"></button>
-                <button type="button" class="rival-color-swatch" data-rival-color="#1e293b" style="background: #1e293b; border: 1px solid #64748b;" title="Negro"></button>
-                <button type="button" class="rival-color-swatch" data-rival-color="#ffffff" style="background: #ffffff;" title="Blanco"></button>
-                <button type="button" class="rival-color-swatch" data-rival-color="#06b6d4" style="background: #06b6d4;" title="Cian"></button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Banquillo de Suplentes -->
-          <div class="tactical-bench-section" style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; margin-top: 0;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-              <strong style="font-size: 0.8rem; color: #fff;" data-i18n="tactical.benchTitle">🟡 Banquillo de Suplentes</strong>
-              <span style="font-size: 0.68rem; color: var(--text-muted);" data-i18n="tactical.benchHint">Clic o arrastra</span>
-            </div>
-            <div class="tactical-bench-grid" id="tactical-bench-container" style="flex: 1; overflow-y: auto;"></div>
-          </div>
-
-          <!-- Botones de Acción en el panel lateral -->
-          <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-tactical-lineup" style="width: 100%; font-size: 0.78rem;" data-i18n="tactical.whatsapp">
-              📋 Copiar alineación para WhatsApp
+        <!-- Columna Derecha / Dock Móvil: Herramientas, Balón/Rivales, Banquillo y Opciones -->
+        <div class="tactical-sidebar-panel" id="tactical-sidebar-panel">
+          <!-- Barra de cabecera del cajón móvil para ocultarlo/cerrarlo con 1 toque -->
+          <div class="tactical-drawer-header" id="tactical-drawer-header">
+            <span id="tactical-drawer-title" style="font-size: 0.82rem; font-weight: 700; color: #fff;">⚽ Rivales y Balón</span>
+            <button type="button" class="btn btn-secondary btn-xs" onclick="closeTacticalDrawer()" style="font-size: 0.72rem; padding: 0.25rem 0.65rem; color: #f87171; border-color: rgba(239, 68, 68, 0.4); font-weight: 700;">
+              ▼ Ocultar panel
             </button>
-            <div style="display: flex; gap: 0.5rem;">
-              <button type="button" class="btn btn-secondary btn-sm" data-close-modal="modal-tactical-board" style="flex: 1;" data-i18n="common.close">Cerrar</button>
-              <button type="button" class="btn btn-primary btn-sm" id="btn-save-tactical-lineup" style="flex: 1.5;" data-i18n="tactical.saveLineup">Guardar alineación</button>
+          </div>
+
+          <!-- Dock de Pestañas Móviles (solo visible en pantallas < 860px) -->
+          <div class="tactical-mobile-tabs" id="tactical-mobile-tabs">
+            <button type="button" class="tactical-tab-btn active" data-tactical-tab="tactical-pane-rivals">
+              ⚽ Rivales
+            </button>
+            <button type="button" class="tactical-tab-btn" data-tactical-tab="tactical-pane-bench">
+              🟡 Suplentes <span class="badge-bench-count" id="mobile-bench-badge">0</span>
+            </button>
+            <button type="button" class="tactical-tab-btn" data-tactical-tab="tactical-pane-drawing">
+              🎨 Dibujar
+            </button>
+            <button type="button" class="tactical-tab-btn" data-tactical-tab="tactical-pane-options">
+              ⚙️ Menú
+            </button>
+          </div>
+
+          <!-- PANE 1: Elementos Tácticos (Balón y Jugadores Rivales) -->
+          <div class="tactical-tab-pane active" id="tactical-pane-rivals">
+            <div class="tactical-elements-toolbar" style="background: rgba(15, 23, 42, 0.75); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.55rem 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; width: 100%; box-sizing: border-box;">
+              <!-- Fila Balón de Fútbol -->
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 0.35rem;">
+                  ⚽ <span data-i18n="tactical.ballTitle">Balón de fútbol</span>
+                </span>
+                <div style="display: flex; gap: 0.35rem; align-items: center;">
+                  <span id="tactical-ball-status-hint" style="font-size: 0.7rem; color: var(--accent-cyan);"></span>
+                  <button type="button" class="btn btn-secondary btn-xs" id="btn-center-ball" style="font-size: 0.74rem; padding: 0.25rem 0.55rem;" data-i18n="tactical.ballCenter" title="Colocar el balón en el centro del campo">
+                    🎯 Centrar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Fila Rivales con Controles y Color Picker -->
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 0.45rem;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 0.35rem;">
+                  🔴 <span data-i18n="tactical.rivalsTitle">Rivales</span>
+                </span>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button type="button" class="btn btn-primary btn-xs" id="btn-add-rival" style="font-size: 0.74rem; padding: 0.25rem 0.55rem;" data-i18n="tactical.addRival" title="Añadir una ficha rival al campo">
+                    ➕ Añadir
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-xs" id="btn-clear-rivals" style="font-size: 0.74rem; padding: 0.25rem 0.55rem; color: #f87171;" data-i18n="tactical.clearRivals" title="Eliminar todos los rivales de la pizarra">
+                    🗑️ Borrar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Selector de color para los rivales -->
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                <span style="font-size: 0.72rem; color: var(--text-muted);" data-i18n="tactical.rivalColor">Color rival:</span>
+                <div class="rival-color-picker" style="display: flex; gap: 0.35rem;">
+                  <button type="button" class="rival-color-swatch active" data-rival-color="#ef4444" style="background: #ef4444;" title="Rojo"></button>
+                  <button type="button" class="rival-color-swatch" data-rival-color="#8b5cf6" style="background: #8b5cf6;" title="Morado"></button>
+                  <button type="button" class="rival-color-swatch" data-rival-color="#f97316" style="background: #f97316;" title="Naranja"></button>
+                  <button type="button" class="rival-color-swatch" data-rival-color="#1e293b" style="background: #1e293b; border: 1px solid #64748b;" title="Negro"></button>
+                  <button type="button" class="rival-color-swatch" data-rival-color="#ffffff" style="background: #ffffff;" title="Blanco"></button>
+                  <button type="button" class="rival-color-swatch" data-rival-color="#06b6d4" style="background: #06b6d4;" title="Cian"></button>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <!-- PANE 2: Banquillo de Suplentes -->
+          <div class="tactical-tab-pane" id="tactical-pane-bench">
+            <div class="tactical-bench-section" style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; margin-top: 0; width: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <strong style="font-size: 0.8rem; color: #fff;" data-i18n="tactical.benchTitle">🟡 Banquillo de Suplentes</strong>
+                <span style="font-size: 0.68rem; color: var(--accent-cyan);" data-i18n="tactical.benchHint">Toca un suplente y luego toca un titular</span>
+              </div>
+              <div class="tactical-bench-grid" id="tactical-bench-container" style="flex: 1; overflow-y: auto;"></div>
+            </div>
+          </div>
+
+          <!-- PANE 3: Barra de Herramientas de Dibujo Táctico -->
+          <div class="tactical-tab-pane" id="tactical-pane-drawing">
+            <div class="tactical-drawing-toolbar" style="width: 100%; box-sizing: border-box;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 0.78rem; color: #f8fafc; display: flex; align-items: center; gap: 0.35rem;">
+                  🎨 <span data-i18n="tactical.drawingTitle">Herramientas de Dibujo</span>
+                </strong>
+                <div style="display: flex; gap: 0.3rem;">
+                  <button type="button" class="draw-tool-btn" id="btn-undo-drawing" title="Deshacer último trazo" data-i18n-title="tactical.toolUndo">
+                    ↩️
+                  </button>
+                  <button type="button" class="draw-tool-btn" id="btn-clear-drawing" title="Limpiar pizarra" data-i18n-title="tactical.toolClear">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+              <!-- Modos de cursor/herramienta -->
+              <div class="drawing-tool-row">
+                <button type="button" class="draw-tool-btn active" id="tool-move" data-tool="move" title="Arrastrar fichas y mover libremente">
+                  🖐️ <span data-i18n="tactical.toolMove">Mover</span>
+                </button>
+                <button type="button" class="draw-tool-btn" id="tool-pencil" data-tool="pencil" title="Dibujar trazo libre">
+                  ✏️ <span data-i18n="tactical.toolPencil">Lápiz</span>
+                </button>
+                <button type="button" class="draw-tool-btn" id="tool-arrow" data-tool="arrow" title="Dibujar flecha de desmarque o pase">
+                  ➡️ <span data-i18n="tactical.toolArrow">Flecha</span>
+                </button>
+                <button type="button" class="draw-tool-btn" id="tool-eraser" data-tool="eraser" title="Borrar trazos">
+                  🧽 <span data-i18n="tactical.toolEraser">Borrador</span>
+                </button>
+              </div>
+
+              <!-- Selector de color -->
+              <div class="drawing-tool-row" style="margin-top: 0.1rem; justify-content: flex-start; gap: 0.6rem;">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Color:</span>
+                <button type="button" class="color-swatch-btn active" data-color="#facc15" style="background: #facc15;" title="Amarillo táctico"></button>
+                <button type="button" class="color-swatch-btn" data-color="#ef4444" style="background: #ef4444;" title="Rojo presión"></button>
+                <button type="button" class="color-swatch-btn" data-color="#38bdf8" style="background: #38bdf8;" title="Azul jugada"></button>
+                <button type="button" class="color-swatch-btn" data-color="#ffffff" style="background: #ffffff;" title="Blanco"></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 4: Menú de Acciones y Guardado -->
+          <div class="tactical-tab-pane" id="tactical-pane-options">
+            <div style="display: flex; flex-direction: column; gap: 0.6rem; width: 100%;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-tactical-lineup" style="width: 100%; font-size: 0.78rem;" data-i18n="tactical.whatsapp">
+                📋 Copiar alineación para WhatsApp
+              </button>
+              <div style="display: flex; gap: 0.5rem;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeTacticalModal()" style="flex: 1;" data-i18n="common.close">✕ Salir sin guardar</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-save-tactical-lineup-pane" onclick="document.getElementById('btn-save-tactical-lineup').click()" style="flex: 1.5;" data-i18n="tactical.saveLineup">💾 Guardar alineación</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Barra Inferior de Acción Rápida (Siempre accesible en el dock) -->
+          <div class="tactical-dock-footer" style="display: flex; gap: 0.5rem; margin-top: auto; padding-top: 0.3rem; border-top: 1px solid rgba(255,255,255,0.08);">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeTacticalModal()" style="flex: 1; font-size: 0.76rem;" data-i18n="common.close">
+              ✕ Cerrar
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-save-tactical-lineup" style="flex: 2; font-size: 0.78rem; background: #10b981; border-color: #059669;" data-i18n="tactical.saveLineup">
+              💾 Guardar alineación
+            </button>
           </div>
         </div>
       </div>
@@ -604,18 +709,27 @@
         </p>
 
         <!-- Contenedor QR -->
-        <div style="background: #fff; border-radius: 12px; padding: 1rem; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.4); margin-bottom: 1rem;">
-          <div id="share-qr-canvas-container" style="display: flex; justify-content: center; align-items: center; min-height: 180px; min-width: 180px;">
+        <div style="background: #ffffff; border-radius: 14px; padding: 1rem; display: inline-block; box-shadow: 0 6px 24px rgba(0,0,0,0.5); margin-bottom: 0.75rem;">
+          <div id="share-qr-canvas-container" style="display: flex; justify-content: center; align-items: center; min-height: 200px; min-width: 200px;">
             <!-- Renderizado dinámico del QR -->
           </div>
-          <div style="font-size: 0.72rem; color: #1e293b; font-weight: 700; margin-top: 0.5rem;" id="share-qr-match-label">
+          <div style="font-size: 0.76rem; color: #0f172a; font-weight: 800; margin-top: 0.5rem;" id="share-qr-match-label">
             JK Noova Academy
           </div>
         </div>
 
+        <div>
+          <button type="button" class="btn btn-secondary btn-xs" id="btn-download-qr" style="font-size: 0.75rem; padding: 0.3rem 0.75rem; margin-bottom: 0.75rem;">
+            📥 Descargar imagen QR (PNG)
+          </button>
+        </div>
+
         <!-- Enlace directo -->
-        <div class="form-group" style="text-align: left;">
-          <label class="form-label">Enlace público directo:</label>
+        <div class="form-group" style="text-align: left; margin-bottom: 0.75rem;">
+          <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Enlace público directo:</span>
+            <span id="share-url-origin-hint" style="font-size: 0.7rem; color: var(--accent-cyan);"></span>
+          </label>
           <div style="display: flex; gap: 0.4rem;">
             <input type="text" class="form-input" id="share-direct-url-input" readonly style="font-size: 0.75rem; background: var(--bg-primary); cursor: text;">
             <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-family-url" style="white-space: nowrap;">
@@ -624,8 +738,52 @@
           </div>
         </div>
 
+        <!-- Alerta de URL pendiente de configurar en APK -->
+        <div id="share-url-alert-box" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1.5px solid rgba(245, 158, 11, 0.4); border-radius: 12px; padding: 0.85rem; margin-bottom: 1rem; text-align: left;">
+          <div style="font-weight: 800; color: #fbbf24; font-size: 0.85rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>⚠️</span> Configura la dirección web de tu academia
+          </div>
+          <p style="font-size: 0.75rem; color: #cbd5e1; line-height: 1.4; margin-bottom: 0.55rem;">
+            Para que las familias puedan escanear el QR o abrir el enlace de WhatsApp desde sus propios teléfonos, introduce la dirección web donde está publicado el club (por ejemplo en <strong>GitHub Pages</strong>):
+          </p>
+          <div style="display: flex; gap: 0.35rem; margin-bottom: 0.4rem;">
+            <input type="url" class="form-input" id="share-custom-base-url-top" placeholder="https://tu-usuario.github.io/tu-repo/" style="font-size: 0.76rem; background: #070a12;">
+            <button type="button" class="btn btn-primary btn-xs" id="btn-save-custom-base-url-top" style="white-space: nowrap; font-size: 0.75rem; padding: 0.35rem 0.75rem;">
+              Guardar
+            </button>
+          </div>
+          <div style="font-size: 0.69rem; color: #94a3b8;">
+            💡 <em>Ej: https://tu-usuario.github.io/JK-Noova-Academy/</em>
+          </div>
+        </div>
+
+        <!-- Banner de servidor activo si ya está configurado -->
+        <div id="share-url-active-box" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.5rem 0.75rem; margin-bottom: 0.85rem; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 0.73rem; color: #34d399; font-weight: 600; display: flex; align-items: center; gap: 0.35rem; min-width: 0;">
+              <span>🟢</span> <span id="share-active-url-text" style="color: #fff; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-xs" id="btn-edit-active-url" style="font-size: 0.66rem; padding: 0.15rem 0.5rem; margin-left: 0.5rem; flex-shrink: 0;">
+              ✏️ Cambiar
+            </button>
+          </div>
+        </div>
+
+        <!-- Panel de configuración secundario -->
+        <div id="share-url-config-inputs" style="display: none; text-align: left; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.6rem 0.75rem; margin-bottom: 0.85rem;">
+          <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.4rem; line-height: 1.4;">
+            Modificar dirección web para familias (ej. <code>https://tu-usuario.github.io/JK-Noova-Academy/</code>):
+          </p>
+          <div style="display: flex; gap: 0.35rem;">
+            <input type="url" class="form-input" id="share-custom-base-url" placeholder="https://mi-club.github.io/app/" style="font-size: 0.74rem;">
+            <button type="button" class="btn btn-primary btn-xs" id="btn-save-custom-base-url" style="font-size: 0.72rem; padding: 0.25rem 0.65rem;">
+              Guardar
+            </button>
+          </div>
+        </div>
+
         <!-- Botón enviar a WhatsApp -->
-        <div style="margin-top: 1rem;">
+        <div>
           <button type="button" class="btn btn-primary" id="btn-open-whatsapp-share" style="width: 100%; justify-content: center; background: #25d366; border-color: #25d366; color: #000; font-weight: 700;">
             💬 Compartir convocatoria por WhatsApp
           </button>
