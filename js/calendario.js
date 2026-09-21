@@ -227,10 +227,23 @@ function renderConvocatoriaPanel() {
   const btnShare = document.getElementById('btn-share-family');
   if (btnShare) {
     btnShare.onclick = () => {
-      if (typeof openShareFamilyModal === 'function') {
-        openShareFamilyModal(event);
-      } else {
-        showToast('Abriendo consulta para familias...', 'info');
+      try {
+        if (typeof openShareFamilyModal === 'function') {
+          openShareFamilyModal(event);
+        } else {
+          const modal = document.getElementById('modal-share-family');
+          if (modal) {
+            if (typeof openModal === 'function') openModal(modal);
+            else modal.classList.add('active');
+          }
+        }
+      } catch (err) {
+        console.error('Error al abrir modal de familias:', err);
+        const modal = document.getElementById('modal-share-family');
+        if (modal) {
+          if (typeof openModal === 'function') openModal(modal);
+          else modal.classList.add('active');
+        }
       }
     };
   }
@@ -1065,12 +1078,15 @@ let shareQrInstance = null;
 
 function buildCompactMatchPayload(event) {
   if (!event) return null;
-  const team = teamsList.find(t => t.id === event.teamId) || { name: 'Equipo', category: '' };
-  const allTransport = (storage.getTransport && storage.getTransport()) || {};
+  const storage = (window.JKNoovaData && window.JKNoovaData.StorageService) || null;
+  const team = (teamsList && teamsList.find(t => t.id === event.teamId)) ||
+               (storage && storage.getTeams && storage.getTeams().find(t => t.id === event.teamId)) ||
+               { name: 'Equipo', category: '' };
+  const allTransport = (storage && storage.getTransport && storage.getTransport()) || {};
   const evTransport = allTransport[event.id] || {};
-  const allVans = (storage.getVans && storage.getVans()) || [];
+  const allVans = (storage && storage.getVans && storage.getVans()) || [];
   const van = allVans.find(v => v.id === evTransport.vanId) || (allVans.length > 0 ? allVans[0] : null);
-  const allPlayers = (storage.getPlayers && storage.getPlayers()) || [];
+  const allPlayers = (storage && storage.getPlayers && storage.getPlayers()) || playersList || [];
 
   const seatMap = evTransport.seats || {};
 
@@ -1136,7 +1152,7 @@ function getPublicShareBaseUrl() {
     return `${window.location.origin}${basePath}`;
   }
 
-  return '';
+  return 'https://streetoh.github.io/Player_Database/';
 }
 
 function openShareFamilyModal(event) {
@@ -1217,8 +1233,13 @@ function openShareFamilyModal(event) {
   }
 
   // Construir payload autónomo
-  const payloadData = buildCompactMatchPayload(event);
-  const effectiveBase = hasUrl ? baseUrl : 'https://tu-usuario.github.io/JK-Noova-Academy/';
+  let payloadData = null;
+  try {
+    payloadData = buildCompactMatchPayload(event);
+  } catch (err) {
+    console.warn('No se pudo empaquetar payload del partido:', err);
+  }
+  const effectiveBase = hasUrl ? baseUrl : 'https://streetoh.github.io/Player_Database/';
   const shareUrl = `${effectiveBase}partido.html?event=${event.id}${payloadData ? '&d=' + payloadData : ''}`;
 
   const inputUrl = document.getElementById('share-direct-url-input');
@@ -1244,15 +1265,19 @@ function openShareFamilyModal(event) {
   const qrContainer = document.getElementById('share-qr-canvas-container');
   if (qrContainer && typeof QRCode !== 'undefined') {
     qrContainer.innerHTML = '';
-    shareQrInstance = new QRCode(qrContainer, {
-      text: shareUrl,
-      width: 200,
-      height: 200,
-      colorDark: '#000000',
-      colorLight: '#ffffff',
-      correctLevel: 'M',
-      margin: 4
-    });
+    try {
+      shareQrInstance = new QRCode(qrContainer, {
+        text: shareUrl,
+        width: 200,
+        height: 200,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: 'M',
+        margin: 4
+      });
+    } catch (qrErr) {
+      console.error('Error generando QR:', qrErr);
+    }
   }
 
   // Botón Descargar QR en PNG

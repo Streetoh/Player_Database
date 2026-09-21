@@ -254,12 +254,15 @@ function initTacticalBoardLogic() {
   const pitchTypeSelect = document.getElementById('tactical-pitch-type-select');
   if (pitchTypeSelect) {
     pitchTypeSelect.onchange = (e) => {
+      const oldPitch = currentPitchType;
+      const oldForm = currentFormation;
       currentPitchType = e.target.value;
       populateFormationsDropdown();
       const availableForms = Object.keys(FORMATIONS_CONFIG[currentPitchType].formations);
       currentFormation = availableForms[0];
-      document.getElementById('tactical-formation-select').value = currentFormation;
-      adjustLineupForCapacity();
+      const formSelectEl = document.getElementById('tactical-formation-select');
+      if (formSelectEl) formSelectEl.value = currentFormation;
+      migrateLineupToNewFormation(oldPitch, oldForm, currentPitchType, currentFormation);
       renderTacticalStage();
     };
   }
@@ -267,9 +270,15 @@ function initTacticalBoardLogic() {
   const formSelect = document.getElementById('tactical-formation-select');
   if (formSelect) {
     formSelect.onchange = (e) => {
-      currentFormation = e.target.value;
-      tacticalCustomPositions = {};
+      const oldForm = currentFormation;
+      const newForm = e.target.value;
+      migrateLineupToNewFormation(currentPitchType, oldForm, currentPitchType, newForm);
+      currentFormation = newForm;
       renderTacticalStage();
+      if (typeof showToast === 'function') {
+        const fName = FORMATIONS_CONFIG[currentPitchType]?.formations[newForm]?.name || newForm;
+        showToast(`Formación cambiada a ${fName}. Jugadores reubicados en el campo.`, 'info');
+      }
     };
   }
 
@@ -1024,27 +1033,107 @@ function initializeLineupFromEvent() {
   }
 }
 
-function adjustLineupForCapacity() {
-  const currentSlots = FORMATIONS_CONFIG[currentPitchType].formations[currentFormation].slots;
-  const validSlotKeys = currentSlots.map(s => s.key);
+function migrateLineupToNewFormation(oldPitch, oldForm, newPitch, newForm) {
+  const oldConfig = FORMATIONS_CONFIG[oldPitch]?.formations[oldForm];
+  const newConfig = FORMATIONS_CONFIG[newPitch]?.formations[newForm];
+  if (!newConfig) return;
 
-  // Mover titulares de huecos inexistentes al banquillo
-  for (const sKey in tacticalStarters) {
-    if (!validSlotKeys.includes(sKey)) {
-      const pid = tacticalStarters[sKey];
-      if (pid && !tacticalBench.includes(pid)) {
-        tacticalBench.push(pid);
-      }
-      delete tacticalStarters[sKey];
+  const oldSlots = oldConfig ? oldConfig.slots : [];
+  const newSlots = newConfig.slots;
+
+  const oldSlotsMap = {};
+  oldSlots.forEach(s => {
+    oldSlotsMap[s.key] = s;
+  });
+
+  const oldStarters = { ...tacticalStarters };
+  const newStarters = {};
+  const assignedPids = new Set();
+  const unassignedStarters = [];
+
+  // 1. Coincidencia exacta de clave de posición (ej: por -> por, dfi -> dfi, del -> del)
+  for (const s of newSlots) {
+    const pid = oldStarters[s.key];
+    if (pid) {
+      newStarters[s.key] = pid;
+      assignedPids.add(pid);
     }
   }
 
-  // Si sobran huecos y hay suplentes, rellenar
-  currentSlots.forEach(slot => {
-    if (!tacticalStarters[slot.key] && tacticalBench.length > 0) {
-      tacticalStarters[slot.key] = tacticalBench.shift();
+  // 2. Recoger titulares que estaban en el campo pero su posición cambió de clave en el nuevo esquema
+  for (const [sKey, pid] of Object.entries(oldStarters)) {
+    if (pid && !assignedPids.has(pid)) {
+      const oldSlot = oldSlotsMap[sKey] || { y: 50, x: 50 };
+      unassignedStarters.push({ pid, y: oldSlot.y, x: oldSlot.x });
     }
-  });
+  }
+
+  // Ordenar de abajo hacia arriba (de defensa hacia delantera) para preservar las líneas tácticas
+  unassignedStarters.sort((a, b) => b.y - a.y || a.x - b.x);
+
+  // Huecos libres en la nueva formación ordenados espacialmente (de defensa a delantera)
+  const emptySlots = newSlots.filter(s => !newStarters[s.key]);
+  emptySlots.sort((a, b) => b.y - a.y || a.x - b.x);
+
+  // 3. Rellenar huecos libres con los titulares que ya estaban en el campo
+  for (const s of emptySlots) {
+    if (unassignedStarters.length > 0) {
+      const item = unassignedStarters.shift();
+      newStarters[s.key] = item.pid;
+      assignedPids.add(item.pid);
+    }
+  }
+
+  // 4. Si la nueva formación tiene menos plazas (ej: de F11 a F7), los titulares sobrantes pasan al banquillo
+  while (unassignedStarters.length > 0) {
+    const item = unassignedStarters.shift();
+    if (!tacticalBench.includes(item.pid)) {
+      tacticalBench.unshift(item.pid);
+    }
+  }
+
+  // 5. Si la nueva formación tiene más plazas (ej: de F7 a F8 o F11), completar huecos con suplentes del banquillo
+  for (const s of newSlots) {
+    if (!newStarters[s.key] && tacticalBench.length > 0) {
+      const pid = tacticalBench.shift();
+      newStarters[s.key] = pid;
+      assignedPids.add(pid);
+    }
+  }
+
+  // 6. Limpiar banquillo: ningún titular puede estar en el banquillo
+  tacticalBench = tacticalBench.filter(pid => !assignedPids.has(pid));
+
+  // 7. Si hay convocados que no estaban asignados, añadirlos al banquillo
+  if (currentTacticalEvent && Array.isArray(currentTacticalEvent.callUp)) {
+    currentTacticalEvent.callUp.forEach(c => {
+      if (c.playerId && !assignedPids.has(c.playerId) && !tacticalBench.includes(c.playerId)) {
+        tacticalBench.push(c.playerId);
+      }
+    });
+  }
+
+  // 8. Reubicar posesión del balón si el jugador cambió de posición
+  if (tacticalBall.attachedToSlot) {
+    const playerWithBall = oldStarters[tacticalBall.attachedToSlot];
+    if (playerWithBall) {
+      const newSlotKey = Object.keys(newStarters).find(k => newStarters[k] === playerWithBall);
+      if (newSlotKey) {
+        tacticalBall.attachedToSlot = newSlotKey;
+      } else {
+        tacticalBall.attachedToSlot = null;
+        tacticalBall.x = 50;
+        tacticalBall.y = 50;
+      }
+    }
+  }
+
+  tacticalStarters = newStarters;
+  tacticalCustomPositions = {};
+}
+
+function adjustLineupForCapacity() {
+  migrateLineupToNewFormation(currentPitchType, currentFormation, currentPitchType, currentFormation);
 }
 
 /**
