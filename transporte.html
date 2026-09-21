@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transporte | Renault Trafic (8 plazas) | JK Noova</title>
+  <meta name="description" content="Organizador gráfico y distribución de plazas en furgoneta Renault Trafic (8 plazas) y flota del club JK Noova">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d1322">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JK Noova">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Barra de navegación superior -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-crest">JK</div>
+        <div class="brand-text">
+          <h1>JK NOOVA <span class="brand-badge">Academy</span></h1>
+          <p class="brand-sub">Gestión integral de fútbol base</p>
+        </div>
+      </div>
+
+      <!-- Enlaces de navegación -->
+      <nav class="nav-tabs" role="navigation">
+        <a href="index.html" class="nav-tab-btn" data-page="database">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          <span data-i18n="nav.database">Base de datos</span>
+          <span class="tab-badge" id="badge-total-players">0</span>
+        </a>
+        <a href="equipos.html" class="nav-tab-btn" data-page="teams">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span data-i18n="nav.teams">Equipos</span>
+          <span class="tab-badge" id="badge-total-teams">5</span>
+        </a>
+        <a href="calendario.html" class="nav-tab-btn" data-page="calendar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span data-i18n="nav.calendar">Calendario</span>
+          <span class="tab-badge" id="badge-total-events">3</span>
+        </a>
+        <a href="transporte.html" class="nav-tab-btn active" data-page="transport">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          <span data-i18n="nav.transport">Transporte</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-open-settings" data-i18n="nav.settings" data-i18n-title="nav.settingsTitle" title="Copias de seguridad y datos">
+          ⚙️ Config
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido principal: Transporte -->
+  <main class="main-content">
+    <div class="section-header">
+      <div class="section-header-title">
+        <h2>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          <span data-i18n="transport.title">Módulo de transporte: Renault Trafic (8 plazas)</span>
+        </h2>
+        <p data-i18n="transport.subtitle">Organizador interactivo de viaje. Asigna gráficamente los asientos arrastrando o pulsando sobre cada plaza.</p>
+      </div>
+
+      <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+        <label style="font-size: 0.85rem; color: var(--text-secondary);" data-i18n="transport.match">Partido:</label>
+        <select class="custom-select" id="transport-event-select" style="min-width: 200px;"></select>
+
+        <label style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 0.25rem;" data-i18n="transport.vehicle">Vehículo:</label>
+        <select class="custom-select" id="transport-van-select" style="min-width: 220px;"></select>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-manage-fleet" data-i18n="transport.officialFleet" title="Gestionar vehículos y matrículas de la flota oficial">
+          🚐 Flota oficial
+        </button>
+
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-auto-assign-seats" data-i18n="transport.autoAssign" title="Autocompletar asientos con los convocados sin asignar">
+          ⚡ Auto-asignar
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-all-seats" data-i18n="transport.clearSeats" title="Vaciar todos los asientos de pasajeros">
+          🗑️ Vaciar plazas
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-print-transport" data-i18n="transport.print" title="Imprimir hoja de viaje para el cuerpo técnico">
+          🖨️ Imprimir
+        </button>
+      </div>
+    </div>
+
+    <div class="transport-layout">
+      <!-- Columna izquierda: Lista de convocados para el viaje -->
+      <div class="transport-sidebar">
+        <div>
+          <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff;">Convocados para el viaje</h3>
+          <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.2rem;">
+            Arrastra un jugador hacia cualquier plaza o haz clic en un asiento de la furgoneta.
+          </p>
+        </div>
+        <div class="minibus-pool-list" id="minibus-pool-container"></div>
+      </div>
+
+      <!-- Zona central: Silueta técnica wireframe del vehículo -->
+      <div class="van-stage-container">
+        <!-- Barra de estado y contador en vivo -->
+        <div class="van-counter-strip">
+          <div class="van-counter-main">
+            <div class="van-badge-count">
+              Ocupación: <span id="van-counter-text">0 / 8</span>
+            </div>
+            <div class="van-progress-bar-wrap">
+              <div class="van-progress-bar" id="van-progress-bar"></div>
+            </div>
+          </div>
+          <div id="van-alert-box">
+            <span class="van-alert-badge alert-ok" id="van-status-badge">Plazas disponibles</span>
+          </div>
+        </div>
+
+        <!-- Escenario Wireframe del vehículo sobre fondo negro (según imagen de referencia) -->
+        <div class="van-blueprint-wrap">
+          <div class="van-chassis" id="van-chassis-stage">
+            <!-- Faros delanteros -->
+            <div class="van-headlight-l"></div>
+            <div class="van-headlight-r"></div>
+
+            <!-- Ruedas laterales esquemáticas -->
+            <div class="van-wheel van-wheel-fl" title="Rueda delantera izquierda"></div>
+            <div class="van-wheel van-wheel-fr" title="Rueda delantera derecha"></div>
+            <div class="van-wheel van-wheel-rl" title="Rueda trasera izquierda"></div>
+            <div class="van-wheel van-wheel-rr" title="Rueda trasera derecha"></div>
+
+            <!-- Retrovisores exteriores -->
+            <div class="van-mirror-l"></div>
+            <div class="van-mirror-r"></div>
+
+            <!-- Capó e identificación del modelo -->
+            <div class="van-hood">
+              <span class="van-model-name" id="van-model-label">Renault Trafic • 8 plazas</span>
+            </div>
+
+            <!-- Parabrisas y volante -->
+            <div class="van-windshield">
+              <div class="van-steering-wheel" title="Volante de dirección"></div>
+              <span class="van-windshield-label">Frontal</span>
+            </div>
+
+            <!-- Habitáculo con asientos dinámicos (8, 14 o 19 plazas) -->
+            <div class="van-cabin" id="van-cabin-container"></div>
+
+            <!-- Matrícula europea identificativa al pie del vehículo -->
+            <div class="van-license-plate-wrap">
+              <span class="van-license-plate-label">Matrícula identificativa</span>
+              <div class="van-license-plate" id="van-license-plate-display" title="Matrícula del vehículo del club">
+                <div class="plate-eu-strip">
+                  <span class="plate-stars">🇪🇺</span>
+                  <span class="plate-country">E</span>
+                </div>
+                <span class="plate-code" id="van-plate-display">4821 - KLP</span>
+              </div>
+            </div>
+
+            <!-- Zona de maletero / material -->
+            <div class="van-trunk-wireframe">
+              Zona de carga / Balones y botiquín
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Asignación rápida de asiento -->
+  <div class="modal-backdrop" id="modal-seat-assign">
+    <div class="modal-window" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3 id="modal-seat-assign-title">Asignar plaza</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-seat-assign">&times;</button>
+      </div>
+      <div class="modal-body" style="overflow-x: hidden;">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+          Selecciona qué jugador convocado viajará en este asiento:
+        </p>
+        <div id="seat-assign-options-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto;"></div>
+
+        <!-- REQUISITO ESTRICTO: Seleccionar jugador de otro equipo -->
+        <div style="margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px solid var(--border-subtle);">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-other-teams" style="width: 100%; justify-content: center; gap: 0.5rem; background: rgba(255,255,255,0.04); border-color: #2e4268;">
+            <span>🌟</span> Seleccionar jugador de otro equipo
+          </button>
+          <div id="seat-other-teams-container" style="display: none; margin-top: 0.85rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem;">
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 700;">
+              Elige el equipo del jugador:
+            </div>
+            <div id="seat-other-teams-pills" style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem;"></div>
+            <div id="seat-other-teams-roster" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 180px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <!-- REQUISITO ESTRICTO: Añadir acompañante (padre o madre) que no sea del equipo -->
+        <div style="margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px solid var(--border-subtle);">
+          <label class="form-label" style="font-size: 0.82rem; color: var(--accent-cyan); font-weight: 700;">
+            ➕ Asignar acompañante (padre, madre o cuerpo técnico)
+          </label>
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.35rem;">
+            <input type="text" id="seat-accompanist-name" class="form-input" placeholder="Ej. Carlos Silva (Padre)" style="font-size: 0.82rem; padding: 0.4rem 0.65rem; flex: 1;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-assign-accompanist">Asignar</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger btn-sm" id="btn-vacate-current-seat">Desocupar asiento</button>
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-seat-assign">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Gestión de Flota Oficial de Furgonetas y Matrículas -->
+  <div class="modal-backdrop" id="modal-fleet-manage">
+    <div class="modal-window modal-window-lg" style="max-width: 720px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="font-size: 1.25rem;">🚐</span>
+          <h3 style="margin: 0;">Flota oficial de furgonetas y vehículos</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-fleet-manage">&times;</button>
+      </div>
+      <div class="modal-body" style="overflow-x: hidden;">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          Gestiona las furgonetas del club (3 furgonetas oficiales Renault Trafic con matrícula), edita sus datos o añade y elimina vehículos.
+        </p>
+
+        <!-- Lista de vehículos de la flota -->
+        <div id="fleet-list-container" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.25rem; max-height: 280px; overflow-y: auto;"></div>
+
+        <!-- Formulario para agregar o editar vehículo -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+          <h4 id="fleet-form-title" style="font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">➕ Añadir o editar vehículo</h4>
+          <form id="form-fleet-van" onsubmit="return false;">
+            <input type="hidden" id="fleet-van-id">
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label" for="fleet-van-name">Nombre / Modelo *</label>
+                <input type="text" class="form-input" id="fleet-van-name" required placeholder="Ej. Renault Trafic 4">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fleet-van-plate">Matrícula europea *</label>
+                <input type="text" class="form-input" id="fleet-van-plate" required placeholder="Ej. 5123 - LMN">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fleet-van-capacity">Capacidad de plazas</label>
+                <select class="form-select" id="fleet-van-capacity">
+                  <option value="8">8 plazas (Oficial SpaceClass)</option>
+                  <option value="14">14 plazas (Furgón / Minibús 2+1)</option>
+                  <option value="16">16 plazas (Furgón / Minibús 2+1)</option>
+                  <option value="19">19 plazas (Minibús 2+1)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-fleet-edit" style="display: none;">Cancelar</button>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-save-fleet-van">Guardar vehículo</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-fleet-manage">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Configuración y copias de seguridad -->
+  <div class="modal-backdrop" id="modal-settings">
+    <div class="modal-window" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>Gestión de datos y copias de seguridad</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">
+          Los datos se guardan de forma local. Puedes exportar una copia o restaurar los datos iniciales de JK Noova.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.85rem 1rem; border-radius: 8px;">
+            <div>
+              <strong style="font-size: 0.9rem;">Exportar copia de seguridad</strong>
+              <p style="font-size: 0.75rem; color: var(--text-muted);">Descarga un archivo JSON con todos los datos</p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-export-backup">Descargar JSON</button>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.85rem 1rem; border-radius: 8px;">
+            <div>
+              <strong style="font-size: 0.9rem;">Importar copia de seguridad</strong>
+              <p style="font-size: 0.75rem; color: var(--text-muted);">Carga un archivo JSON previo</p>
+            </div>
+            <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+              Cargar JSON
+              <input type="file" id="file-import-input" accept=".json" style="display: none;">
+            </label>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.85rem 1rem; border-radius: 8px;">
+            <div>
+              <strong style="font-size: 0.9rem; color: #fca5a5;">Restablecer demostración</strong>
+              <p style="font-size: 0.75rem; color: #f87171;">Restaura la plantilla inicial de JK Noova</p>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-reset-demo-data">Restablecer</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-settings">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/transporte.js"></script>
+</body>
+</html>

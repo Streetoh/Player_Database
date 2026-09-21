@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base de datos | JK Noova Gestión Deportiva</title>
+  <meta name="description" content="Base de datos de jugadores del club JK Noova con fichas completas, contactos familiares y notas técnicas">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d1322">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JK Noova">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Barra de navegación superior -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-crest">JK</div>
+        <div class="brand-text">
+          <h1>JK NOOVA <span class="brand-badge">Academy</span></h1>
+          <p class="brand-sub">Gestión integral de fútbol base</p>
+        </div>
+      </div>
+
+      <!-- Enlaces de navegación -->
+      <nav class="nav-tabs" role="navigation">
+        <a href="index.html" class="nav-tab-btn active" data-page="database">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          <span data-i18n="nav.database">Base de datos</span>
+          <span class="tab-badge" id="badge-total-players">0</span>
+        </a>
+        <a href="equipos.html" class="nav-tab-btn" data-page="teams">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span data-i18n="nav.teams">Equipos</span>
+          <span class="tab-badge" id="badge-total-teams">5</span>
+        </a>
+        <a href="calendario.html" class="nav-tab-btn" data-page="calendar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span data-i18n="nav.calendar">Calendario</span>
+          <span class="tab-badge" id="badge-total-events">3</span>
+        </a>
+        <a href="transporte.html" class="nav-tab-btn" data-page="transport">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          <span data-i18n="nav.transport">Transporte</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-open-settings" data-i18n="nav.settings" data-i18n-title="nav.settingsTitle" title="Copias de seguridad y datos">
+          ⚙️ Config
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-quick-new-player" data-i18n="nav.newPlayer">
+          ➕ Nuevo jugador
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido principal: Base de datos -->
+  <main class="main-content">
+    <div class="section-header">
+      <div class="section-header-title">
+        <h2>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          <span data-i18n="players.title">Base de datos de jugadores</span>
+        </h2>
+        <p data-i18n="players.subtitle">Fichas técnicas completas, contactos familiares y notas de evolución deportiva</p>
+      </div>
+      <div>
+        <button type="button" class="btn btn-primary" id="btn-add-player-main" data-i18n="nav.registerPlayer">
+          ➕ Registrar jugador
+        </button>
+      </div>
+    </div>
+
+    <!-- Banda de métricas limpias: Solo Total de jugadores y Equipos activos -->
+    <div class="stats-strip" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="stat-card" style="--card-accent: #3b82f6;">
+        <div class="stat-icon">⚽</div>
+        <div class="stat-info">
+          <div class="stat-num" id="stat-total-count">0</div>
+          <div class="stat-label" data-i18n="players.totalCount">Total de jugadores</div>
+        </div>
+      </div>
+      <div class="stat-card" style="--card-accent: #10b981;">
+        <div class="stat-icon">🛡️</div>
+        <div class="stat-info">
+          <div class="stat-num" id="stat-teams-count">5</div>
+          <div class="stat-label" data-i18n="players.teamsCount">Equipos activos</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de búsqueda y filtros -->
+    <div class="toolbar-bar">
+      <div class="toolbar-primary">
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="player-search-input" data-i18n-placeholder="players.searchPlaceholder" placeholder="Buscar por nombre, apodo, dorsal o tutor...">
+        </div>
+
+        <div class="filter-group">
+          <select class="custom-select" id="filter-position-select">
+            <option value="all">Todas las posiciones</option>
+            <option value="POR">Portero (POR)</option>
+            <option value="DFC">Defensa central (DFC)</option>
+            <option value="LD">Lateral derecho (LD)</option>
+            <option value="LI">Lateral izquierdo (LI)</option>
+            <option value="MCD">Medio defensivo (MCD)</option>
+            <option value="MC">Mediocentro (MC)</option>
+            <option value="MCO">Mediapunta (MCO)</option>
+            <option value="ED">Extremo derecho (ED)</option>
+            <option value="EI">Extremo izquierdo (EI)</option>
+            <option value="DC">Delantero centro (DC)</option>
+          </select>
+
+          <select class="custom-select" id="sort-players-select">
+            <option value="dorsal-asc">Dorsal: menor a mayor</option>
+            <option value="name-asc">Nombre: A - Z</option>
+            <option value="age-desc">Edad: mayor a menor</option>
+            <option value="age-asc">Edad: menor a mayor</option>
+          </select>
+
+          <div class="toggle-chip" id="toggle-medical-filter" role="button" tabindex="0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span data-i18n="players.filterMedicalOnly">Solo con alerta médica</span>
+          </div>
+
+          <div class="toggle-chip" id="toggle-kit-filter" role="button" tabindex="0">
+            <span>👕</span>
+            <span data-i18n="players.filterKitOnly">Falta equipación</span>
+          </div>
+
+          <div class="toggle-chip" id="toggle-dorsal-filter" role="button" tabindex="0">
+            <span>⚠️</span>
+            <span data-i18n="players.filterDorsalOnly">Conflicto dorsales</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtro por categoría/equipo -->
+      <div class="category-pills" id="category-pills-container"></div>
+    </div>
+
+    <!-- Rejilla de tarjetas de jugador -->
+    <div class="players-grid" id="players-grid-container"></div>
+  </main>
+
+  <!-- Modal: Ficha del jugador (Rediseñada, estilo carné deportivo oficial y sin desbordamientos) -->
+  <div class="modal-backdrop" id="modal-player">
+    <div class="modal-window modal-window-lg" style="max-width: 860px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="font-size: 1.25rem;">⚽</span>
+          <h3 id="modal-player-title" style="margin: 0;">Ficha del jugador</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-player">&times;</button>
+      </div>
+      <div class="modal-body" style="overflow-x: hidden; padding: 1.25rem 1.5rem;">
+        <form id="form-player" onsubmit="return false;">
+          <input type="hidden" id="player-id-field">
+
+          <!-- Hero Profile Card Header -->
+          <div class="player-modal-hero">
+            <div class="hero-avatar-wrapper">
+              <img id="player-photo-preview-img" src="" alt="Foto" class="hero-avatar-img" style="display: none;">
+              <div id="player-photo-placeholder" class="hero-avatar-img" style="display: flex; align-items: center; justify-content: center; font-size: 2.2rem; color: #94a3b8; background: #18233c;">
+                👤
+              </div>
+              <span class="hero-dorsal-badge" id="hero-dorsal-display">#--</span>
+            </div>
+
+            <div class="hero-info-content">
+              <div class="hero-player-title" id="hero-name-display">Nuevo Jugador</div>
+              <div class="hero-player-nickname" id="hero-nick-display">Sin apodo asignado</div>
+              <div class="hero-tags-strip" id="hero-tags-strip">
+                <span class="tag-badge tag-pos-main" id="hero-pos-badge">DC</span>
+                <span class="tag-badge" id="hero-team-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">Equipo</span>
+                <span class="tag-badge" id="hero-foot-badge">Diestro</span>
+                <span class="tag-badge" id="hero-age-badge">-- años</span>
+                <span class="tag-badge" id="hero-start-badge" style="display: none; background: rgba(167, 139, 250, 0.18); color: #c4b5fd;">⏱️ Inició: --</span>
+              </div>
+
+              <!-- Selector de foto estilizado (con opción de ajuste y recorte interactivo) -->
+              <div class="custom-photo-uploader">
+                <label for="player-photo-file-input" class="upload-btn-styled" title="Subir foto desde la galería o almacenamiento del teléfono">
+                  📷 Subir foto
+                </label>
+                <input type="file" id="player-photo-file-input" accept="image/*" style="display: none;">
+                <input type="hidden" id="player-photo-base64">
+                <input type="hidden" id="player-photo-original-base64">
+                <input type="hidden" id="player-photo-crop-settings">
+                <button type="button" class="btn btn-secondary btn-xs" id="btn-adjust-photo" style="display: none; padding: 0.35rem 0.65rem; font-size: 0.75rem; color: var(--accent-cyan);">
+                  ✂️ Ajustar foto
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" id="btn-remove-photo" style="display: none; padding: 0.35rem 0.65rem; font-size: 0.75rem; color: #f87171;">
+                  🗑️ Quitar foto
+                </button>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Imágenes JPG, PNG, WEBP con recorte circular</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alerta de Conflicto de Dorsal dentro del Modal -->
+          <div id="player-modal-dorsal-alert" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.5); border-radius: 8px; padding: 0.6rem 0.85rem; margin-bottom: 0.85rem; color: #fca5a5; font-size: 0.8rem; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.1rem;">⚠️</span>
+            <span id="player-modal-dorsal-alert-text">Aviso: Este dorsal ya está asignado a otro jugador en este equipo.</span>
+          </div>
+
+          <!-- SECCIÓN 1: Datos Deportivos y Categoría -->
+          <div class="modal-section-card">
+            <div class="modal-section-header">
+              <span>⚽</span> Datos Deportivos y Categoría
+            </div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label" for="player-team">Equipo / Categoría *</label>
+                <select class="form-select" id="player-team" required></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="player-dorsal-main">Dorsal principal (1-99) *</label>
+                <input type="number" class="form-input" id="player-dorsal-main" min="1" max="99" required placeholder="Ej. 10">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="player-dorsal-sec">Dorsal secundario</label>
+                <input type="number" class="form-input" id="player-dorsal-sec" min="1" max="99" placeholder="Ej. 8">
+              </div>
+            </div>
+
+            <div class="form-grid-3" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label" for="player-pos-main">Posición principal *</label>
+                <select class="form-select" id="player-pos-main" required>
+                  <option value="POR">Portero (POR)</option>
+                  <option value="DFC">Defensa central (DFC)</option>
+                  <option value="LD">Lateral derecho (LD)</option>
+                  <option value="LI">Lateral izquierdo (LI)</option>
+                  <option value="MCD">Medio defensivo (MCD)</option>
+                  <option value="MC">Mediocentro (MC)</option>
+                  <option value="MCO">Mediapunta (MCO)</option>
+                  <option value="ED">Extremo derecho (ED)</option>
+                  <option value="EI">Extremo izquierdo (EI)</option>
+                  <option value="DC">Delantero centro (DC)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="player-pos-sec">Posición secundaria</label>
+                <select class="form-select" id="player-pos-sec">
+                  <option value="">Sin posición secundaria</option>
+                  <option value="POR">Portero (POR)</option>
+                  <option value="DFC">Defensa central (DFC)</option>
+                  <option value="LD">Lateral derecho (LD)</option>
+                  <option value="LI">Lateral izquierdo (LI)</option>
+                  <option value="MCD">Medio defensivo (MCD)</option>
+                  <option value="MC">Mediocentro (MC)</option>
+                  <option value="MCO">Mediapunta (MCO)</option>
+                  <option value="ED">Extremo derecho (ED)</option>
+                  <option value="EI">Extremo izquierdo (EI)</option>
+                  <option value="DC">Delantero centro (DC)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="player-foot">Pie hábil</label>
+                <select class="form-select" id="player-foot">
+                  <option value="Diestro">Diestro</option>
+                  <option value="Zurdo">Zurdo</option>
+                  <option value="Ambidiestro">Ambidiestro</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 2: Datos Personales -->
+          <div class="modal-section-card">
+            <div class="modal-section-header">
+              <span>👤</span> Datos Personales
+            </div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label" for="player-name">Nombre *</label>
+                <input type="text" class="form-input" id="player-name" required placeholder="Ej. Mateo">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="player-lastname">Apellidos *</label>
+                <input type="text" class="form-input" id="player-lastname" required placeholder="Ej. Silva Ruiz">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="player-nickname">Apodo deportivo</label>
+                <input type="text" class="form-input" id="player-nickname" placeholder="Ej. El Mago">
+              </div>
+            </div>
+
+            <div class="form-grid-2" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label" for="player-birthdate">Fecha de nacimiento *</label>
+                <input type="date" class="form-input" id="player-birthdate" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cálculo de edad automática</label>
+                <div id="player-calc-age-display" style="font-size: 0.88rem; color: var(--accent-cyan); font-weight: 700; padding: 0.6rem 0.85rem; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-subtle);">
+                  Indica la fecha de nacimiento
+                </div>
+              </div>
+            </div>
+
+            <!-- Requisito: Fecha de inicio deportivo (primer entrenamiento) -->
+            <div class="form-grid-2" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label" for="player-start-date">Fecha de inicio deportivo (primer entrenamiento)</label>
+                <input type="text" class="form-input" id="player-start-date" placeholder="Ej. 15/09/2022 o Septiembre 2023">
+                <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; display: block;">
+                  Indica la fecha exacta (DD/MM/AAAA) o aproximada en que el niño empezó a entrenar
+                </span>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Antigüedad en el club estimada</label>
+                <div id="player-calc-experience-display" style="font-size: 0.88rem; color: #a78bfa; font-weight: 700; padding: 0.6rem 0.85rem; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-subtle);">
+                  Sin fecha indicada
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 3: Contacto Familiar y Múltiples Tutores -->
+          <div class="modal-section-card">
+            <div class="modal-section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div><span>👨‍👩‍👧</span> Familiares y Contactos de Tutores</div>
+              <button type="button" class="btn btn-secondary btn-xs" id="btn-add-family-contact" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.1);">
+                ➕ Añadir otro familiar / tutor
+              </button>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+              Registra a los padres, madres o tutores del jugador. Puedes añadir tantos familiares como necesites con teléfono de contacto directo y llamadas.
+            </p>
+            <div id="player-family-contacts-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <!-- Contactos generados dinámicamente -->
+            </div>
+            <!-- Campos ocultos auxiliares de retrocompatibilidad -->
+            <input type="hidden" id="player-parent-name">
+            <input type="hidden" id="player-parent-phone">
+            <input type="hidden" id="player-parent-email">
+          </div>
+
+          <!-- SECCIÓN 4: Salud y Alertas Médicas -->
+          <div class="modal-section-card" style="border-color: rgba(239, 68, 68, 0.25);">
+            <div class="modal-section-header" style="color: #fca5a5;">
+              <span>🏥</span> Salud, Alergias y Notas Médicas
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="player-has-medical-alert" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; color: #fca5a5; font-weight: 700;">
+                <input type="checkbox" id="player-has-medical-alert" style="width: 18px; height: 18px; accent-color: #ef4444; cursor: pointer;">
+                Tiene notas médicas, asma o alergias relevantes
+              </label>
+              <div class="medical-notes-collapsible" id="player-medical-notes-wrap" style="margin-top: 0.5rem;">
+                <textarea class="form-textarea" id="player-medical-notes" rows="2" placeholder="Describe alergias alimentarias, medicación, asma o lesiones previas..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 5: Cuaderno y Evolución del Entrenador -->
+          <div class="modal-section-card">
+            <div class="modal-section-header">
+              <span>📋</span> Cuaderno y Evolución Deportiva del Entrenador
+            </div>
+            <div class="form-group">
+              <label class="form-label">Historial de notas del cuerpo técnico</label>
+              <div class="notes-history-list" id="player-coach-notes-history"></div>
+              <div style="display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap;">
+                <input type="text" class="form-input" id="new-coach-note-input" placeholder="Añadir nueva observación deportiva..." style="flex: 1; min-width: 220px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-add-coach-note" style="white-space: nowrap;">➕ Añadir nota</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 6: Equipación Adidas y Posesión de Material -->
+          <div class="modal-section-card" style="border-color: rgba(6, 182, 212, 0.3);">
+            <div class="modal-section-header" style="color: #67e8f9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span>👕</span> <span data-i18n="kit.title">Equipación y Material Deportivo (Adidas)</span>
+              </div>
+              <span id="equipment-status-badge" class="equipment-badge-complete">
+                🛡️ Equipación oficial completa
+              </span>
+            </div>
+            
+            <!-- Banner dinámico de estado de posesión -->
+            <div id="equipment-status-alert" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 0.6rem 0.85rem; margin-bottom: 0.75rem; font-size: 0.78rem; color: #fbbf24; display: flex; align-items: center; gap: 0.5rem;">
+              <span>⚠️</span>
+              <span id="equipment-status-alert-text" data-i18n="kit.alertMissingOfficial">Falta equipamiento oficial obligatorio: Las familias deben adquirir las prendas faltantes para las competiciones oficiales.</span>
+            </div>
+
+            <!-- BLOQUE 1: Equipación oficial obligatoria (Comprada por las familias) -->
+            <div class="kit-section-block" style="background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <strong style="font-size: 0.82rem; color: #67e8f9;" data-i18n="kit.officialBlockTitle">
+                  🛡️ Equipación Oficial Obligatoria (Adquirida por los padres)
+                </strong>
+              </div>
+              <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.6rem;" data-i18n="kit.officialBlockDesc">
+                Todo jugador debe poseer estas 4 prendas oficiales para competir y entrenar.
+              </p>
+
+              <div class="kit-grid">
+                <!-- 1. Camiseta azul clara entrenamientos -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-training-shirt" style="width: 17px; height: 17px; accent-color: #06b6d4;">
+                    <span data-i18n="kit.trainingShirt">Camiseta azul clara (entrenamientos)</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-training-shirt"></select>
+                </div>
+
+                <!-- 2. Camiseta azul oscuro competición -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-match-shirt" style="width: 17px; height: 17px; accent-color: #06b6d4;">
+                    <span data-i18n="kit.matchShirt">Camiseta azul oscuro (competición)</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-match-shirt"></select>
+                </div>
+
+                <!-- 3. Pantalón negro corto -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-shorts" style="width: 17px; height: 17px; accent-color: #06b6d4;">
+                    <span data-i18n="kit.shorts">Pantalón negro corto</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-shorts"></select>
+                </div>
+
+                <!-- 4. Medias negras -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-socks" style="width: 17px; height: 17px; accent-color: #06b6d4;">
+                    <span data-i18n="kit.socks">Medias negras</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-socks"></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- BLOQUE 2: Accesorios y Ropa Complementaria -->
+            <div class="kit-section-block">
+              <strong style="font-size: 0.82rem; color: #fff; display: block; margin-bottom: 0.5rem;" data-i18n="kit.accessoriesBlockTitle">
+                🎒 Accesorios y Ropa Complementaria
+              </strong>
+
+              <div class="kit-grid">
+                <!-- Botas -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-boots" style="width: 17px; height: 17px; accent-color: #10b981;">
+                    <span data-i18n="kit.boots">Botas de fútbol</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-boots"></select>
+                </div>
+
+                <!-- Espinilleras -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-shin-guards" style="width: 17px; height: 17px; accent-color: #10b981;">
+                    <span data-i18n="kit.shinGuards">Espinilleras</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-shin-guards"></select>
+                </div>
+
+                <!-- Jerseys -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-jerseys" style="width: 17px; height: 17px; accent-color: #10b981;">
+                    <span data-i18n="kit.jerseys">Jerseys / Sudadera</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-jerseys"></select>
+                </div>
+
+                <!-- Chaqueta -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-jacket" style="width: 17px; height: 17px; accent-color: #10b981;">
+                    <span data-i18n="kit.jacket">Chaqueta de abrigo</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-jacket"></select>
+                </div>
+
+                <!-- Chubasquero -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-rainjacket" style="width: 17px; height: 17px; accent-color: #10b981;">
+                    <span data-i18n="kit.rainJacket">Chubasquero de lluvia</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-rainjacket"></select>
+                </div>
+
+                <!-- Gorro -->
+                <div class="kit-item-row">
+                  <label class="kit-item-label">
+                    <input type="checkbox" id="kit-owned-beanie" style="width: 17px; height: 17px; accent-color: #10b981;">
+                    <span data-i18n="kit.beanie">Gorro deportivo</span>
+                  </label>
+                  <select class="kit-size-select" id="kit-size-beanie"></select>
+                </div>
+              </div>
+
+              <div style="margin-top: 0.65rem;">
+                <input type="text" class="form-input" id="player-kit-notes" placeholder="Observaciones de equipación (ej. pendiente de compra por los padres...)" style="font-size: 0.76rem; padding: 0.35rem 0.6rem; width: 100%;" data-i18n-placeholder="kit.notes">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-player">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-save-player">Guardar ficha</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Reasignación rápida de equipo en 1 clic -->
+  <div class="modal-backdrop" id="modal-reassign-team">
+    <div class="modal-window" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 id="modal-reassign-title">Reasignar equipo</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-reassign-team">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">
+          Pulsa sobre el equipo al que deseas transferir al jugador:
+        </p>
+        <div class="team-reassign-list" id="team-reassign-options"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-reassign-team">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Configuración y copias de seguridad -->
+  <div class="modal-backdrop" id="modal-settings">
+    <div class="modal-window" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>Gestión de datos y copias de seguridad</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">
+          Los datos se guardan de forma local. Puedes exportar una copia o restaurar los datos iniciales de JK Noova.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.85rem 1rem; border-radius: 8px;">
+            <div>
+              <strong style="font-size: 0.9rem;">Exportar copia de seguridad</strong>
+              <p style="font-size: 0.75rem; color: var(--text-muted);">Descarga un archivo JSON con todos los datos</p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-export-backup">Descargar JSON</button>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.85rem 1rem; border-radius: 8px;">
+            <div>
+              <strong style="font-size: 0.9rem;">Importar copia de seguridad</strong>
+              <p style="font-size: 0.75rem; color: var(--text-muted);">Carga un archivo JSON previo</p>
+            </div>
+            <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+              Cargar JSON
+              <input type="file" id="file-import-input" accept=".json" style="display: none;">
+            </label>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.85rem 1rem; border-radius: 8px;">
+            <div>
+              <strong style="font-size: 0.9rem; color: #fca5a5;">Restablecer demostración</strong>
+              <p style="font-size: 0.75rem; color: #f87171;">Restaura la plantilla inicial de JK Noova</p>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-reset-demo-data">Restablecer</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-settings">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/photo-cropper.js"></script>
+  <script src="js/jugadores.js"></script>
+</body>
+</html>

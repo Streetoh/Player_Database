@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta de Partido | JK Noova Academy</title>
+  <meta name="description" content="Información oficial de partido, convocatoria, transporte y cuotas para las familias de JK Noova Academy">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d1322">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JK Noova">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #070a12;
+      background-image: radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.12) 0%, transparent 60%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+    .family-container {
+      width: 100%;
+      max-width: 580px;
+      margin: 0 auto;
+    }
+    .family-header {
+      text-align: center;
+      padding: 1rem 0;
+    }
+    .family-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: #06b6d4;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .family-card {
+      background: rgba(13, 19, 34, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+    }
+    .countdown-box {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      border-radius: 10px;
+      padding: 0.85rem;
+      text-align: center;
+      margin: 1rem 0;
+    }
+    .countdown-num {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #38bdf8;
+      letter-spacing: 0.5px;
+    }
+    .location-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      margin-top: 0.75rem;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+      transition: transform 0.15s ease;
+    }
+    .location-btn:hover {
+      transform: translateY(-2px);
+    }
+    .family-player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      gap: 0.75rem;
+    }
+    .family-player-row:last-child {
+      border-bottom: none;
+    }
+    .seat-badge {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="family-container">
+    <!-- Cabecera institucional -->
+    <header class="family-header">
+      <div class="family-badge">
+        <span>🛡️</span> JK Noova Academy
+      </div>
+      <h1 id="pub-match-title" style="font-size: 1.4rem; font-weight: 900; color: #fff; line-height: 1.3;">
+        Cargando partido...
+      </h1>
+      <p id="pub-match-team" style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 600; margin-top: 0.25rem;">
+        Categoría oficial
+      </p>
+    </header>
+
+    <!-- Cuenta atrás y horario -->
+    <div class="family-card" style="text-align: center;">
+      <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 1px;">
+        Pitido inicial
+      </div>
+      <div id="pub-match-datetime" style="font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 0.35rem;">
+        -- / -- / ----
+      </div>
+
+      <div class="countdown-box">
+        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">Tiempo restante</div>
+        <div class="countdown-num" id="pub-countdown-display">Calculando...</div>
+      </div>
+
+      <!-- Ubicación y botón Google Maps -->
+      <div style="text-align: left; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.85rem;">
+        <div style="font-size: 0.72rem; color: var(--text-muted);">Instalación deportiva / Campo:</div>
+        <div id="pub-match-location" style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-top: 2px;">
+          Campo de juego
+        </div>
+        <a id="pub-maps-button" href="#" target="_blank" rel="noopener noreferrer" class="location-btn">
+          <span>📍</span> Cómo llegar en Google Maps
+        </a>
+      </div>
+    </div>
+
+    <!-- Transporte y Furgoneta -->
+    <div class="family-card" id="pub-transport-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <div style="font-size: 0.9rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 0.4rem;">
+          <span>🚐</span> Transporte y Furgonetas
+        </div>
+        <span id="pub-transport-badge" style="font-size: 0.7rem; background: rgba(6, 182, 212, 0.15); color: #06b6d4; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">
+          Flota oficial
+        </span>
+      </div>
+
+      <div id="pub-transport-details" style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;">
+        Información de salida y vehículo asignado.
+      </div>
+
+      <div id="pub-seat-assigned-box" style="margin-top: 0.85rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+          💺 <strong>Asientos asignados en furgoneta:</strong>
+        </div>
+        <div id="pub-seats-list" style="display: flex; flex-direction: column; gap: 0.35rem;"></div>
+      </div>
+    </div>
+
+    <!-- Lista oficial de convocados y cuota -->
+    <div class="family-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.6rem;">
+        <div style="font-size: 0.9rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 0.4rem;">
+          <span>⚽</span> Lista de Convocados
+        </div>
+        <span id="pub-callup-count" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">
+          0 jugadores
+        </span>
+      </div>
+
+      <div id="pub-callup-list"></div>
+    </div>
+
+    <!-- Contacto del club -->
+    <div style="text-align: center; margin-top: 1.5rem; margin-bottom: 2rem; font-size: 0.75rem; color: var(--text-muted);">
+      <p>JK Noova Academy • Fútbol Base Formatívo</p>
+      <p style="margin-top: 4px;">Para cualquier duda o incidencia, contacta con tu entrenador o coordinador.</p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/partido-familia.js"></script>
+</body>
+</html>

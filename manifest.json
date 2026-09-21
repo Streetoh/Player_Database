@@ -1,0 +1,21 @@
+{
+  "name": "JK Noova Academy - Gestión Deportiva",
+  "short_name": "JK Noova",
+  "description": "Aplicación de gestión de equipos de fútbol base, convocatorias, transporte y entrenamientos para JK Noova Academy",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#070a12",
+  "theme_color": "#0d1322",
+  "lang": "es-ES",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "productivity"]
+}
