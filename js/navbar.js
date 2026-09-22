@@ -25,6 +25,23 @@ function initSharedNavbar(activePage) {
     link.setAttribute('aria-selected', isActive);
   });
 
+  // Advertencia automática si se abre con file:// y el navegador bloquea LocalStorage
+  if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+    const storageWorks = window.SafeStorage ? window.SafeStorage.isWorking() : true;
+    if (!storageWorks) {
+      if (!document.getElementById('file-storage-warning-bar')) {
+        const warn = document.createElement('div');
+        warn.id = 'file-storage-warning-bar';
+        warn.style.cssText = 'background: #b91c1c; color: #fff; padding: 0.65rem 1rem; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; z-index: 99999; border-bottom: 2px solid #ef4444;';
+        warn.innerHTML = `
+          <span>⚠️ <strong>Aviso del navegador:</strong> Has abierto la web como archivo local (file://) y tu navegador tiene bloqueado el guardado permanente. Los cambios se perderán al cambiar de pestaña. Por favor, haz doble clic en <strong>Iniciar_App.bat</strong> para usar http://localhost:3000 con guardado 100% activo.</span>
+          <button type="button" style="background: rgba(255,255,255,0.25); border: none; color: #fff; padding: 0.2rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;" onclick="this.parentElement.remove()">✕ Cerrar</button>
+        `;
+        document.body.prepend(warn);
+      }
+    }
+  }
+
   // 1.1 Inyectar y activar barra de navegación inferior móvil (Bottom Nav)
   let bottomNav = document.querySelector('.mobile-bottom-nav');
   if (!bottomNav) {

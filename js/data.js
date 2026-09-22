@@ -646,38 +646,56 @@ const DEFAULT_TRAININGS = [
   }
 ];
 
-// Adaptador seguro de almacenamiento con fallback en memoria
+/// Adaptador seguro de almacenamiento con verificación y fallback
 const SafeStorage = {
   _mem: {},
-  getItem(key) {
+  _isWorking: null,
+  isWorking() {
+    if (this._isWorking !== null) return this._isWorking;
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return window.localStorage.getItem(key);
+      if (typeof window === 'undefined' || !window.localStorage) {
+        this._isWorking = false;
+        return false;
       }
+      const k = '__jk_test_storage__';
+      window.localStorage.setItem(k, '1');
+      window.localStorage.removeItem(k);
+      this._isWorking = true;
+      return true;
     } catch (e) {
-      console.warn('LocalStorage bloqueado, usando memoria temporal:', e);
+      this._isWorking = false;
+      return false;
+    }
+  },
+  getItem(key) {
+    if (this.isWorking()) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch (e) {
+        console.warn('LocalStorage getItem falló:', e);
+      }
     }
     return this._mem[key] || null;
   },
   setItem(key, val) {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
+    if (this.isWorking()) {
+      try {
         window.localStorage.setItem(key, val);
         return;
+      } catch (e) {
+        console.warn('LocalStorage setItem falló:', e);
       }
-    } catch (e) {
-      console.warn('LocalStorage setItem falló, usando memoria temporal:', e);
     }
     this._mem[key] = String(val);
   },
   removeItem(key) {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
+    if (this.isWorking()) {
+      try {
         window.localStorage.removeItem(key);
         return;
+      } catch (e) {
+        console.warn('LocalStorage removeItem falló:', e);
       }
-    } catch (e) {
-      console.warn('LocalStorage removeItem falló:', e);
     }
     delete this._mem[key];
   }
@@ -767,106 +785,118 @@ function checkPlayerOfficialEquipment(player) {
 const StorageService = {
   getPlayers() {
     const data = SafeStorage.getItem(STORAGE_KEY_PLAYERS);
-    let list = DEFAULT_PLAYERS;
-    if (data) {
-      try {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          list = parsed;
-        }
-      } catch (e) {
-        console.error('Error al parsear jugadores:', e);
-      }
+    if (data === null || data === undefined) {
+      this.savePlayers(DEFAULT_PLAYERS);
+      return JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
     }
+    try {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        let needsSave = false;
+        parsed.forEach(player => {
+          if (!player.equipment || !player.equipment.official) {
+            const def = createDefaultEquipment();
+            const kd = player.kitDelivery || {};
+            const ks = player.kitSizes || {};
+            def.official.trainingShirt.owned = !!kd.trainingKit;
+            def.official.matchShirt.owned = !!kd.matchKit;
+            def.official.shorts.owned = !!kd.matchKit;
+            def.official.socks.owned = !!kd.matchKit;
+            def.accessories.jerseys.owned = !!kd.tracksuit;
+            def.accessories.rainJacket.owned = !!kd.rainjacket;
 
-    // Auto-migración a estructura de equipación oficial Adidas
-    let needsSave = false;
-    list.forEach(player => {
-      if (!player.equipment || !player.equipment.official) {
-        const def = createDefaultEquipment();
-        const kd = player.kitDelivery || {};
-        const ks = player.kitSizes || {};
-        def.official.trainingShirt.owned = !!kd.trainingKit;
-        def.official.matchShirt.owned = !!kd.matchKit;
-        def.official.shorts.owned = !!kd.matchKit;
-        def.official.socks.owned = !!kd.matchKit;
-        def.accessories.jerseys.owned = !!kd.tracksuit;
-        def.accessories.rainJacket.owned = !!kd.rainjacket;
+            if (ks.shirt) {
+              def.official.trainingShirt.size = ks.shirt;
+              def.official.matchShirt.size = ks.shirt;
+            }
+            if (ks.shorts) def.official.shorts.size = ks.shorts;
+            if (ks.socks) def.official.socks.size = ks.socks;
+            if (ks.tracksuit) def.accessories.jerseys.size = ks.tracksuit;
+            if (ks.rainjacket) def.accessories.rainJacket.size = ks.rainjacket;
 
-        if (ks.shirt) {
-          def.official.trainingShirt.size = ks.shirt;
-          def.official.matchShirt.size = ks.shirt;
+            player.equipment = def;
+            needsSave = true;
+          }
+
+          if (player.equipment && player.equipment.official && player.equipment.official.socks) {
+            const sz = player.equipment.official.socks.size;
+            if (sz && sz.includes('(')) {
+              player.equipment.official.socks.size = sz.replace(/^[0-9]+K\s*\(([^)]+)\)$/, '$1');
+              needsSave = true;
+            }
+          }
+        });
+
+        if (needsSave) {
+          this.savePlayers(parsed);
         }
-        if (ks.shorts) def.official.shorts.size = ks.shorts;
-        if (ks.socks) def.official.socks.size = ks.socks;
-        if (ks.tracksuit) def.accessories.jerseys.size = ks.tracksuit;
-        if (ks.rainjacket) def.accessories.rainJacket.size = ks.rainjacket;
 
-        player.equipment = def;
-        needsSave = true;
+        return parsed;
       }
-
-      // Normalizar tallas de medias con formato anterior a número de pie directo
-      if (player.equipment && player.equipment.official && player.equipment.official.socks) {
-        const sz = player.equipment.official.socks.size;
-        if (sz && sz.includes('(')) {
-          player.equipment.official.socks.size = sz.replace(/^[0-9]+K\s*\(([^)]+)\)$/, '$1');
-          needsSave = true;
-        }
-      }
-    });
-
-    if (needsSave && data) {
-      this.savePlayers(list);
+    } catch (e) {
+      console.error('Error al parsear jugadores:', e);
     }
-
-    return list;
+    return JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
   },
 
   savePlayers(players) {
     SafeStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(players));
+    if (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+      try {
+        fetch('/api/save-players', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ players })
+        }).catch(() => {});
+      } catch (e) {}
+    }
   },
 
   getTeams() {
     const data = SafeStorage.getItem(STORAGE_KEY_TEAMS);
-    if (!data) {
+    if (data === null || data === undefined) {
       this.saveTeams(DEFAULT_TEAMS);
-      return DEFAULT_TEAMS;
+      return JSON.parse(JSON.stringify(DEFAULT_TEAMS));
     }
     try {
       const list = JSON.parse(data);
-      if (!Array.isArray(list) || list.length === 0) {
-        this.saveTeams(DEFAULT_TEAMS);
-        return DEFAULT_TEAMS;
+      if (Array.isArray(list)) {
+        return list;
       }
-      return list;
     } catch (e) {
       console.error('Error al parsear equipos:', e);
-      return DEFAULT_TEAMS;
     }
+    return JSON.parse(JSON.stringify(DEFAULT_TEAMS));
   },
 
   saveTeams(teams) {
     SafeStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(teams));
+    if (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+      try {
+        fetch('/api/save-teams', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teams })
+        }).catch(() => {});
+      } catch (e) {}
+    }
   },
 
   getEvents() {
     const data = SafeStorage.getItem(STORAGE_KEY_EVENTS);
-    if (!data) {
+    if (data === null || data === undefined) {
       this.saveEvents(DEFAULT_EVENTS);
-      return DEFAULT_EVENTS;
+      return JSON.parse(JSON.stringify(DEFAULT_EVENTS));
     }
     try {
       const list = JSON.parse(data);
-      if (!Array.isArray(list) || list.length === 0) {
-        this.saveEvents(DEFAULT_EVENTS);
-        return DEFAULT_EVENTS;
+      if (Array.isArray(list)) {
+        return list;
       }
-      return list;
     } catch (e) {
       console.error('Error al parsear eventos:', e);
-      return DEFAULT_EVENTS;
     }
+    return JSON.parse(JSON.stringify(DEFAULT_EVENTS));
   },
 
   saveEvents(events) {
@@ -989,21 +1019,19 @@ const StorageService = {
 
   getTrainingSessions() {
     const data = SafeStorage.getItem(STORAGE_KEY_TRAININGS);
-    if (!data) {
+    if (data === null || data === undefined) {
       this.saveTrainingSessions(DEFAULT_TRAININGS);
-      return DEFAULT_TRAININGS;
+      return JSON.parse(JSON.stringify(DEFAULT_TRAININGS));
     }
     try {
       const list = JSON.parse(data);
-      if (!Array.isArray(list)) {
-        this.saveTrainingSessions(DEFAULT_TRAININGS);
-        return DEFAULT_TRAININGS;
+      if (Array.isArray(list)) {
+        return list;
       }
-      return list;
     } catch (e) {
       console.error('Error al parsear entrenamientos:', e);
-      return DEFAULT_TRAININGS;
     }
+    return JSON.parse(JSON.stringify(DEFAULT_TRAININGS));
   },
 
   saveTrainingSessions(sessions) {
@@ -1059,6 +1087,7 @@ const StorageService = {
 
 // Registro en el entorno global para compatibilidad con carga de archivo local (file://)
 if (typeof window !== 'undefined') {
+  window.SafeStorage = SafeStorage;
   window.JKNoovaData = {
     DEFAULT_TEAMS,
     DEFAULT_PLAYERS,
@@ -1066,6 +1095,7 @@ if (typeof window !== 'undefined') {
     DEFAULT_TRAININGS,
     DEFAULT_TRANSPORT_CONFIG,
     DEFAULT_VANS,
+    SafeStorage,
     StorageService,
     ADIDAS_CLOTHING_SIZES,
     ADIDAS_SOCKS_SIZES,
