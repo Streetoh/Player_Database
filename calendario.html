@@ -224,32 +224,67 @@
 
     <!-- PESTAÑA 2: CALENDARIO DE ENTRENAMIENTOS -->
     <div id="section-trainings" style="display: none;">
-      <div class="section-header">
-        <div class="section-header-title">
-          <h2>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-            <span>Calendario de Entrenamientos</span>
-          </h2>
-          <p>Planifica sesiones únicas o recurrentes, visualiza el calendario mensual por equipo y gestiona asistencias.</p>
+      <!-- Barra superior de búsqueda y añadir sesión (Idéntica a la imagen) -->
+      <div class="training-top-search-bar">
+        <div style="min-width: 140px; max-width: 180px;">
+          <select class="form-select" id="cal-filter-team" style="padding: 0.5rem 0.6rem; font-size: 0.8rem; border-radius: 12px; background: var(--bg-card);" onchange="onCalendarTeamFilterChange(this.value)"></select>
         </div>
-        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
-          <!-- Conmutador de vista: Calendario Mensual vs Listado -->
-          <div class="calendar-view-toggle">
-            <button type="button" class="calendar-view-btn active" id="btn-view-month" onclick="switchTrainingView('month')">
-              📅 Vista Calendario
-            </button>
-            <button type="button" class="calendar-view-btn" id="btn-view-list" onclick="switchTrainingView('list')">
-              📋 Vista Lista
-            </button>
-          </div>
-          <button type="button" class="btn btn-primary" id="btn-add-training-session" style="background: #10b981; border-color: #059669; font-weight: 700;">
-            ➕ Programar entrenamiento
+        <div class="training-search-box">
+          <span class="training-search-icon">🔍</span>
+          <input type="text" class="training-search-input" id="training-search-input" placeholder="Buscar entrenamientos..." oninput="onTrainingSearchInput(this.value)">
+        </div>
+        <button type="button" class="btn-training-quick-add" id="btn-quick-add-training" onclick="openEditTrainingModal(null)" title="Programar nuevo entrenamiento">
+          +
+        </button>
+      </div>
+
+      <!-- Barra de navegación temporal (Semana / Mes) y Conmutador de vista -->
+      <div class="training-week-nav">
+        <div class="week-nav-controls">
+          <button type="button" class="btn-week-nav" id="btn-training-prev" onclick="navTrainingNav(-1)" title="Anterior">
+            ◀
+          </button>
+          <span class="week-nav-title" id="training-nav-title">
+            --
+          </span>
+          <button type="button" class="btn-week-nav" id="btn-training-next" onclick="navTrainingNav(1)" title="Siguiente">
+            ▶
+          </button>
+          <button type="button" class="btn btn-secondary btn-xs" id="btn-training-today" onclick="navTrainingToday()" style="margin-left: 0.25rem; font-size: 0.72rem; padding: 0.25rem 0.5rem;">
+            Hoy
+          </button>
+        </div>
+
+        <!-- Conmutador de Vista: Semana | Mes | Lista -->
+        <div class="week-view-toggle-compact">
+          <button type="button" class="week-toggle-btn active" id="btn-view-week" onclick="switchTrainingView('week')" title="Vista semanal">
+            📅 Semana
+          </button>
+          <button type="button" class="week-toggle-btn" id="btn-view-month" onclick="switchTrainingView('month')" title="Vista mensual">
+            🗓️ Mes
+          </button>
+          <button type="button" class="week-toggle-btn" id="btn-view-list" onclick="switchTrainingView('list')" title="Vista lista">
+            📋 Lista
           </button>
         </div>
       </div>
 
-      <!-- VISTA 1: CALENDARIO VISUAL MENSUAL INTERACTIVO -->
-      <div id="training-calendar-view">
+      <!-- VISTA 1: SEMANAL (POR DEFECTO - IDÉNTICA A LA IMAGEN) -->
+      <div id="training-week-view">
+        <!-- Tira de 7 días (Lunes a Domingo) con letras, números y puntos -->
+        <div class="week-calendar-strip" id="week-calendar-days"></div>
+
+        <!-- Cabecera del día seleccionado -->
+        <div class="training-day-heading" id="training-selected-day-heading">
+          --
+        </div>
+
+        <!-- Lista de entrenamientos planificados para el día seleccionado -->
+        <div id="training-selected-day-list"></div>
+      </div>
+
+      <!-- VISTA 2: CALENDARIO MENSUAL -->
+      <div id="training-calendar-view" style="display: none;">
         <div class="calendar-month-container">
           <!-- Cabecera y Navegación del mes -->
           <div class="calendar-month-nav">
@@ -1083,14 +1118,41 @@
             <span>⏰</span> <span id="training-time-summary-hint">Franja horaria: 17:30 - 19:00 (90 minutos)</span>
           </div>
 
+          <!-- TIPO DE RECINTO / PISTA -->
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label">Tipo de recinto / pista *</label>
+            <div class="venue-type-toggle">
+              <div class="venue-type-btn active" id="btn-venue-outdoor" onclick="setVenueType('outdoor_grass')">
+                <span>🌿</span>
+                <span>Césped al aire libre</span>
+              </div>
+              <div class="venue-type-btn" id="btn-venue-indoor" onclick="setVenueType('indoor_hall')">
+                <span>🏟️</span>
+                <span>Polideportivo interior</span>
+              </div>
+            </div>
+            <input type="hidden" id="training-venue-type" value="outdoor_grass">
+          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div class="form-group">
-              <label class="form-label" for="training-location">Instalación / Campo</label>
-              <input type="text" class="form-input" id="training-location" placeholder="Ej. Campo 1 (Césped)" value="Campo 1 (Césped)" oninput="updateRecurringPreview()">
+              <label class="form-label" for="training-location">Nombre de la instalación</label>
+              <input type="text" class="form-input" id="training-location" placeholder="Ej. Campo 1 / Pabellón Central" value="Campo 1" oninput="updateRecurringPreview()">
             </div>
             <div class="form-group">
               <label class="form-label" for="training-coach">Técnico responsable</label>
               <input type="text" class="form-input" id="training-coach" placeholder="Ej. Entrenador principal">
+            </div>
+          </div>
+
+          <!-- DIRECCIÓN Y BOTÓN DE GOOGLE MAPS -->
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" for="training-address">Dirección postal / Ubicación (Google Maps)</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" class="form-input" id="training-address" placeholder="Ej. Calle Mayor 12, Kohtla-Järve" style="flex: 1;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="testGoogleMapsAddress()" style="white-space: nowrap; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;" title="Comprobar en Google Maps">
+                📍 Probar Maps
+              </button>
             </div>
           </div>
 

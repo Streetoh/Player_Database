@@ -1406,7 +1406,10 @@ function switchCalendarMainTab(tab) {
   if (secStats) secStats.style.display = (tab === 'attendance-stats') ? 'block' : 'none';
 
   if (tab === 'trainings') {
-    if (trainingActiveView === 'month') {
+    if (trainingActiveView === 'week') {
+      renderWeeklyCalendarStrip();
+      renderSelectedDayTrainings();
+    } else if (trainingActiveView === 'month') {
       renderMonthlyCalendar();
     } else {
       renderTrainingSessions();
@@ -1419,10 +1422,12 @@ function switchCalendarMainTab(tab) {
 /* ==========================================================================
    CALENDARIO VISUAL INTERACTIVO Y GESTIÓN DE ENTRENAMIENTOS
    ========================================================================== */
-let trainingActiveView = 'month'; // 'month' | 'list'
+let trainingActiveView = 'week'; // 'week' | 'month' | 'list'
 let calendarCurrentYear = 2026;
 let calendarCurrentMonth = 8; // Septiembre (0-indexed)
 let calendarSelectedDate = '';
+let currentWeekMonday = null;
+let searchTrainingQuery = '';
 let trainingCreationMode = 'single'; // 'single' | 'recurring'
 let selectedWeekdays = new Set([1, 3, 5]); // Lun, Mié, Vie por defecto
 let selectedDurationMinutes = 90;
@@ -1436,26 +1441,87 @@ const WEEKDAY_NAMES = {
   1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 0: 'Domingo'
 };
 
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date.setDate(diff));
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+if (!currentWeekMonday) {
+  currentWeekMonday = getMonday(new Date());
+}
+
 function switchTrainingView(view) {
   trainingActiveView = view;
+  const weekView = document.getElementById('training-week-view');
   const calView = document.getElementById('training-calendar-view');
   const listView = document.getElementById('training-list-view');
+  const btnWeek = document.getElementById('btn-view-week');
   const btnMonth = document.getElementById('btn-view-month');
   const btnList = document.getElementById('btn-view-list');
 
-  if (view === 'month') {
-    if (calView) calView.style.display = 'block';
-    if (listView) listView.style.display = 'none';
-    btnMonth?.classList.add('active');
-    btnList?.classList.remove('active');
+  if (weekView) weekView.style.display = (view === 'week') ? 'block' : 'none';
+  if (calView) calView.style.display = (view === 'month') ? 'block' : 'none';
+  if (listView) listView.style.display = (view === 'list') ? 'block' : 'none';
+
+  btnWeek?.classList.toggle('active', view === 'week');
+  btnMonth?.classList.toggle('active', view === 'month');
+  btnList?.classList.toggle('active', view === 'list');
+
+  updateTrainingNavTitle();
+
+  if (view === 'week') {
+    renderWeeklyCalendarStrip();
+    renderSelectedDayTrainings();
+  } else if (view === 'month') {
     renderMonthlyCalendar();
   } else {
-    if (calView) calView.style.display = 'none';
-    if (listView) listView.style.display = 'block';
-    btnList?.classList.add('active');
-    btnMonth?.classList.remove('active');
     renderTrainingSessions();
   }
+}
+
+function updateTrainingNavTitle() {
+  const titleEl = document.getElementById('training-nav-title');
+  if (!titleEl) return;
+
+  if (trainingActiveView === 'month') {
+    titleEl.textContent = `${SPANISH_MONTHS[calendarCurrentMonth]} ${calendarCurrentYear}`;
+    return;
+  }
+
+  if (!currentWeekMonday) {
+    currentWeekMonday = getMonday(new Date());
+  }
+
+  const mon = new Date(currentWeekMonday);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+
+  const monDay = mon.getDate();
+  const sunDay = sun.getDate();
+  const monMonth = SPANISH_MONTHS[mon.getMonth()];
+  const sunMonth = SPANISH_MONTHS[sun.getMonth()];
+
+  if (mon.getMonth() === sun.getMonth()) {
+    titleEl.textContent = `${monDay}. - ${sunDay}. ${monMonth}`;
+  } else {
+    titleEl.textContent = `${monDay}. ${monMonth.substring(0, 3)} - ${sunDay}. ${sunMonth.substring(0, 3)}`;
+  }
+}
+
+function navTrainingNav(delta) {
+  if (trainingActiveView === 'month') {
+    navCalendarMonth(delta);
+  } else {
+    if (!currentWeekMonday) currentWeekMonday = getMonday(new Date());
+    currentWeekMonday.setDate(currentWeekMonday.getDate() + delta * 7);
+    renderWeeklyCalendarStrip();
+    renderSelectedDayTrainings();
+  }
+  updateTrainingNavTitle();
 }
 
 function navCalendarMonth(delta) {
@@ -1468,22 +1534,301 @@ function navCalendarMonth(delta) {
     calendarCurrentYear++;
   }
   renderMonthlyCalendar();
+  updateTrainingNavTitle();
 }
 
-function navCalendarToday() {
+function navTrainingToday() {
   const now = new Date();
   calendarCurrentYear = now.getFullYear();
   calendarCurrentMonth = now.getMonth();
   calendarSelectedDate = now.toISOString().split('T')[0];
-  renderMonthlyCalendar();
+  currentWeekMonday = getMonday(now);
+
+  if (trainingActiveView === 'week') {
+    renderWeeklyCalendarStrip();
+    renderSelectedDayTrainings();
+  } else if (trainingActiveView === 'month') {
+    renderMonthlyCalendar();
+  } else {
+    renderTrainingSessions();
+  }
+  updateTrainingNavTitle();
+}
+
+function onTrainingSearchInput(val) {
+  searchTrainingQuery = (val || '').trim().toLowerCase();
+  if (trainingActiveView === 'week') {
+    renderWeeklyCalendarStrip();
+    renderSelectedDayTrainings();
+  } else if (trainingActiveView === 'month') {
+    renderMonthlyCalendar();
+  } else {
+    renderTrainingSessions();
+  }
 }
 
 function onCalendarTeamFilterChange(teamId) {
   filterTrainingTeamId = teamId;
   const listSelect = document.getElementById('filter-training-team');
   if (listSelect) listSelect.value = teamId;
-  renderMonthlyCalendar();
-  renderTrainingSessions();
+  const calSelect = document.getElementById('cal-filter-team');
+  if (calSelect && calSelect.value !== teamId) calSelect.value = teamId;
+
+  if (trainingActiveView === 'week') {
+    renderWeeklyCalendarStrip();
+    renderSelectedDayTrainings();
+  } else if (trainingActiveView === 'month') {
+    renderMonthlyCalendar();
+  } else {
+    renderTrainingSessions();
+  }
+}
+
+function renderWeeklyCalendarStrip() {
+  const strip = document.getElementById('week-calendar-days');
+  if (!strip) return;
+
+  const storage = window.JKNoovaData?.StorageService;
+  trainingSessionsList = storage ? storage.getTrainingSessions() : [];
+  const teams = storage ? storage.getTeams() : [];
+
+  // Rellenar selector de equipo superior si está vacío
+  const calFilterTeam = document.getElementById('cal-filter-team');
+  if (calFilterTeam && calFilterTeam.options.length === 0) {
+    calFilterTeam.innerHTML = '<option value="all">🌟 Todos los equipos</option>';
+    teams.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      calFilterTeam.appendChild(opt);
+    });
+    calFilterTeam.value = filterTrainingTeamId;
+  }
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (!calendarSelectedDate) {
+    calendarSelectedDate = todayStr;
+  }
+
+  if (!currentWeekMonday) {
+    currentWeekMonday = getMonday(new Date(calendarSelectedDate));
+  }
+
+  const WEEK_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  strip.innerHTML = '';
+
+  for (let i = 0; i < 7; i++) {
+    const dayDate = new Date(currentWeekMonday);
+    dayDate.setDate(currentWeekMonday.getDate() + i);
+    const dateStr = dayDate.toISOString().split('T')[0];
+    const dayNum = dayDate.getDate();
+    const letter = WEEK_LETTERS[i];
+
+    // Comprobar si hay entrenamientos este día
+    let sessions = trainingSessionsList.filter(s => s.date === dateStr);
+    if (filterTrainingTeamId !== 'all') {
+      sessions = sessions.filter(s => s.teamId === filterTrainingTeamId || s.teamId === 'all');
+    }
+    if (searchTrainingQuery) {
+      sessions = sessions.filter(s => {
+        const titleMatch = (s.title || '').toLowerCase().includes(searchTrainingQuery);
+        const locMatch = (s.location || '').toLowerCase().includes(searchTrainingQuery);
+        const addrMatch = (s.address || '').toLowerCase().includes(searchTrainingQuery);
+        return titleMatch || locMatch || addrMatch;
+      });
+    }
+
+    const hasSessions = sessions.length > 0;
+    const pill = document.createElement('div');
+    pill.className = 'week-day-pill';
+    if (dateStr === calendarSelectedDate) pill.classList.add('is-selected');
+    if (dateStr === todayStr) pill.classList.add('is-today');
+
+    pill.innerHTML = `
+      <span class="week-day-letter">${letter}</span>
+      <span class="week-day-num">${dayNum}</span>
+      <span class="week-day-dot ${hasSessions ? '' : 'empty'}"></span>
+    `;
+
+    pill.onclick = () => {
+      calendarSelectedDate = dateStr;
+      document.querySelectorAll('.week-day-pill').forEach(p => p.classList.remove('is-selected'));
+      pill.classList.add('is-selected');
+      renderSelectedDayTrainings();
+    };
+
+    strip.appendChild(pill);
+  }
+
+  updateTrainingNavTitle();
+}
+
+function renderSelectedDayTrainings() {
+  const headingEl = document.getElementById('training-selected-day-heading');
+  const container = document.getElementById('training-selected-day-list');
+  if (!container) return;
+
+  const storage = window.JKNoovaData?.StorageService;
+  trainingSessionsList = storage ? storage.getTrainingSessions() : [];
+  const teams = storage ? storage.getTeams() : [];
+  const allAttendance = storage ? (storage.getAttendance() || {}) : {};
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (!calendarSelectedDate) {
+    calendarSelectedDate = todayStr;
+  }
+
+  // Título con formato idéntico a la imagen (ej: "Martes, 22 Sept 2026")
+  if (headingEl) {
+    const [y, m, d] = calendarSelectedDate.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const dayName = WEEKDAY_NAMES[dateObj.getDay()] || 'Día';
+    const monthShort = SPANISH_MONTHS[m - 1] ? SPANISH_MONTHS[m - 1].substring(0, 4) : '';
+    headingEl.textContent = `${dayName}, ${d} ${monthShort} ${y}`;
+  }
+
+  let sessions = trainingSessionsList.filter(s => s.date === calendarSelectedDate);
+  if (filterTrainingTeamId !== 'all') {
+    sessions = sessions.filter(s => s.teamId === filterTrainingTeamId || s.teamId === 'all');
+  }
+  if (searchTrainingQuery) {
+    sessions = sessions.filter(s => {
+      const titleMatch = (s.title || '').toLowerCase().includes(searchTrainingQuery);
+      const locMatch = (s.location || '').toLowerCase().includes(searchTrainingQuery);
+      const addrMatch = (s.address || '').toLowerCase().includes(searchTrainingQuery);
+      return titleMatch || locMatch || addrMatch;
+    });
+  }
+
+  sessions.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  container.innerHTML = '';
+  if (sessions.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2.2rem 1rem; color: var(--text-muted); background: var(--bg-card); border-radius: 14px; border: 1px dashed var(--border-subtle);">
+        <p style="margin: 0; font-size: 0.95rem; color: #fff; font-weight: 700;">No hay entrenamientos para este día</p>
+        <p style="margin: 0.35rem 0 1rem; font-size: 0.8rem;">Programa una sesión única o configura entrenamientos recurrentes.</p>
+        <button type="button" class="btn btn-primary btn-sm" onclick="openEditTrainingModal(null, '${calendarSelectedDate}')" style="background: #3b82f6; border-color: #2563eb; font-weight: 700;">
+          ➕ Programar en este día
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  sessions.forEach(session => {
+    const team = teams.find(t => t.id === session.teamId) || { name: 'Todos los equipos', color: '#3b82f6' };
+    const teamColor = team.color || '#3b82f6';
+
+    const teamAtt = allAttendance[session.teamId] || {};
+    const dateAtt = teamAtt[session.date];
+    let attBadgeHtml = '';
+
+    if (dateAtt) {
+      const pids = Object.keys(dateAtt);
+      const presCount = pids.filter(id => dateAtt[id] === 'present').length;
+      const totalCount = pids.length;
+      const pct = totalCount > 0 ? Math.round((presCount / totalCount) * 100) : 0;
+      attBadgeHtml = `
+        <span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
+          ✔ ${presCount}/${totalCount} (${pct}%)
+        </span>
+      `;
+    } else {
+      attBadgeHtml = `
+        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
+          ⏳ Sin lista
+        </span>
+      `;
+    }
+
+    const isIndoor = session.venueType === 'indoor_hall';
+    const venueBadgeHtml = isIndoor
+      ? `<span class="venue-type-badge badge-venue-indoor">🏟️ Polideportivo interior</span>`
+      : `<span class="venue-type-badge badge-venue-outdoor">🌿 Césped aire libre</span>`;
+
+    const mapQuery = session.address || session.location || '';
+    const mapsBtnHtml = mapQuery
+      ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}" target="_blank" class="btn-google-maps" title="Abrir en Google Maps">
+          📍 Maps
+        </a>`
+      : '';
+
+    const card = document.createElement('div');
+    card.className = 'training-card-modern';
+    card.innerHTML = `
+      <div class="training-card-color-stripe" style="background: ${teamColor};"></div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+        <div style="flex: 1; min-width: 0;">
+          <h4 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${escapeHTML(team.name)}
+          </h4>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${escapeHTML(session.title)}
+          </div>
+        </div>
+        ${attBadgeHtml}
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.45rem; flex-wrap: wrap; font-size: 0.85rem;">
+        <div style="color: #60a5fa; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
+          <span>⏰</span> <span>${escapeHTML(session.time || '17:30 - 19:00')}</span>
+        </div>
+        ${venueBadgeHtml}
+      </div>
+
+      ${(session.location || session.address) ? `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.4rem; padding: 0.35rem 0.55rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <div style="font-size: 0.8rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            📍 ${escapeHTML(session.address || session.location)}
+          </div>
+          ${mapsBtnHtml}
+        </div>
+      ` : ''}
+
+      ${session.notes ? `
+        <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 0.35rem 0.55rem; border-radius: 6px; margin-top: 0.4rem;">
+          ${escapeHTML(session.notes)}
+        </div>
+      ` : ''}
+
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.55rem; padding-top: 0.55rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
+          📋 Pasar lista
+        </button>
+        <div style="display: flex; gap: 0.3rem;">
+          <button type="button" class="btn btn-secondary btn-sm btn-session-edit" data-sid="${session.id}" style="font-size: 0.75rem; padding: 0.35rem 0.55rem;" title="Editar entrenamiento">
+            ✏️
+          </button>
+          <button type="button" class="btn btn-danger btn-sm btn-session-delete" data-sid="${session.id}" style="font-size: 0.75rem; padding: 0.35rem 0.55rem;" title="Eliminar entrenamiento">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `;
+
+    const btnAtt = card.querySelector('.btn-session-attendance');
+    if (btnAtt) {
+      btnAtt.onclick = () => {
+        if (typeof openAttendanceModal === 'function') {
+          openAttendanceModal(session.teamId, session.date);
+        }
+      };
+    }
+
+    const btnEdit = card.querySelector('.btn-session-edit');
+    if (btnEdit) {
+      btnEdit.onclick = () => openEditTrainingModal(session.id);
+    }
+
+    const btnDel = card.querySelector('.btn-session-delete');
+    if (btnDel) {
+      btnDel.onclick = () => deleteTrainingSession(session.id);
+    }
+
+    container.appendChild(card);
+  });
 }
 
 function renderMonthlyCalendar() {
@@ -1698,43 +2043,57 @@ function renderSelectedDayDetails(dateStr) {
       `;
     }
 
+    const isIndoor = session.venueType === 'indoor_hall';
+    const venueBadgeHtml = isIndoor
+      ? `<span class="venue-type-badge badge-venue-indoor">🏟️ Polideportivo interior</span>`
+      : `<span class="venue-type-badge badge-venue-outdoor">🌿 Césped aire libre</span>`;
+
+    const mapQuery = session.address || session.location || '';
+    const mapsBtnHtml = mapQuery
+      ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}" target="_blank" class="btn-google-maps" title="Abrir en Google Maps">
+          📍 Maps
+        </a>`
+      : '';
+
     const card = document.createElement('div');
-    card.className = 'training-card-pro';
+    card.className = 'training-card-modern';
     card.style.margin = '0';
     card.innerHTML = `
+      <div class="training-card-color-stripe" style="background: ${teamColor};"></div>
+
       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
-        <div>
-          <span style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 700; background: rgba(255, 255, 255, 0.06); padding: 0.15rem 0.5rem; border-radius: 6px; color: ${teamColor}; margin-bottom: 0.35rem;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${teamColor};"></span>
+        <div style="flex: 1; min-width: 0;">
+          <h4 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             ${escapeHTML(team.name)}
-          </span>
-          <h4 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0; line-height: 1.3;">
-            ${escapeHTML(session.title)}
           </h4>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${escapeHTML(session.title)}
+          </div>
         </div>
         ${attBadgeHtml}
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span>⏰</span> <strong>${escapeHTML(session.time || 'Horario a confirmar')}</strong>
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.45rem; flex-wrap: wrap; font-size: 0.85rem;">
+        <div style="color: #60a5fa; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
+          <span>⏰</span> <span>${escapeHTML(session.time || 'Horario a confirmar')}</span>
         </div>
-        ${session.location ? `
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span>📍</span> <span>${escapeHTML(session.location)}</span>
-          </div>
-        ` : ''}
-        ${session.coach ? `
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span>👤</span> <span>${escapeHTML(session.coach)}</span>
-          </div>
-        ` : ''}
-        ${session.notes ? `
-          <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 0.4rem 0.6rem; border-radius: 6px; margin-top: 0.2rem;">
-            ${escapeHTML(session.notes)}
-          </div>
-        ` : ''}
+        ${venueBadgeHtml}
       </div>
+
+      ${(session.location || session.address) ? `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.4rem; padding: 0.35rem 0.55rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <div style="font-size: 0.8rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            📍 ${escapeHTML(session.address || session.location)}
+          </div>
+          ${mapsBtnHtml}
+        </div>
+      ` : ''}
+
+      ${session.notes ? `
+        <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 0.35rem 0.55rem; border-radius: 6px; margin-top: 0.4rem;">
+          ${escapeHTML(session.notes)}
+        </div>
+      ` : ''}
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
         <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
@@ -1785,6 +2144,10 @@ function initTrainingCalendarLogic() {
   if (btnAdd) {
     btnAdd.onclick = () => openEditTrainingModal(null);
   }
+  const btnQuickAdd = document.getElementById('btn-quick-add-training');
+  if (btnQuickAdd) {
+    btnQuickAdd.onclick = () => openEditTrainingModal(null);
+  }
 
   const btnQuickAtt = document.getElementById('btn-quick-attendance');
   if (btnQuickAtt) {
@@ -1833,7 +2196,14 @@ function initTrainingCalendarLogic() {
     btnSave.onclick = saveTrainingSession;
   }
 
-  renderMonthlyCalendar();
+  if (trainingActiveView === 'week') {
+    renderWeeklyCalendarStrip();
+    renderSelectedDayTrainings();
+  } else if (trainingActiveView === 'month') {
+    renderMonthlyCalendar();
+  } else {
+    renderTrainingSessions();
+  }
 }
 
 function renderTrainingSessions() {
@@ -1914,44 +2284,58 @@ function renderTrainingSessions() {
       `;
     }
 
+    const isIndoor = session.venueType === 'indoor_hall';
+    const venueBadgeHtml = isIndoor
+      ? `<span class="venue-type-badge badge-venue-indoor">🏟️ Polideportivo interior</span>`
+      : `<span class="venue-type-badge badge-venue-outdoor">🌿 Césped aire libre</span>`;
+
+    const mapQuery = session.address || session.location || '';
+    const mapsBtnHtml = mapQuery
+      ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}" target="_blank" class="btn-google-maps" title="Abrir en Google Maps">
+          📍 Maps
+        </a>`
+      : '';
+
     const card = document.createElement('div');
-    card.className = 'training-card-pro';
+    card.className = 'training-card-modern';
     card.innerHTML = `
+      <div class="training-card-color-stripe" style="background: ${teamColor};"></div>
+
       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
-        <div>
-          <span style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 700; background: rgba(255, 255, 255, 0.06); padding: 0.15rem 0.5rem; border-radius: 6px; color: ${teamColor}; margin-bottom: 0.35rem;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${teamColor};"></span>
+        <div style="flex: 1; min-width: 0;">
+          <h4 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             ${escapeHTML(team.name)}
-          </span>
-          <h4 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0; line-height: 1.3;">
-            ${escapeHTML(session.title)}
           </h4>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${escapeHTML(session.title)}
+          </div>
         </div>
         ${attBadgeHtml}
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.45rem; flex-wrap: wrap; font-size: 0.85rem;">
+        <div style="color: #60a5fa; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
           <span>📅</span> <strong>${formatDate(session.date)}</strong>
           <span>•</span>
           <span>⏰</span> <span>${escapeHTML(session.time || 'Horario por confirmar')}</span>
         </div>
-        ${session.location ? `
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span>📍</span> <span>${escapeHTML(session.location)}</span>
-          </div>
-        ` : ''}
-        ${session.coach ? `
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span>👤</span> <span>${escapeHTML(session.coach)}</span>
-          </div>
-        ` : ''}
-        ${session.notes ? `
-          <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 0.4rem 0.6rem; border-radius: 6px; margin-top: 0.2rem;">
-            ${escapeHTML(session.notes)}
-          </div>
-        ` : ''}
+        ${venueBadgeHtml}
       </div>
+
+      ${(session.location || session.address) ? `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.4rem; padding: 0.35rem 0.55rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <div style="font-size: 0.8rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            📍 ${escapeHTML(session.address || session.location)}
+          </div>
+          ${mapsBtnHtml}
+        </div>
+      ` : ''}
+
+      ${session.notes ? `
+        <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 0.35rem 0.55rem; border-radius: 6px; margin-top: 0.4rem;">
+          ${escapeHTML(session.notes)}
+        </div>
+      ` : ''}
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
         <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
@@ -2188,7 +2572,9 @@ function openEditTrainingModal(sessionId = null, defaultDate = null) {
     const startInput = document.getElementById('training-time-start');
     if (startInput) startInput.value = sTime;
 
+    setVenueType(session.venueType || 'outdoor_grass');
     document.getElementById('training-location').value = session.location || '';
+    document.getElementById('training-address').value = session.address || '';
     document.getElementById('training-coach').value = session.coach || '';
     document.getElementById('training-notes').value = session.notes || '';
     calcTrainingEndTime();
@@ -2208,7 +2594,9 @@ function openEditTrainingModal(sessionId = null, defaultDate = null) {
 
     document.getElementById('training-title').value = 'Entrenamiento habitual';
     document.getElementById('training-time-start').value = '17:30';
+    setVenueType('outdoor_grass');
     document.getElementById('training-location').value = 'Campo 1 (Césped)';
+    document.getElementById('training-address').value = '';
     document.getElementById('training-coach').value = '';
     document.getElementById('training-notes').value = '';
 
@@ -2223,10 +2611,43 @@ function openEditTrainingModal(sessionId = null, defaultDate = null) {
   }
 }
 
+function setVenueType(type) {
+  const hiddenInput = document.getElementById('training-venue-type');
+  const btnOut = document.getElementById('btn-venue-outdoor');
+  const btnIn = document.getElementById('btn-venue-indoor');
+
+  const finalType = type === 'indoor_hall' ? 'indoor_hall' : 'outdoor_grass';
+  if (hiddenInput) hiddenInput.value = finalType;
+
+  if (finalType === 'indoor_hall') {
+    btnIn?.classList.add('active');
+    btnOut?.classList.remove('active');
+  } else {
+    btnOut?.classList.add('active');
+    btnIn?.classList.remove('active');
+  }
+}
+
+function testGoogleMapsAddress() {
+  const addrInput = document.getElementById('training-address');
+  const locInput = document.getElementById('training-location');
+  const query = (addrInput?.value || locInput?.value || '').trim();
+
+  if (!query) {
+    showToast('Introduce una dirección o nombre de instalación para probar en Maps', 'info');
+    return;
+  }
+
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  window.open(url, '_blank');
+}
+
 function saveTrainingSession() {
   const title = document.getElementById('training-title').value.trim();
   const teamId = document.getElementById('training-team-id').value;
+  const venueType = document.getElementById('training-venue-type')?.value || 'outdoor_grass';
   const location = document.getElementById('training-location').value.trim();
+  const address = document.getElementById('training-address').value.trim();
   const coach = document.getElementById('training-coach').value.trim();
   const notes = document.getElementById('training-notes').value.trim();
   const editId = document.getElementById('edit-training-id').value;
@@ -2245,9 +2666,11 @@ function saveTrainingSession() {
     if (existing) {
       existing.title = title;
       existing.teamId = teamId;
+      existing.venueType = venueType;
       existing.date = document.getElementById('training-date').value;
       existing.time = summaryStr;
       existing.location = location;
+      existing.address = address;
       existing.coach = coach;
       existing.notes = notes;
       showToast('Entrenamiento actualizado correctamente', 'success');
@@ -2262,9 +2685,11 @@ function saveTrainingSession() {
       id: `tr_${Date.now()}`,
       title,
       teamId,
+      venueType,
       date,
       time: summaryStr,
       location,
+      address,
       coach,
       notes
     };
@@ -2303,9 +2728,11 @@ function saveTrainingSession() {
           id: `tr_${tsBase}_${createdCount}`,
           title,
           teamId,
+          venueType,
           date: dIso,
           time: summaryStr,
           location,
+          address,
           coach,
           notes
         };
@@ -2327,8 +2754,14 @@ function saveTrainingSession() {
     else modal.classList.remove('active');
   }
 
-  renderMonthlyCalendar();
-  renderTrainingSessions();
+  if (trainingActiveView === 'week') {
+    renderWeeklyCalendarStrip();
+    renderSelectedDayTrainings();
+  } else if (trainingActiveView === 'month') {
+    renderMonthlyCalendar();
+  } else {
+    renderTrainingSessions();
+  }
 }
 
 function deleteTrainingSession(sessionId) {
@@ -2343,14 +2776,24 @@ function deleteTrainingSession(sessionId) {
   trainingSessionsList = trainingSessionsList.filter(s => s.id !== sessionId);
   storage.saveTrainingSessions(trainingSessionsList);
   showToast('Sesión de entrenamiento eliminada', 'info');
-  renderMonthlyCalendar();
-  renderTrainingSessions();
+
+  if (trainingActiveView === 'week') {
+    renderWeeklyCalendarStrip();
+    renderSelectedDayTrainings();
+  } else if (trainingActiveView === 'month') {
+    renderMonthlyCalendar();
+  } else {
+    renderTrainingSessions();
+  }
 }
 
 // Exponer funciones en window para invocación desde eventos HTML
 window.switchTrainingView = switchTrainingView;
+window.navTrainingNav = navTrainingNav;
+window.navTrainingToday = navTrainingToday;
 window.navCalendarMonth = navCalendarMonth;
 window.navCalendarToday = navCalendarToday;
+window.onTrainingSearchInput = onTrainingSearchInput;
 window.onCalendarTeamFilterChange = onCalendarTeamFilterChange;
 window.setTrainingCreationMode = setTrainingCreationMode;
 window.toggleWeekdayChip = toggleWeekdayChip;
@@ -2359,6 +2802,8 @@ window.calcTrainingEndTime = calcTrainingEndTime;
 window.setRecurDuration = setRecurDuration;
 window.updateRecurringPreview = updateRecurringPreview;
 window.openEditTrainingModal = openEditTrainingModal;
+window.setVenueType = setVenueType;
+window.testGoogleMapsAddress = testGoogleMapsAddress;
 
 /* ==========================================================================
    REGISTRO Y ESTADÍSTICAS DE ASISTENCIA A ENTRENAMIENTOS
