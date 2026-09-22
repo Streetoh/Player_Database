@@ -62,7 +62,7 @@ function initAttendanceModal() {
     };
   }
 
-  const dateInput = document.getElementById('attendance-date-input');
+  const dateInput = document.getElementById('attendance-date-input') || document.getElementById('attendance-date');
   if (dateInput) {
     dateInput.onchange = (e) => {
       activeAttendanceDate = e.target.value;
@@ -132,7 +132,7 @@ function openAttendanceModal(defaultTeamId = null, defaultDate = null) {
     teamSelect.value = activeAttendanceTeamId;
   }
 
-  const dateInput = document.getElementById('attendance-date-input');
+  const dateInput = document.getElementById('attendance-date-input') || document.getElementById('attendance-date');
   if (dateInput) {
     const targetDate = defaultDate || new Date().toISOString().split('T')[0];
     activeAttendanceDate = targetDate;
@@ -354,7 +354,7 @@ function updateAttendanceCounters(present, absent) {
 
   if (elPres) elPres.textContent = `${present} (${pct}%)`;
   if (elAbs) elAbs.textContent = `${absent}`;
-  if (elTotal) elTotal.textContent = `${total} jug.`;
+  if (elTotal) elTotal.textContent = `${total}`;
 }
 
 /**

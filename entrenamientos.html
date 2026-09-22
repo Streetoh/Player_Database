@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Entrenamientos | JK NOOVA Academy</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#070a12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    .modal-backdrop { display: none; }
+    .modal-backdrop.active { display: flex !important; }
+  </style>
+</head>
+<body class="page-trainings">
+  <!-- Cabecera principal compartida -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-crest">JK</div>
+        <div class="brand-text">
+          <h1>JK NOOVA <span class="brand-badge">Academy</span></h1>
+          <p class="brand-sub">Gestión integral de fútbol base</p>
+        </div>
+      </div>
+
+      <!-- Enlaces de navegación global -->
+      <nav class="nav-tabs" role="navigation">
+        <a href="index.html" class="nav-tab-btn" data-page="database">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          <span data-i18n="nav.database">Base de datos</span>
+          <span class="tab-badge" id="badge-total-players">0</span>
+        </a>
+        <a href="equipos.html" class="nav-tab-btn" data-page="teams">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span data-i18n="nav.teams">Equipos</span>
+          <span class="tab-badge" id="badge-total-teams">5</span>
+        </a>
+        <a href="calendario.html" class="nav-tab-btn" data-page="calendar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span data-i18n="nav.calendar">Partidos</span>
+          <span class="tab-badge" id="badge-total-events">0</span>
+        </a>
+        <a href="entrenamientos.html" class="nav-tab-btn active" data-page="trainings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span data-i18n="nav.trainings">Entrenamientos</span>
+          <span class="tab-badge" id="badge-total-trainings">0</span>
+        </a>
+        <a href="transporte.html" class="nav-tab-btn" data-page="transport">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          <span data-i18n="nav.transport">Transporte</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-open-settings" data-i18n="nav.settings" data-i18n-title="nav.settingsTitle" title="Copias de seguridad y datos">
+          ⚙️ Config
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido principal: Módulo de Entrenamientos -->
+  <main class="main-content">
+    <div class="section-header" style="margin-bottom: 1rem;">
+      <div class="section-header-title">
+        <h2>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>Calendario de Entrenamientos</span>
+        </h2>
+        <p>Planifica sesiones únicas o planes semanales recurrentes, consulta asistencias y localizaciones con Google Maps.</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditTrainingModal(null, null, 'single')" style="font-weight: 700;">
+          ➕ Sesión puntual
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="openEditTrainingModal(null, null, 'recurring')" style="background: #10b981; border-color: #059669; font-weight: 700;">
+          🔁 Plan semanal recurrente
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra superior de búsqueda y añadir sesión rápida -->
+    <div class="training-top-search-bar">
+      <div style="min-width: 140px; max-width: 180px;">
+        <select class="form-select" id="cal-filter-team" style="padding: 0.5rem 0.6rem; font-size: 0.8rem; border-radius: 12px; background: var(--bg-card);" onchange="onCalendarTeamFilterChange(this.value)"></select>
+      </div>
+      <div class="training-search-box">
+        <span class="training-search-icon">🔍</span>
+        <input type="text" class="training-search-input" id="training-search-input" placeholder="Buscar entrenamientos..." oninput="onTrainingSearchInput(this.value)">
+      </div>
+      <button type="button" class="btn-training-quick-add" id="btn-quick-add-training" onclick="openEditTrainingModal(null)" title="Programar nuevo entrenamiento">
+        +
+      </button>
+    </div>
+
+    <!-- Barra de navegación temporal (Semana / Mes) y Conmutador de vista -->
+    <div class="training-week-nav">
+      <div class="week-nav-controls">
+        <button type="button" class="btn-week-nav" id="btn-training-prev" onclick="navTrainingNav(-1)" title="Anterior">
+          ◀
+        </button>
+        <span class="week-nav-title" id="training-nav-title">
+          --
+        </span>
+        <button type="button" class="btn-week-nav" id="btn-training-next" onclick="navTrainingNav(1)" title="Siguiente">
+          ▶
+        </button>
+        <button type="button" class="btn btn-secondary btn-xs" id="btn-training-today" onclick="navTrainingToday()" style="margin-left: 0.25rem; font-size: 0.72rem; padding: 0.25rem 0.5rem;">
+          Hoy
+        </button>
+      </div>
+
+      <!-- Conmutador de Vista: Semana | Mes | Lista -->
+      <div class="week-view-toggle-compact">
+        <button type="button" class="week-toggle-btn active" id="btn-view-week" onclick="switchTrainingView('week')" title="Vista semanal">
+          📅 Semana
+        </button>
+        <button type="button" class="week-toggle-btn" id="btn-view-month" onclick="switchTrainingView('month')" title="Vista mensual">
+          🗓️ Mes
+        </button>
+        <button type="button" class="week-toggle-btn" id="btn-view-list" onclick="switchTrainingView('list')" title="Vista lista">
+          📋 Lista
+        </button>
+      </div>
+    </div>
+
+    <!-- VISTA 1: SEMANAL (POR DEFECTO - IDÉNTICA A LA IMAGEN) -->
+    <div id="training-week-view">
+      <!-- Tira de 7 días (Lunes a Domingo) con letras, números y puntos -->
+      <div class="week-calendar-strip" id="week-calendar-days"></div>
+
+      <!-- Cabecera del día seleccionado -->
+      <div class="training-day-heading" id="training-selected-day-heading">
+        --
+      </div>
+
+      <!-- Lista de entrenamientos planificados para el día seleccionado -->
+      <div id="training-selected-day-list"></div>
+    </div>
+
+    <!-- VISTA 2: CALENDARIO MENSUAL -->
+    <div id="training-calendar-view" style="display: none;">
+      <div class="calendar-month-container">
+        <!-- Cabecera y Navegación del mes -->
+        <div class="calendar-month-nav">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-cal-prev-month" onclick="navCalendarMonth(-1)" title="Mes anterior">
+              ◀
+            </button>
+            <h3 id="cal-month-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #fff; min-width: 170px; text-align: center;">
+              Septiembre 2026
+            </h3>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-cal-next-month" onclick="navCalendarMonth(1)" title="Mes siguiente">
+              ▶
+            </button>
+          </div>
+        </div>
+
+        <!-- Cuadrícula mensual (Lunes a Domingo) -->
+        <div class="calendar-month-grid">
+          <div class="calendar-day-header">LUN</div>
+          <div class="calendar-day-header">MAR</div>
+          <div class="calendar-day-header">MIÉ</div>
+          <div class="calendar-day-header">JUE</div>
+          <div class="calendar-day-header">VIE</div>
+          <div class="calendar-day-header" style="color: #fbbf24;">SÁB</div>
+          <div class="calendar-day-header" style="color: #f87171;">DOM</div>
+        </div>
+        <!-- Contenedor dinámico de los días -->
+        <div class="calendar-month-grid" id="cal-days-grid" style="margin-top: 4px;"></div>
+      </div>
+
+      <!-- Panel de detalle del día seleccionado en el mes -->
+      <div class="calendar-day-detail-box" id="cal-day-detail-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <h4 id="cal-selected-day-title" style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #fff;">
+              📅 Entrenamientos del día
+            </h4>
+            <p id="cal-selected-day-subtitle" style="margin: 2px 0 0; font-size: 0.75rem; color: var(--text-muted);"></p>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-add-session-on-day" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.35); color: #34d399; font-weight: 700; font-size: 0.78rem;">
+            ➕ Programar en este día
+          </button>
+        </div>
+
+        <div id="cal-selected-day-sessions-list"></div>
+      </div>
+    </div>
+
+    <!-- VISTA 3: LISTADO DE SESIONES Y FILTROS -->
+    <div id="training-list-view" style="display: none;">
+      <!-- Filtros de sesiones -->
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; background: var(--bg-card); padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid var(--border-subtle);">
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+          <div class="form-group" style="margin: 0; min-width: 170px;">
+            <label class="form-label" for="filter-training-team" style="font-size: 0.75rem;">Filtrar por equipo</label>
+            <select class="form-select" id="filter-training-team" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;"></select>
+          </div>
+          <div class="form-group" style="margin: 0; min-width: 150px;">
+            <label class="form-label" for="filter-training-date" style="font-size: 0.75rem;">Fecha específica</label>
+            <input type="date" class="form-input" id="filter-training-date" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;">
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-training-filters" style="margin-top: 1.15rem; font-size: 0.78rem;">
+            🔄 Ver todos
+          </button>
+        </div>
+        <div id="training-count-indicator" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;"></div>
+      </div>
+
+      <!-- Listado de entrenamientos en tarjetas -->
+      <div id="trainings-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;"></div>
+    </div>
+  </main>
+
+  <!-- MODAL: CREAR / EDITAR ENTRENAMIENTO (SESIÓN ÚNICA Y PLAN RECURRENTE) -->
+  <div class="modal-backdrop" id="modal-training-session" data-no-backdrop-close="true">
+    <div class="modal-window" style="max-width: 580px; max-height: 94vh;">
+      <div class="modal-header">
+        <h3 id="training-modal-title">Programar entrenamiento</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-training-session">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1rem 1.25rem;">
+        <!-- Conmutador: Sesión única vs Plan semanal recurrente -->
+        <div class="recurrence-mode-toggle" id="training-mode-toggle-bar">
+          <button type="button" class="recurrence-mode-btn active" id="btn-mode-single" onclick="setTrainingCreationMode('single')">
+            🔘 Sesión única
+          </button>
+          <button type="button" class="recurrence-mode-btn" id="btn-mode-recurring" onclick="setTrainingCreationMode('recurring')">
+            🔁 Plan recurrente (Varios días por semana)
+          </button>
+        </div>
+
+        <form id="form-training-session" onsubmit="return false;">
+          <input type="hidden" id="edit-training-id" value="">
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label" for="training-team-id">Equipo o grupo asignado *</label>
+              <select class="form-select" id="training-team-id" required onchange="updateRecurringPreview()"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="training-title">Tipo / Título de sesión *</label>
+              <input type="text" class="form-input" id="training-title" required placeholder="Ej. Entrenamiento habitual" value="Entrenamiento habitual" oninput="updateRecurringPreview()">
+            </div>
+          </div>
+
+          <!-- BLOQUE 1: MODO SESIÓN ÚNICA -->
+          <div id="block-single-date">
+            <div class="form-group">
+              <label class="form-label" for="training-date">Fecha del entrenamiento (DD/MM/YYYY) *</label>
+              <input type="date" class="form-input" id="training-date">
+            </div>
+          </div>
+
+          <!-- BLOQUE 2: MODO RECURRENTE (DÍAS DE LA SEMANA Y PERIODO) -->
+          <div id="block-recurring-schedule" style="display: none; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.85rem; margin-bottom: 0.75rem;">
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+              <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Días de la semana de entrenamiento *</span>
+                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: normal;">(Toca para activar/desactivar)</span>
+              </label>
+              <div class="weekdays-picker">
+                <div class="weekday-chip active" data-day="1" onclick="toggleWeekdayChip(this)">Lun</div>
+                <div class="weekday-chip" data-day="2" onclick="toggleWeekdayChip(this)">Mar</div>
+                <div class="weekday-chip active" data-day="3" onclick="toggleWeekdayChip(this)">Mié</div>
+                <div class="weekday-chip" data-day="4" onclick="toggleWeekdayChip(this)">Jue</div>
+                <div class="weekday-chip active" data-day="5" onclick="toggleWeekdayChip(this)">Vie</div>
+                <div class="weekday-chip" data-day="6" onclick="toggleWeekdayChip(this)">Sáb</div>
+                <div class="weekday-chip" data-day="0" onclick="toggleWeekdayChip(this)">Dom</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" for="training-recur-start">Desde la fecha *</label>
+                <input type="date" class="form-input" id="training-recur-start" onchange="updateRecurringPreview()">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" for="training-recur-end">Hasta la fecha *</label>
+                <input type="date" class="form-input" id="training-recur-end" onchange="updateRecurringPreview()">
+              </div>
+            </div>
+
+            <!-- Atajos de periodo -->
+            <div style="display: flex; gap: 0.35rem; margin-top: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <span style="font-size: 0.7rem; color: var(--text-muted);">Atajos:</span>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setRecurDuration(1)">+1 mes</button>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setRecurDuration(3)">+3 meses</button>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setRecurDuration('season')">Fin de temporada (Junio)</button>
+            </div>
+          </div>
+
+          <!-- HORARIO Y DURACIÓN -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label" for="training-time-start">Hora de inicio *</label>
+              <input type="time" class="form-input" id="training-time-start" value="17:30" required onchange="calcTrainingEndTime()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duración</label>
+              <div class="duration-chips">
+                <button type="button" class="duration-chip" data-min="60" onclick="setTrainingDuration(60)">60m</button>
+                <button type="button" class="duration-chip" data-min="75" onclick="setTrainingDuration(75)">75m</button>
+                <button type="button" class="duration-chip active" data-min="90" onclick="setTrainingDuration(90)">90m</button>
+                <button type="button" class="duration-chip" data-min="120" onclick="setTrainingDuration(120)">120m</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen de horario calculado -->
+          <div style="font-size: 0.78rem; color: var(--accent-cyan); margin-bottom: 0.75rem; background: rgba(6,182,212,0.08); padding: 0.35rem 0.65rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem;">
+            <span>⏰</span> <span id="training-time-summary-hint">Franja horaria: 17:30 - 19:00 (90 minutos)</span>
+          </div>
+
+          <!-- TIPO DE RECINTO / PISTA -->
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label">Tipo de recinto / pista *</label>
+            <div class="venue-type-toggle">
+              <div class="venue-type-btn active" id="btn-venue-outdoor" onclick="setVenueType('outdoor_grass')">
+                <span>🌿</span>
+                <span>Césped al aire libre</span>
+              </div>
+              <div class="venue-type-btn" id="btn-venue-indoor" onclick="setVenueType('indoor_hall')">
+                <span>🏟️</span>
+                <span>Polideportivo interior</span>
+              </div>
+            </div>
+            <input type="hidden" id="training-venue-type" value="outdoor_grass">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label" for="training-location">Nombre de la instalación</label>
+              <input type="text" class="form-input" id="training-location" placeholder="Ej. Campo 1 / Pabellón Central" value="Campo 1" oninput="updateRecurringPreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="training-coach">Técnico responsable</label>
+              <input type="text" class="form-input" id="training-coach" placeholder="Ej. Entrenador principal">
+            </div>
+          </div>
+
+          <!-- DIRECCIÓN Y BOTÓN DE GOOGLE MAPS -->
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" for="training-address">Dirección postal / Ubicación (Google Maps)</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" class="form-input" id="training-address" placeholder="Ej. Calle Mayor 12, Kohtla-Järve" style="flex: 1;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="testGoogleMapsAddress()" style="white-space: nowrap; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;" title="Abrir ubicación en Google Maps">
+                📍 Ver ubicación
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label class="form-label" for="training-notes">Notas u objetivos de la sesión</label>
+            <textarea class="form-textarea" id="training-notes" rows="1" placeholder="Aspectos clave a trabajar, material, etc..."></textarea>
+          </div>
+
+          <!-- Caja de previsualización en vivo para recurrencia -->
+          <div class="preview-schedule-box" id="training-recurring-preview-box" style="display: none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-training-session">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-save-training-session" style="background: #10b981; border-color: #059669; font-weight: 700;">
+          💾 Guardar sesión
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONTROL DE ASISTENCIA (PASAR LISTA) -->
+  <div class="modal-backdrop" id="modal-attendance" data-no-backdrop-close="true">
+    <div class="modal-window modal-attendance-window">
+      <div class="modal-header" style="padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border-subtle);">
+        <h3 id="modal-attendance-title" style="font-size: 1.05rem; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+          <span>📋</span> <span data-i18n="attendance.title">Control de Asistencia</span>
+        </h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-attendance">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.5rem; overflow: hidden; flex: 1;">
+        <!-- Barra superior compacta en 2 columnas -->
+        <div class="att-controls-bar">
+          <div>
+            <label class="form-label" for="attendance-date-input" style="font-size: 0.7rem; margin-bottom: 2px;">Fecha</label>
+            <input type="date" class="form-input" id="attendance-date-input" style="padding: 0.35rem 0.5rem; font-size: 0.82rem;">
+          </div>
+          <div>
+            <label class="form-label" for="attendance-team-select" style="font-size: 0.7rem; margin-bottom: 2px;">Equipo</label>
+            <select class="form-select" id="attendance-team-select" style="padding: 0.35rem 0.5rem; font-size: 0.82rem;"></select>
+          </div>
+        </div>
+
+        <!-- Barra rápida con acciones y contadores protegidos contra desbordamiento -->
+        <div class="att-quick-bar">
+          <div class="att-quick-actions">
+            <button type="button" class="btn btn-secondary btn-xs" id="btn-attendance-all-present" style="font-weight: 700; color: #34d399; border-color: rgba(16, 185, 129, 0.4); font-size: 0.72rem; padding: 0.25rem 0.45rem;">
+              ✔ Todos
+            </button>
+            <button type="button" class="btn btn-secondary btn-xs" id="btn-attendance-all-absent" style="font-weight: 700; color: #f87171; border-color: rgba(239, 68, 68, 0.4); font-size: 0.72rem; padding: 0.25rem 0.45rem;">
+              ✖ Ninguno
+            </button>
+          </div>
+          <div class="att-quick-counters">
+            <span style="color: #34d399; font-weight: 700;">✔ <strong id="att-count-present">0</strong></span>
+            <span style="color: #f87171; font-weight: 700;">✖ <strong id="att-count-absent">0</strong></span>
+            <span style="color: var(--text-muted); font-size: 0.7rem;">(<span id="att-count-total">0</span>)</span>
+          </div>
+        </div>
+
+        <!-- Lista de jugadores con scroll libre y amplio -->
+        <div id="attendance-roster-list" style="flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;"></div>
+      </div>
+
+      <div class="modal-footer" style="padding: 0.55rem 0.85rem; border-top: 1px solid var(--border-subtle); display: flex; gap: 0.5rem; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary btn-sm" data-close-modal="modal-attendance" style="padding: 0.4rem 0.85rem; font-size: 0.82rem;">Cerrar</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-save-attendance" style="background: #10b981; border-color: #059669; font-weight: 700; padding: 0.4rem 1rem; font-size: 0.82rem;">
+          💾 Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURACIÓN Y COPIAS DE SEGURIDAD -->
+  <div class="modal-backdrop" id="modal-settings">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 data-i18n="settings.title">⚙️ Copias de Seguridad y Datos</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+          Exporta todos los datos del club a un archivo JSON seguro o restaura una copia previa.
+        </p>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-export-backup" style="flex: 1;">
+            📥 Descargar Copia
+          </button>
+          <label class="btn btn-secondary btn-sm" style="flex: 1; text-align: center; cursor: pointer; margin: 0;">
+            📤 Restaurar
+            <input type="file" id="input-restore-backup" accept=".json" style="display: none;">
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-settings">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/asistencia.js"></script>
+  <script src="js/calendario.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSharedNavbar('trainings');
+      loadCalendarData();
+      initTrainingSessionsLogic();
+
+      // Leer parámetros URL para auto-apertura (?team=... & action=recurring)
+      const urlParams = new URLSearchParams(window.location.search);
+      const teamParam = urlParams.get('team');
+      const actionParam = urlParams.get('action');
+
+      if (teamParam || actionParam) {
+        setTimeout(() => {
+          openEditTrainingModal(null, null, actionParam === 'recurring' ? 'recurring' : 'single');
+          if (teamParam) {
+            const selectTeam = document.getElementById('training-team-id');
+            if (selectTeam) {
+              selectTeam.value = teamParam;
+              if (typeof updateRecurringPreview === 'function') updateRecurringPreview();
+            }
+          }
+        }, 200);
+      }
+    });
+  </script>
+</body>
+</html>

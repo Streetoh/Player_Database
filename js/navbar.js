@@ -6,6 +6,7 @@
 function initSharedNavbar(activePage) {
   // Aliases normalizados para páginas activas
   const isCalendarPage = activePage === 'calendar' || activePage === 'events' || activePage === 'calendario' || activePage === 'partidos';
+  const isTrainingsPage = activePage === 'trainings' || activePage === 'entrenamientos';
   const isDatabasePage = activePage === 'database' || activePage === 'jugadores';
   const isTeamsPage = activePage === 'teams' || activePage === 'equipos';
   const isTransportPage = activePage === 'transport' || activePage === 'transporte';
@@ -16,6 +17,7 @@ function initSharedNavbar(activePage) {
     const pageTarget = link.getAttribute('data-page');
     const isActive = (pageTarget === activePage) ||
       ((pageTarget === 'calendar' || pageTarget === 'events') && isCalendarPage) ||
+      ((pageTarget === 'trainings' || pageTarget === 'entrenamientos') && isTrainingsPage) ||
       ((pageTarget === 'database' || pageTarget === 'jugadores') && isDatabasePage) ||
       ((pageTarget === 'teams' || pageTarget === 'equipos') && isTeamsPage) ||
       ((pageTarget === 'transport' || pageTarget === 'transporte') && isTransportPage);
@@ -40,7 +42,11 @@ function initSharedNavbar(activePage) {
       </a>
       <a href="calendario.html" class="mobile-nav-item ${isCalendarPage ? 'active' : ''}" data-page="calendar">
         <span class="mobile-nav-icon">⚽</span>
-        <span class="mobile-nav-label" data-i18n="nav.events">Partidos</span>
+        <span class="mobile-nav-label" data-i18n="nav.calendar">Partidos</span>
+      </a>
+      <a href="entrenamientos.html" class="mobile-nav-item ${isTrainingsPage ? 'active' : ''}" data-page="trainings">
+        <span class="mobile-nav-icon">🏃</span>
+        <span class="mobile-nav-label" data-i18n="nav.trainings">Entrenos</span>
       </a>
       <a href="transporte.html" class="mobile-nav-item ${isTransportPage ? 'active' : ''}" data-page="transport">
         <span class="mobile-nav-icon">🚐</span>
@@ -52,6 +58,7 @@ function initSharedNavbar(activePage) {
     bottomNav.querySelectorAll('.mobile-nav-item').forEach(item => {
       const p = item.getAttribute('data-page');
       const isAct = ((p === 'calendar' || p === 'events') && isCalendarPage) ||
+                    ((p === 'trainings' || p === 'entrenamientos') && isTrainingsPage) ||
                     ((p === 'database' || p === 'jugadores') && isDatabasePage) ||
                     ((p === 'teams' || p === 'equipos') && isTeamsPage) ||
                     ((p === 'transport' || p === 'transporte') && isTransportPage) ||
@@ -70,14 +77,17 @@ function initSharedNavbar(activePage) {
     const players = storage.getPlayers();
     const teams = storage.getTeams();
     const events = storage.getEvents();
+    const trainings = storage.getTrainingSessions ? storage.getTrainingSessions() : [];
 
-    const badgePlayers = document.getElementById('badge-total-players');
-    const badgeTeams = document.getElementById('badge-total-teams');
-    const badgeEvents = document.getElementById('badge-total-events');
+    const bPlayers = document.getElementById('badge-total-players');
+    const bTeams = document.getElementById('badge-total-teams');
+    const bEvents = document.getElementById('badge-total-events');
+    const bTrainings = document.getElementById('badge-total-trainings');
 
-    if (badgePlayers) badgePlayers.textContent = players.length;
-    if (badgeTeams) badgeTeams.textContent = teams.length;
-    if (badgeEvents) badgeEvents.textContent = events.length;
+    if (bPlayers) bPlayers.textContent = players.length;
+    if (bTeams) bTeams.textContent = teams.length;
+    if (bEvents) bEvents.textContent = events.length;
+    if (bTrainings) bTrainings.textContent = trainings.length;
   }
 
   // 2.1 Selector interactivo de idioma multilingüe (ES, EN, ET, RU)

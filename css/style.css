@@ -4865,10 +4865,55 @@ html, body {
   align-items: center;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.07);
-  padding: 0.35rem 0.65rem;
+  padding: 0.35rem 0.5rem;
   border-radius: 8px;
   flex-shrink: 0;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.att-quick-actions {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.att-quick-counters {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Badges de plan de entrenamiento en tarjetas de equipos */
+.team-plan-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.28rem 0.5rem;
+  border-radius: 6px;
+  margin-top: 0.45rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.team-plan-badge.has-plan {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.team-plan-badge.no-plan {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
 }
 
 /* Fila de jugador para pasar lista */

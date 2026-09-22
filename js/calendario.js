@@ -2529,7 +2529,7 @@ function updateRecurringPreview() {
   `;
 }
 
-function openEditTrainingModal(sessionId = null, defaultDate = null) {
+function openEditTrainingModal(sessionId = null, defaultDate = null, forceMode = null) {
   const modal = document.getElementById('modal-training-session');
   if (!modal) return;
 
@@ -2579,7 +2579,9 @@ function openEditTrainingModal(sessionId = null, defaultDate = null) {
     document.getElementById('training-notes').value = session.notes || '';
     calcTrainingEndTime();
   } else {
-    if (titleHeader) titleHeader.textContent = '➕ Programar entrenamiento';
+    if (titleHeader) {
+      titleHeader.textContent = forceMode === 'recurring' ? '🔁 Plan semanal recurrente' : '➕ Programar entrenamiento';
+    }
     if (editIdInput) editIdInput.value = '';
     if (toggleBar) toggleBar.style.display = 'flex';
 
@@ -2595,13 +2597,17 @@ function openEditTrainingModal(sessionId = null, defaultDate = null) {
     document.getElementById('training-title').value = 'Entrenamiento habitual';
     document.getElementById('training-time-start').value = '17:30';
     setVenueType('outdoor_grass');
-    document.getElementById('training-location').value = 'Campo 1 (Césped)';
+    document.getElementById('training-location').value = 'Campo 1';
     document.getElementById('training-address').value = '';
     document.getElementById('training-coach').value = '';
     document.getElementById('training-notes').value = '';
 
     setTrainingDuration(90);
-    setTrainingCreationMode('single');
+    if (forceMode === 'recurring') {
+      setTrainingCreationMode('recurring');
+    } else {
+      setTrainingCreationMode('single');
+    }
   }
 
   if (typeof openModal === 'function') {
@@ -2634,7 +2640,7 @@ function testGoogleMapsAddress() {
   const query = (addrInput?.value || locInput?.value || '').trim();
 
   if (!query) {
-    showToast('Introduce una dirección o nombre de instalación para probar en Maps', 'info');
+    showToast('Introduce una dirección o nombre de instalación para abrir en Maps', 'info');
     return;
   }
 

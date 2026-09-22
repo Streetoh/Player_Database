@@ -35,8 +35,15 @@ function renderTeamsBoard() {
   if (!container) return;
   container.innerHTML = '';
 
+  const storage = window.JKNoovaData?.StorageService;
+  const allTrainings = (storage && typeof storage.getTrainingSessions === 'function')
+    ? storage.getTrainingSessions()
+    : [];
+
   teamsList.forEach(team => {
     const teamPlayers = playersList.filter(p => p.teamId === team.id);
+    const teamTrainings = allTrainings.filter(s => s.teamId === team.id);
+    const hasPlan = teamTrainings.length > 0;
     const col = document.createElement('div');
     col.className = 'team-column team-accordion-card is-collapsed';
     col.style.setProperty('--team-accent', team.color);
@@ -76,6 +83,9 @@ function renderTeamsBoard() {
           <span class="team-header-badge">${teamPlayers.length}</span>
         </div>
         <div class="team-header-cat">${escapeHTML(team.category || '')}</div>
+        <div class="team-plan-badge ${hasPlan ? 'has-plan' : 'no-plan'}" style="margin: 0.35rem 0 0.25rem 0; width: fit-content;">
+          ${hasPlan ? `🟢 Plan activo (${teamTrainings.length} sesiones)` : `⚪ Sin plan de entrenamiento`}
+        </div>
         <div class="team-stats-mini">
           <span>🧤 POR: ${porCount}</span>
           <span>🛡️ DEF: ${defCount}</span>
@@ -88,6 +98,9 @@ function renderTeamsBoard() {
           </button>
           <button type="button" class="btn btn-secondary btn-xs btn-view-full-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.28rem 0.4rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(255,255,255,0.06);" title="Ver ficha y detalles del equipo">
             <span>👁️ Plantilla</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-xs btn-plan-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(16, 185, 129, 0.12); color: #34d399; border-color: rgba(16, 185, 129, 0.35);" title="Gestionar plan de entrenamientos">
+            <span>📅 Plan</span>
           </button>
           <button type="button" class="btn btn-secondary btn-xs btn-edit-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(255,255,255,0.06);" title="Editar información del equipo">
             <span>✏️ Editar</span>
@@ -153,6 +166,15 @@ function renderTeamsBoard() {
       btnView.onclick = (e) => {
         e.stopPropagation();
         openTeamViewModal(team.id);
+      };
+    }
+
+    // Botón para plan de entrenamientos del equipo
+    const btnPlan = col.querySelector('.btn-plan-team');
+    if (btnPlan) {
+      btnPlan.onclick = (e) => {
+        e.stopPropagation();
+        window.location.href = `entrenamientos.html?team=${team.id}&action=recurring`;
       };
     }
 
@@ -298,6 +320,8 @@ function initCustomTeamModalLogic() {
       if (btnSave) btnSave.textContent = 'Crear equipo';
       const colInput = document.getElementById('new-team-color');
       if (colInput) colInput.value = '#06b6d4';
+      const planBox = document.getElementById('team-training-plan-status-box');
+      if (planBox) planBox.style.display = 'none';
       openModal(modal);
     };
   }
@@ -333,6 +357,44 @@ function openEditTeamModal(teamId) {
   if (catInput) catInput.value = team.category || '';
   if (colInput) colInput.value = team.color || '#06b6d4';
   if (descInput) descInput.value = team.description || '';
+
+  // Configurar estado y acceso al plan de entrenamientos del equipo
+  const planBox = document.getElementById('team-training-plan-status-box');
+  const planBadge = document.getElementById('team-training-plan-badge');
+  const planDesc = document.getElementById('team-training-plan-desc');
+  const btnManagePlan = document.getElementById('btn-team-manage-training-plan');
+
+  if (planBox) {
+    planBox.style.display = 'block';
+    const storage = window.JKNoovaData?.StorageService;
+    const allTrainings = (storage && typeof storage.getTrainingSessions === 'function')
+      ? storage.getTrainingSessions()
+      : [];
+    const teamTrainings = allTrainings.filter(s => s.teamId === team.id);
+    const hasPlan = teamTrainings.length > 0;
+
+    if (planBadge) {
+      planBadge.className = `team-plan-badge ${hasPlan ? 'has-plan' : 'no-plan'}`;
+      planBadge.textContent = hasPlan
+        ? `🟢 Plan activo (${teamTrainings.length} sesiones)`
+        : '⚪ Sin plan de entrenamiento';
+    }
+
+    if (planDesc) {
+      planDesc.textContent = hasPlan
+        ? `Este equipo tiene ${teamTrainings.length} sesión(es) configuradas en el calendario. Puedes editar el plan recurrente semanal o añadir nuevas sesiones.`
+        : 'Este equipo no tiene sesiones de entrenamiento programadas actualmente. Puedes crear un plan semanal recurrente ahora.';
+    }
+
+    if (btnManagePlan) {
+      btnManagePlan.textContent = hasPlan
+        ? '🔁 Modificar / Ver plan de entrenamientos'
+        : '➕ Crear plan de entrenamiento semanal';
+      btnManagePlan.onclick = () => {
+        window.location.href = `entrenamientos.html?team=${team.id}&action=recurring`;
+      };
+    }
+  }
 
   openModal(modal);
 }
