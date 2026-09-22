@@ -183,7 +183,7 @@
       <!-- Ubicación y botón Google Maps -->
       <div style="text-align: left; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.85rem;">
         <div style="font-size: 0.72rem; color: var(--text-muted);" data-i18n="family.pitch">Instalación deportiva / Campo:</div>
-        <div id="pub-match-location" style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-top: 2px;" data-i18n="family.fieldDefault">
+        <div id="pub-match-location" style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-top: 2px;">
           Campo de juego
         </div>
         <a id="pub-maps-button" href="#" target="_blank" rel="noopener noreferrer" class="location-btn">
@@ -198,7 +198,7 @@
         <div style="font-size: 0.9rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 0.4rem;">
           <span>🚐</span> <span data-i18n="family.transportTitle">Transporte y Furgonetas</span>
         </div>
-        <span id="pub-transport-badge" style="font-size: 0.7rem; background: rgba(6, 182, 212, 0.15); color: #06b6d4; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;" data-i18n="family.officialFleet">
+        <span id="pub-transport-badge" style="font-size: 0.7rem; background: rgba(6, 182, 212, 0.15); color: #06b6d4; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">
           Flota oficial
         </span>
       </div>
@@ -222,7 +222,7 @@
           <span>⚽</span> <span data-i18n="family.callupTitle">Lista de Convocados</span>
         </div>
         <span id="pub-callup-count" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">
-          0 jugadores
+          0 convocados
         </span>
       </div>
 
@@ -238,7 +238,757 @@
 
   <!-- Scripts -->
   <script src="js/data.js"></script>
-  <script src="js/i18n.js"></script>
-  <script src="js/partido-familia.js"></script>
+  <script>
+  /**
+   * JK NOOVA - Lógica Autónoma del Portal Público para Familias
+   * Totalmente autosuficiente y con traducciones incorporadas para funcionar
+   * aunque no se hayan sincronizado los demás archivos .js en GitHub.
+   */
+  (function() {
+    const FAMILY_TRANSLATIONS = {
+      es: {
+        'family.metaTitle': 'Consulta de Partido | JK Noova Academy',
+        'family.loading': 'Cargando partido...',
+        'family.officialCategory': 'Categoría oficial',
+        'family.kickoff': 'Pitido inicial',
+        'family.remainingTime': 'Tiempo restante',
+        'family.pitch': 'Instalación deportiva / Campo:',
+        'family.fieldDefault': 'Campo de juego',
+        'family.getDirections': 'Cómo llegar en Google Maps',
+        'family.transportTitle': 'Transporte y Furgonetas',
+        'family.officialFleet': 'Flota oficial',
+        'family.officialVehicle': 'Vehículo oficial',
+        'family.plate': 'Matrícula',
+        'family.departureTime': 'Hora de salida de la furgoneta',
+        'family.driver': 'Conductor responsable',
+        'family.seatsAssigned': 'Asientos asignados en furgoneta:',
+        'family.seatsPending': 'Los asientos se asignarán antes de la salida.',
+        'family.seatPlaza': 'Plaza {seat}',
+        'family.callupTitle': 'Lista de Convocados',
+        'family.callupEmpty': 'La lista de convocados para este partido aún no ha sido publicada.',
+        'family.callupCount': '{n} convocados',
+        'family.calledUp': 'CONVOCADO',
+        'family.clubVan': '🚐 Furgoneta del club',
+        'family.privateCar': '🚗 Coche particular',
+        'family.paid': '🟢 Pagado',
+        'family.pending': '⏳ Pendiente',
+        'family.matchLiveFinished': '¡En juego / Finalizado!',
+        'family.dateTbd': 'Fecha por confirmar',
+        'family.atTime': 'a las {time} h',
+        'family.footerAcademy': 'JK Noova Academy • Fútbol Base Formativo',
+        'family.footerContact': 'Para cualquier duda o incidencia, contacta con tu entrenador o coordinador.',
+        'family.emptyTitle': 'No hay encuentros disponibles',
+        'family.emptySubtitle': 'Consulta con el cuerpo técnico de JK Noova'
+      },
+      en: {
+        'family.metaTitle': 'Match Details | JK Noova Academy',
+        'family.loading': 'Loading match...',
+        'family.officialCategory': 'Official Category',
+        'family.kickoff': 'Kick-off',
+        'family.remainingTime': 'Remaining Time',
+        'family.pitch': 'Sports Facility / Pitch:',
+        'family.fieldDefault': 'Match Pitch',
+        'family.getDirections': 'Get directions on Google Maps',
+        'family.transportTitle': 'Transport & Vans',
+        'family.officialFleet': 'Official Fleet',
+        'family.officialVehicle': 'Official vehicle',
+        'family.plate': 'License plate',
+        'family.departureTime': 'Van departure time',
+        'family.driver': 'Driver in charge',
+        'family.seatsAssigned': 'Assigned van seats:',
+        'family.seatsPending': 'Seats will be assigned before departure.',
+        'family.seatPlaza': 'Seat {seat}',
+        'family.callupTitle': 'Squad Call-up',
+        'family.callupEmpty': 'The call-up list for this match has not been published yet.',
+        'family.callupCount': '{n} called up',
+        'family.calledUp': 'CALLED UP',
+        'family.clubVan': '🚐 Club van',
+        'family.privateCar': '🚗 Private car',
+        'family.paid': '🟢 Paid',
+        'family.pending': '⏳ Pending',
+        'family.matchLiveFinished': 'Match underway / Finished!',
+        'family.dateTbd': 'Date to be confirmed',
+        'family.atTime': 'at {time}',
+        'family.footerAcademy': 'JK Noova Academy • Youth Football Academy',
+        'family.footerContact': 'For questions or issues, please contact your coach or coordinator.',
+        'family.emptyTitle': 'No matches available',
+        'family.emptySubtitle': 'Please contact the JK Noova coaching staff'
+      },
+      et: {
+        'family.metaTitle': 'Mängu info | JK Noova Academy',
+        'family.loading': 'Mängu laadimine...',
+        'family.officialCategory': 'Ametlik kategooria',
+        'family.kickoff': 'Algusvile',
+        'family.remainingTime': 'Järelejäänud aeg',
+        'family.pitch': 'Spordirajatis / Väljak:',
+        'family.fieldDefault': 'Mänguväljak',
+        'family.getDirections': 'Juhised Google Mapsis',
+        'family.transportTitle': 'Transport ja väikebussid',
+        'family.officialFleet': 'Klubi transport',
+        'family.officialVehicle': 'Ametlik sõiduk',
+        'family.plate': 'Numbrimärk',
+        'family.departureTime': 'Väikebussi väljumisaeg',
+        'family.driver': 'Vastutav juht',
+        'family.seatsAssigned': 'Määratud kohad väikebussis:',
+        'family.seatsPending': 'Istekohad määratakse enne väljasõitu.',
+        'family.seatPlaza': 'Koht {seat}',
+        'family.callupTitle': 'Koosseis / Kutsutud mängijad',
+        'family.callupEmpty': 'Selle mängu koosseisu pole veel avaldatud.',
+        'family.callupCount': '{n} kutsutud',
+        'family.calledUp': 'KUTSUTUD',
+        'family.clubVan': '🚐 Klubi väikebuss',
+        'family.privateCar': '🚗 Isiklik auto',
+        'family.paid': '🟢 Makstud',
+        'family.pending': '⏳ Ootel',
+        'family.matchLiveFinished': 'Mäng käib / Lõppenud!',
+        'family.dateTbd': 'Kuupäev kinnitamisel',
+        'family.atTime': 'kell {time}',
+        'family.footerAcademy': 'JK Noova Academy • Noorte jalgpalliakadeemia',
+        'family.footerContact': 'Küsimuste korral võtke ühendust treeneri või koordinaatoriga.',
+        'family.emptyTitle': 'Mänge pole saadaval',
+        'family.emptySubtitle': 'Võtke ühendust JK Noova treeneritega'
+      },
+      ru: {
+        'family.metaTitle': 'Информация о матче | JK Noova Academy',
+        'family.loading': 'Загрузка матча...',
+        'family.officialCategory': 'Официальная категория',
+        'family.kickoff': 'Свисток к началу',
+        'family.remainingTime': 'До матча осталось',
+        'family.pitch': 'Спортивный комплекс / Поле:',
+        'family.fieldDefault': 'Игровое поле',
+        'family.getDirections': 'Маршрут в Google Maps',
+        'family.transportTitle': 'Транспорт и микроавтобусы',
+        'family.officialFleet': 'Клубный транспорт',
+        'family.officialVehicle': 'Официальный автомобиль',
+        'family.plate': 'Номерной знак',
+        'family.departureTime': 'Время отправления микроавтобуса',
+        'family.driver': 'Ответственный водитель',
+        'family.seatsAssigned': 'Назначенные места в микроавтобусе:',
+        'family.seatsPending': 'Места будут распределены перед выездом.',
+        'family.seatPlaza': 'Место {seat}',
+        'family.callupTitle': 'Список вызванных игроков',
+        'family.callupEmpty': 'Список игроков на этот матч еще не опубликован.',
+        'family.callupCount': '{n} вызвано',
+        'family.calledUp': 'В СОСТАВЕ',
+        'family.clubVan': '🚐 Микроавтобус клуба',
+        'family.privateCar': '🚗 Личный автомобиль',
+        'family.paid': '🟢 Оплачено',
+        'family.pending': '⏳ Ожидается',
+        'family.matchLiveFinished': 'Идет матч / Завершен!',
+        'family.dateTbd': 'Дата уточняется',
+        'family.atTime': 'в {time}',
+        'family.footerAcademy': 'JK Noova Academy • Детско-юношеский футбол',
+        'family.footerContact': 'По всем вопросам обращайтесь к тренеру или координатору.',
+        'family.emptyTitle': 'Нет доступных матчей',
+        'family.emptySubtitle': 'Обратитесь к тренерскому штабу JK Noova'
+      },
+      uk: {
+        'family.metaTitle': 'Інформація про матч | JK Noova Academy',
+        'family.loading': 'Завантаження матчу...',
+        'family.officialCategory': 'Офіційна категорія',
+        'family.kickoff': 'Початковий свисток',
+        'family.remainingTime': 'Час до початку',
+        'family.pitch': 'Спортивний комплекс / Поле:',
+        'family.fieldDefault': 'Футбольне поле',
+        'family.getDirections': 'Маршрут у Google Maps',
+        'family.transportTitle': 'Транспорт та мікроавтобуси',
+        'family.officialFleet': 'Клубний транспорт',
+        'family.officialVehicle': 'Офіційний автомобіль',
+        'family.plate': 'Номерний знак',
+        'family.departureTime': 'Час виїзду мікроавтобуса',
+        'family.driver': 'Відповідальний водій',
+        'family.seatsAssigned': 'Призначені місця в мікроавтобусі:',
+        'family.seatsPending': 'Місця будуть розподілені перед виїздом.',
+        'family.seatPlaza': 'Місце {seat}',
+        'family.callupTitle': 'Список викликаних гравців',
+        'family.callupEmpty': 'Список гравців на цей матч ще не опубліковано.',
+        'family.callupCount': '{n} викликано',
+        'family.calledUp': 'У СКЛАДІ',
+        'family.clubVan': '🚐 Мікроавтобус клубу',
+        'family.privateCar': '🚗 Власний автомобіль',
+        'family.paid': '🟢 Оплачено',
+        'family.pending': '⏳ Очікується',
+        'family.matchLiveFinished': 'Матч триває / Завершено!',
+        'family.dateTbd': 'Дата уточнюється',
+        'family.atTime': 'о {time}',
+        'family.footerAcademy': 'JK Noova Academy • Дитячо-юнацький футбол',
+        'family.footerContact': 'З усіх питань звертайтеся до тренера або координатора.',
+        'family.emptyTitle': 'Немає доступних матчів',
+        'family.emptySubtitle': 'Зверніться до тренерського штабу JK Noova'
+      }
+    };
+
+    const SUPPORTED = ['es', 'en', 'et', 'ru', 'uk'];
+    let currentLang = 'es';
+    let countdownInterval = null;
+    let currentPayloadData = null;
+
+    function initLanguage() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = (urlParams.get('lang') || '').toLowerCase();
+        if (urlLang && SUPPORTED.includes(urlLang)) {
+          currentLang = urlLang;
+          try { localStorage.setItem('jknoova_language', currentLang); } catch (e) {}
+          return;
+        }
+        const saved = localStorage.getItem('jknoova_language');
+        if (saved && SUPPORTED.includes(saved)) {
+          currentLang = saved;
+          return;
+        }
+        const navLangs = (navigator.languages && navigator.languages.length > 0)
+          ? navigator.languages
+          : [navigator.language || ''];
+        for (const nl of navLangs) {
+          const code = (nl || '').substring(0, 2).toLowerCase();
+          if (SUPPORTED.includes(code)) {
+            currentLang = code;
+            return;
+          }
+        }
+        currentLang = 'en';
+      } catch (e) {
+        currentLang = 'es';
+      }
+    }
+
+    function t(key, params, fallback) {
+      const dict = FAMILY_TRANSLATIONS[currentLang] || FAMILY_TRANSLATIONS['es'];
+      let val = dict[key];
+      if (val === undefined) {
+        val = (FAMILY_TRANSLATIONS['es'] && FAMILY_TRANSLATIONS['es'][key]) !== undefined
+          ? FAMILY_TRANSLATIONS['es'][key]
+          : (fallback || key);
+      }
+      if (params && typeof params === 'object') {
+        for (const p in params) {
+          val = val.replace(new RegExp(`\\{${p}\\}`, 'g'), params[p]);
+        }
+      }
+      return val;
+    }
+
+    function applyTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key) {
+          const text = t(key);
+          if (text) el.textContent = text;
+        }
+      });
+      document.title = t('family.metaTitle', null, 'Consulta de Partido | JK Noova Academy');
+      document.documentElement.lang = currentLang;
+    }
+
+    function updateLangButtons() {
+      document.querySelectorAll('.family-lang-btn').forEach(btn => {
+        if (btn.getAttribute('data-lang') === currentLang) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    window.switchFamilyLang = function(lang) {
+      if (!SUPPORTED.includes(lang)) return;
+      currentLang = lang;
+      try { localStorage.setItem('jknoova_language', lang); } catch (e) {}
+      updateLangButtons();
+      applyTranslations();
+      loadFamilyMatchView();
+    };
+
+    function decodeCompactMatchPayload(b64url) {
+      if (!b64url) return null;
+      try {
+        let b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) b64 += '=';
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const jsonStr = new TextDecoder().decode(bytes);
+        return JSON.parse(jsonStr);
+      } catch (err) {
+        console.error('Error al decodificar datos del partido:', err);
+        return null;
+      }
+    }
+
+    function loadFamilyMatchView() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const dParam = urlParams.get('d');
+
+      if (dParam) {
+        if (!currentPayloadData) {
+          currentPayloadData = decodeCompactMatchPayload(dParam);
+        }
+        if (currentPayloadData) {
+          renderFromPayload(currentPayloadData);
+          return;
+        }
+      }
+
+      if (!window.JKNoovaData || !window.JKNoovaData.StorageService) {
+        showEmptyState(
+          t('family.emptyTitle', null, 'JK Noova Academy'),
+          t('family.emptySubtitle', null, 'Consulta con el cuerpo técnico el enlace del partido')
+        );
+        return;
+      }
+
+      const storage = window.JKNoovaData.StorageService;
+      const events = storage.getEvents() || [];
+      const teams = storage.getTeams() || [];
+      const players = storage.getPlayers() || [];
+      const transportData = storage.getTransport() || {};
+      const vans = storage.getVans() || [];
+
+      const eventId = urlParams.get('event');
+      let event = events.find(e => e.id === eventId) || events[0];
+
+      if (!event) {
+        showEmptyState(
+          t('family.emptyTitle', null, 'No hay encuentros disponibles'),
+          t('family.emptySubtitle', null, 'Consulta con el cuerpo técnico de JK Noova')
+        );
+        return;
+      }
+
+      const team = teams.find(t => t.id === event.teamId) || { name: 'Equipo JK Noova', category: t('family.officialCategory', null, 'Fútbol Base') };
+
+      document.getElementById('pub-match-title').textContent = event.title || `JK Noova vs ${event.rival}`;
+      document.getElementById('pub-match-team').textContent = `${team.name} • ${team.category || t('family.officialCategory', null, 'Competición oficial')}`;
+
+      const formattedDate = formatMatchDate(event.date);
+      const timeText = event.time ? ` • ${t('family.atTime', { time: event.time }, `a las ${event.time} h`)}` : '';
+      document.getElementById('pub-match-datetime').textContent = `${formattedDate}${timeText}`;
+
+      startCountdown(event.date, event.time);
+
+      const loc = event.location || t('family.fieldDefault', null, 'Campo de fútbol');
+      document.getElementById('pub-match-location').textContent = loc;
+      const mapsBtn = document.getElementById('pub-maps-button');
+      if (mapsBtn) {
+        mapsBtn.style.display = 'flex';
+        mapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+      }
+
+      const callUp = event.callUp || [];
+      const tournamentPrice = Number(event.tournamentPrice) || 0;
+      const transportPrice = Number(event.transportPrice) || 0;
+      const minibusCount = callUp.filter(c => c.transport === 'minibus').length;
+      const totalCallUp = callUp.length;
+
+      const priceTournamentPerPlayer = totalCallUp > 0 ? (tournamentPrice / totalCallUp) : 0;
+      const priceTransportPerBus = minibusCount > 0 ? (transportPrice / minibusCount) : 0;
+      const totalBusPlayer = priceTournamentPerPlayer + priceTransportPerBus;
+      const totalCarPlayer = priceTournamentPerPlayer;
+
+      renderTransportInfo(event, transportData, vans, players);
+      renderCallUpList(callUp, players, totalBusPlayer, totalCarPlayer);
+    }
+
+    function renderFromPayload(data) {
+      document.getElementById('pub-match-title').textContent = data.t || 'JK Noova Academy';
+      document.getElementById('pub-match-team').textContent = data.m || t('family.officialCategory', null, 'Convocatoria Oficial');
+
+      const formattedDate = formatMatchDate(data.d);
+      const timeText = data.h ? ` • ${t('family.atTime', { time: data.h }, `a las ${data.h} h`)}` : '';
+      document.getElementById('pub-match-datetime').textContent = `${formattedDate}${timeText}`;
+
+      startCountdown(data.d, data.h);
+
+      const loc = data.l || t('family.fieldDefault', null, 'Instalación deportiva');
+      document.getElementById('pub-match-location').textContent = loc;
+      const mapsBtn = document.getElementById('pub-maps-button');
+      if (mapsBtn) {
+        mapsBtn.style.display = 'flex';
+        mapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+      }
+
+      const callUp = data.c || [];
+      const tournamentPrice = Number(data.tp) || 0;
+      const transportPrice = Number(data.rp) || 0;
+      const minibusCount = callUp.filter(c => c[2] === 1).length;
+      const totalCallUp = callUp.length;
+
+      const priceTournamentPerPlayer = totalCallUp > 0 ? (tournamentPrice / totalCallUp) : 0;
+      const priceTransportPerBus = minibusCount > 0 ? (transportPrice / minibusCount) : 0;
+      const totalBusPlayer = priceTournamentPerPlayer + priceTransportPerBus;
+      const totalCarPlayer = priceTournamentPerPlayer;
+
+      renderPayloadTransport(data.v || [], callUp);
+      renderPayloadCallUp(callUp, totalBusPlayer, totalCarPlayer);
+    }
+
+    function renderPayloadTransport(vanArr, callUp) {
+      const detailsEl = document.getElementById('pub-transport-details');
+      const seatsListEl = document.getElementById('pub-seats-list');
+      const badgeEl = document.getElementById('pub-transport-badge');
+
+      const vanName = vanArr[0] || t('family.clubVan', null, 'Furgoneta del Club');
+      const plate = vanArr[1] || '';
+      const departureTime = vanArr[2] || '';
+      const driver = vanArr[3] || '';
+
+      if (badgeEl) {
+        badgeEl.textContent = plate ? `${t('family.plate', null, 'Matrícula')}: ${plate}` : t('family.officialFleet', null, 'Vehículo Oficial');
+      }
+
+      if (detailsEl) {
+        let vanInfo = `<strong>${t('family.officialVehicle', null, 'Vehículo oficial')}:</strong> ${escapeHTML(vanName)}`;
+        if (plate) vanInfo += ` • <strong>${t('family.plate', null, 'Matrícula')}:</strong> ${escapeHTML(plate)}`;
+        if (departureTime) vanInfo += `<br>⏰ <strong>${t('family.departureTime', null, 'Hora de salida de la furgoneta')}:</strong> ${escapeHTML(departureTime)}`;
+        if (driver) vanInfo += `<br>👤 <strong>${t('family.driver', null, 'Conductor responsable')}:</strong> ${escapeHTML(driver)}`;
+        detailsEl.innerHTML = vanInfo;
+      }
+
+      if (seatsListEl) {
+        seatsListEl.innerHTML = '';
+        const assigned = (callUp || []).filter(c => c[4] && String(c[4]).trim() !== '');
+
+        if (assigned.length === 0) {
+          seatsListEl.innerHTML = `
+            <div style="font-size: 0.78rem; color: var(--text-muted); padding: 0.4rem 0;">
+              ${t('family.seatsPending', null, 'Los asientos se asignarán antes de la salida.')}
+            </div>
+          `;
+          return;
+        }
+
+        assigned.forEach(c => {
+          const dorsal = c[0] || '-';
+          const name = c[1] || 'Jugador';
+          const seatKey = c[4];
+          const seatLabel = t('family.seatPlaza', { seat: escapeHTML(String(seatKey).toUpperCase()) }, `Plaza ${escapeHTML(String(seatKey).toUpperCase())}`);
+
+          const item = document.createElement('div');
+          item.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.06);
+          `;
+          item.innerHTML = `
+            <span style="color: #fff; font-weight: 600;">
+              #${escapeHTML(dorsal)} ${escapeHTML(name)}
+            </span>
+            <span class="seat-badge">
+              💺 ${seatLabel}
+            </span>
+          `;
+          seatsListEl.appendChild(item);
+        });
+      }
+    }
+
+    function renderPayloadCallUp(callUp, totalBus, totalCar) {
+      const container = document.getElementById('pub-callup-list');
+      const countBadge = document.getElementById('pub-callup-count');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (countBadge) {
+        countBadge.textContent = t('family.callupCount', { n: callUp.length }, `${callUp.length} convocados`);
+      }
+
+      if (callUp.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
+            ${t('family.callupEmpty', null, 'La lista de convocados para este partido aún no ha sido publicada.')}
+          </div>
+        `;
+        return;
+      }
+
+      callUp.forEach(c => {
+        const dorsal = c[0] || '-';
+        const name = c[1] || 'Jugador';
+        const isBus = c[2] === 1;
+        const isPaid = c[3] === 1;
+        const playerFee = isBus ? totalBus : totalCar;
+        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=18233c&color=fff`;
+
+        const row = document.createElement('div');
+        row.className = 'family-player-row';
+
+        const transportLabel = isBus ? t('family.clubVan', null, '🚐 Furgoneta del club') : t('family.privateCar', null, '🚗 Coche particular');
+        const calledUpLabel = t('family.calledUp', null, 'CONVOCADO');
+
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
+            <img src="${avatarUrl}" alt="${escapeHTML(name)}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.15);">
+            <div style="min-width: 0;">
+              <div style="font-weight: 700; color: #fff; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                #${escapeHTML(dorsal)} ${escapeHTML(name)}
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 0.4rem; align-items: center; margin-top: 1px;">
+                <span style="color: var(--accent-cyan); font-weight: 600;">${calledUpLabel}</span>
+                <span>•</span>
+                <span>${transportLabel}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: right; flex-shrink: 0;">
+            <div style="font-size: 0.88rem; font-weight: 800; color: ${isBus ? 'var(--accent-cyan)' : '#fbbf24'};">
+              ${playerFee.toFixed(2).replace('.', ',')} €
+            </div>
+            <div style="margin-top: 2px;">
+              ${isPaid ? `
+                <span style="font-size: 0.68rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
+                  ${t('family.paid', null, '🟢 Pagado')}
+                </span>
+              ` : `
+                <span style="font-size: 0.68rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
+                  ${t('family.pending', null, '⏳ Pendiente')}
+                </span>
+              `}
+            </div>
+          </div>
+        `;
+
+        container.appendChild(row);
+      });
+    }
+
+    function showEmptyState(title, subtitle) {
+      const tEl = document.getElementById('pub-match-title');
+      const sEl = document.getElementById('pub-match-team');
+      const dtEl = document.getElementById('pub-match-datetime');
+      const cdEl = document.getElementById('pub-countdown-display');
+      const locEl = document.getElementById('pub-match-location');
+      const mapsBtn = document.getElementById('pub-maps-button');
+
+      if (tEl) tEl.textContent = title;
+      if (sEl) sEl.textContent = subtitle;
+      if (dtEl) dtEl.textContent = t('family.dateTbd', null, 'En espera de convocatoria');
+      if (cdEl) cdEl.textContent = t('family.emptyTitle', null, 'Sin encuentro activo');
+      if (locEl) locEl.textContent = t('family.emptySubtitle', null, 'Por favor, escanea el código QR facilitado por el club.');
+      if (mapsBtn) mapsBtn.style.display = 'none';
+    }
+
+    function startCountdown(dateStr, timeStr) {
+      if (countdownInterval) clearInterval(countdownInterval);
+      const display = document.getElementById('pub-countdown-display');
+      if (!display) return;
+
+      const targetTime = timeStr ? timeStr : '10:00';
+      const targetDate = new Date(`${dateStr}T${targetTime}:00`);
+
+      function update() {
+        const now = new Date();
+        const diff = targetDate.getTime() - now.getTime();
+
+        if (isNaN(diff)) {
+          display.textContent = t('family.dateTbd', null, 'Fecha por confirmar');
+          return;
+        }
+
+        if (diff <= 0) {
+          display.textContent = t('family.matchLiveFinished', null, '¡En juego / Finalizado!');
+          display.style.color = '#34d399';
+          return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        if (days > 0) {
+          display.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        } else {
+          display.textContent = `${hours}h ${minutes}m ${seconds}s`;
+        }
+      }
+
+      update();
+      countdownInterval = setInterval(update, 1000);
+    }
+
+    function renderTransportInfo(event, transportData, vans, players) {
+      const detailsEl = document.getElementById('pub-transport-details');
+      const seatsListEl = document.getElementById('pub-seats-list');
+      const badgeEl = document.getElementById('pub-transport-badge');
+
+      const evTransport = transportData[event.id] || {};
+      const vanId = evTransport.vanId || 'van_1';
+      const van = vans.find(v => v.id === vanId) || vans[0] || { name: 'Renault Trafic (Club)', plate: '4821 - KLP', capacity: 8 };
+
+      if (badgeEl) {
+        badgeEl.textContent = van.plate ? `${t('family.plate', null, 'Matrícula')}: ${van.plate}` : `${van.capacity} plazas`;
+      }
+
+      if (detailsEl) {
+        let vanInfo = `<strong>${t('family.officialVehicle', null, 'Vehículo oficial')}:</strong> ${van.name} (${van.capacity} plazas)`;
+        if (van.plate) vanInfo += ` • <strong>${t('family.plate', null, 'Matrícula')}:</strong> ${van.plate}`;
+        if (evTransport.departureTime) {
+          vanInfo += `<br>⏰ <strong>${t('family.departureTime', null, 'Hora de salida de la furgoneta')}:</strong> ${evTransport.departureTime}`;
+        }
+        if (evTransport.driver) {
+          vanInfo += `<br>👤 <strong>${t('family.driver', null, 'Conductor responsable')}:</strong> ${evTransport.driver}`;
+        }
+        detailsEl.innerHTML = vanInfo;
+      }
+
+      if (seatsListEl) {
+        seatsListEl.innerHTML = '';
+        const seatMap = evTransport.seats || {};
+        const assignedSeats = Object.entries(seatMap).filter(([seatKey, pid]) => pid && pid !== 'empty');
+
+        if (assignedSeats.length === 0) {
+          seatsListEl.innerHTML = `
+            <div style="font-size: 0.78rem; color: var(--text-muted); padding: 0.4rem 0;">
+              ${t('family.seatsPending', null, 'Los asientos se asignarán antes de la salida.')}
+            </div>
+          `;
+          return;
+        }
+
+        assignedSeats.forEach(([seatKey, playerId]) => {
+          const p = players.find(x => x.id === playerId);
+          if (!p) return;
+
+          const seatLabel = t('family.seatPlaza', { seat: formatSeatKey(seatKey) }, `Plaza ${formatSeatKey(seatKey)}`);
+
+          const item = document.createElement('div');
+          item.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.06);
+          `;
+
+          item.innerHTML = `
+            <span style="color: #fff; font-weight: 600;">
+              #${p.mainDorsal || '-'} ${escapeHTML(p.name)} ${escapeHTML(p.lastName)}
+            </span>
+            <span class="seat-badge">
+              💺 ${seatLabel}
+            </span>
+          `;
+          seatsListEl.appendChild(item);
+        });
+      }
+    }
+
+    function renderCallUpList(callUp, players, totalBus, totalCar) {
+      const container = document.getElementById('pub-callup-list');
+      const countBadge = document.getElementById('pub-callup-count');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (countBadge) {
+        countBadge.textContent = t('family.callupCount', { n: callUp.length }, `${callUp.length} convocados`);
+      }
+
+      if (callUp.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
+            ${t('family.callupEmpty', null, 'La lista de convocados para este partido aún no ha sido publicada.')}
+          </div>
+        `;
+        return;
+      }
+
+      callUp.forEach(item => {
+        const p = players.find(x => x.id === item.playerId);
+        if (!p) return;
+
+        const isBus = item.transport === 'minibus';
+        const playerFee = isBus ? totalBus : totalCar;
+        const isPaid = item.paymentStatus === 'paid';
+        const avatarUrl = p.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name + '+' + p.lastName)}&background=18233c&color=fff`;
+
+        const transportLabel = isBus ? t('family.clubVan', null, '🚐 Furgoneta del club') : t('family.privateCar', null, '🚗 Coche particular');
+
+        const row = document.createElement('div');
+        row.className = 'family-player-row';
+
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
+            <img src="${avatarUrl}" alt="${p.name}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.15);" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=18233c&color=fff'">
+            <div style="min-width: 0;">
+              <div style="font-weight: 700; color: #fff; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                #${p.mainDorsal || '-'} ${escapeHTML(p.name)} ${escapeHTML(p.lastName)}
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 0.4rem; align-items: center; margin-top: 1px;">
+                <span style="color: var(--accent-cyan); font-weight: 600;">${p.mainPosition || 'JUG'}</span>
+                <span>•</span>
+                <span>${transportLabel}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: right; flex-shrink: 0;">
+            <div style="font-size: 0.88rem; font-weight: 800; color: ${isBus ? 'var(--accent-cyan)' : '#fbbf24'};">
+              ${playerFee.toFixed(2).replace('.', ',')} €
+            </div>
+            <div style="margin-top: 2px;">
+              ${isPaid ? `
+                <span style="font-size: 0.68rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
+                  ${t('family.paid', null, '🟢 Pagado')}
+                </span>
+              ` : `
+                <span style="font-size: 0.68rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
+                  ${t('family.pending', null, '⏳ Pendiente')}
+                </span>
+              `}
+            </div>
+          </div>
+        `;
+
+        container.appendChild(row);
+      });
+    }
+
+    function formatSeatKey(key) {
+      if (!key) return '-';
+      return key.replace('seat_', '').toUpperCase();
+    }
+
+    function formatMatchDate(dateStr) {
+      if (!dateStr) return '--/--/----';
+      const parts = String(dateStr).trim().split(/[-/]/);
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          const y = parts[0];
+          const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+          const d = String(parseInt(parts[2], 10)).padStart(2, '0');
+          return `${d}/${m}/${y}`;
+        } else if (parts[2].length === 4) {
+          const d = String(parseInt(parts[0], 10)).padStart(2, '0');
+          const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+          const y = parts[2];
+          return `${d}/${m}/${y}`;
+        }
+      }
+      return dateStr;
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Inicialización automática
+    initLanguage();
+    updateLangButtons();
+    applyTranslations();
+    loadFamilyMatchView();
+  })();
+  </script>
 </body>
 </html>
