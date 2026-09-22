@@ -1808,9 +1808,15 @@ function renderSelectedDayTrainings() {
       </div>
     `;
 
+    card.onclick = (e) => {
+      if (e.target.closest('button, a, input, select')) return;
+      openEditTrainingModal(session.id);
+    };
+
     const btnAtt = card.querySelector('.btn-session-attendance');
     if (btnAtt) {
-      btnAtt.onclick = () => {
+      btnAtt.onclick = (e) => {
+        e.stopPropagation();
         if (typeof openAttendanceModal === 'function') {
           openAttendanceModal(session.teamId, session.date);
         }
@@ -1819,12 +1825,18 @@ function renderSelectedDayTrainings() {
 
     const btnEdit = card.querySelector('.btn-session-edit');
     if (btnEdit) {
-      btnEdit.onclick = () => openEditTrainingModal(session.id);
+      btnEdit.onclick = (e) => {
+        e.stopPropagation();
+        openEditTrainingModal(session.id);
+      };
     }
 
     const btnDel = card.querySelector('.btn-session-delete');
     if (btnDel) {
-      btnDel.onclick = () => deleteTrainingSession(session.id);
+      btnDel.onclick = (e) => {
+        e.stopPropagation();
+        deleteTrainingSession(session.id);
+      };
     }
 
     container.appendChild(card);
@@ -2110,9 +2122,15 @@ function renderSelectedDayDetails(dateStr) {
       </div>
     `;
 
+    card.onclick = (e) => {
+      if (e.target.closest('button, a, input, select')) return;
+      openEditTrainingModal(session.id);
+    };
+
     const btnAtt = card.querySelector('.btn-session-attendance');
     if (btnAtt) {
-      btnAtt.onclick = () => {
+      btnAtt.onclick = (e) => {
+        e.stopPropagation();
         if (typeof openAttendanceModal === 'function') {
           openAttendanceModal(session.teamId, session.date);
         }
@@ -2121,12 +2139,18 @@ function renderSelectedDayDetails(dateStr) {
 
     const btnEdit = card.querySelector('.btn-session-edit');
     if (btnEdit) {
-      btnEdit.onclick = () => openEditTrainingModal(session.id);
+      btnEdit.onclick = (e) => {
+        e.stopPropagation();
+        openEditTrainingModal(session.id);
+      };
     }
 
     const btnDel = card.querySelector('.btn-session-delete');
     if (btnDel) {
-      btnDel.onclick = () => deleteTrainingSession(session.id);
+      btnDel.onclick = (e) => {
+        e.stopPropagation();
+        deleteTrainingSession(session.id);
+      };
     }
 
     gridSessions.appendChild(card);
@@ -2352,9 +2376,15 @@ function renderTrainingSessions() {
       </div>
     `;
 
+    card.onclick = (e) => {
+      if (e.target.closest('button, a, input, select')) return;
+      openEditTrainingModal(session.id);
+    };
+
     const btnAtt = card.querySelector('.btn-session-attendance');
     if (btnAtt) {
-      btnAtt.onclick = () => {
+      btnAtt.onclick = (e) => {
+        e.stopPropagation();
         if (typeof openAttendanceModal === 'function') {
           openAttendanceModal(session.teamId, session.date);
         }
@@ -2363,12 +2393,18 @@ function renderTrainingSessions() {
 
     const btnEdit = card.querySelector('.btn-session-edit');
     if (btnEdit) {
-      btnEdit.onclick = () => openEditTrainingModal(session.id);
+      btnEdit.onclick = (e) => {
+        e.stopPropagation();
+        openEditTrainingModal(session.id);
+      };
     }
 
     const btnDel = card.querySelector('.btn-session-delete');
     if (btnDel) {
-      btnDel.onclick = () => deleteTrainingSession(session.id);
+      btnDel.onclick = (e) => {
+        e.stopPropagation();
+        deleteTrainingSession(session.id);
+      };
     }
 
     container.appendChild(card);

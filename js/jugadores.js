@@ -14,11 +14,14 @@ let currentMedicalFilter = false;
 let currentKitFilter = false;
 let currentDorsalFilter = false;
 let tempCoachNotes = [];
+let selectedPlayerIds = new Set();
+let currentFilteredPlayers = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   initSharedNavbar('database');
   loadData();
   initPlayerFilters();
+  initBatchActions();
   initPlayerModalLogic();
   renderCategoryPills();
   renderPlayersList();
@@ -145,6 +148,106 @@ function renderCategoryPills() {
   });
 }
 
+function updateBatchActionsBar() {
+  const bar = document.getElementById('batch-actions-bar');
+  if (!bar) return;
+
+  const masterCheck = document.getElementById('batch-master-checkbox');
+  const masterText = document.getElementById('batch-master-text');
+  const countPill = document.getElementById('batch-selected-count');
+  const deselectBtn = document.getElementById('btn-batch-deselect');
+  const deleteBtn = document.getElementById('btn-batch-delete');
+  const deleteCount = document.getElementById('batch-delete-count');
+
+  const visibleCount = currentFilteredPlayers.length;
+  const selectedCount = selectedPlayerIds.size;
+
+  if (masterText) {
+    masterText.textContent = `Seleccionar todos (${visibleCount})`;
+  }
+
+  // Comprobar estado de seleccionados visibles
+  if (visibleCount > 0 && currentFilteredPlayers.every(p => selectedPlayerIds.has(p.id))) {
+    if (masterCheck) {
+      masterCheck.checked = true;
+      masterCheck.indeterminate = false;
+    }
+  } else if (visibleCount > 0 && currentFilteredPlayers.some(p => selectedPlayerIds.has(p.id))) {
+    if (masterCheck) {
+      masterCheck.checked = false;
+      masterCheck.indeterminate = true;
+    }
+  } else {
+    if (masterCheck) {
+      masterCheck.checked = false;
+      masterCheck.indeterminate = false;
+    }
+  }
+
+  if (selectedCount > 0) {
+    bar.classList.add('has-selection');
+    if (countPill) {
+      countPill.textContent = `${selectedCount} seleccionado${selectedCount > 1 ? 's' : ''}`;
+      countPill.style.display = 'inline-block';
+    }
+    if (deselectBtn) deselectBtn.style.display = 'inline-flex';
+    if (deleteBtn) {
+      deleteBtn.style.display = 'inline-flex';
+      if (deleteCount) deleteCount.textContent = selectedCount;
+    }
+  } else {
+    bar.classList.remove('has-selection');
+    if (countPill) countPill.style.display = 'none';
+    if (deselectBtn) deselectBtn.style.display = 'none';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+  }
+}
+
+function initBatchActions() {
+  const masterCheck = document.getElementById('batch-master-checkbox');
+  if (masterCheck) {
+    masterCheck.onchange = (e) => {
+      const isChecked = e.target.checked;
+      if (isChecked) {
+        currentFilteredPlayers.forEach(p => selectedPlayerIds.add(p.id));
+      } else {
+        currentFilteredPlayers.forEach(p => selectedPlayerIds.delete(p.id));
+      }
+      renderPlayersList();
+    };
+  }
+
+  const deselectBtn = document.getElementById('btn-batch-deselect');
+  if (deselectBtn) {
+    deselectBtn.onclick = () => {
+      selectedPlayerIds.clear();
+      renderPlayersList();
+    };
+  }
+
+  const deleteBtn = document.getElementById('btn-batch-delete');
+  if (deleteBtn) {
+    deleteBtn.onclick = () => {
+      const count = selectedPlayerIds.size;
+      if (count === 0) return;
+
+      const confirmMsg = count === 1
+        ? '¿Estás seguro de que deseas eliminar al jugador seleccionado?'
+        : `¿Estás seguro de que deseas eliminar a los ${count} jugadores seleccionados?\nEsta acción no se puede deshacer.`;
+
+      if (confirm(confirmMsg)) {
+        playersList = playersList.filter(p => !selectedPlayerIds.has(p.id));
+        window.JKNoovaData.StorageService.savePlayers(playersList);
+        selectedPlayerIds.clear();
+        showToast(count === 1 ? 'Jugador eliminado' : `${count} jugadores eliminados de la base de datos`, 'warning');
+        renderCategoryPills();
+        renderPlayersList();
+        updateTopStats();
+      }
+    };
+  }
+}
+
 function renderPlayersList() {
   const grid = document.getElementById('players-grid-container');
   if (!grid) return;
@@ -259,6 +362,16 @@ function renderPlayersList() {
     }
   }
 
+  currentFilteredPlayers = filtered;
+
+  // Limpiar seleccionados que ya no existan en playersList
+  const validIds = new Set(playersList.map(p => p.id));
+  for (const sid of selectedPlayerIds) {
+    if (!validIds.has(sid)) selectedPlayerIds.delete(sid);
+  }
+
+  updateBatchActionsBar();
+
   if (filtered.length === 0) {
     grid.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-subtle);">
@@ -302,8 +415,9 @@ function renderPlayersList() {
     if (player.foot === 'Ambidiestro') footClass = 'tag-foot-ambidiestro';
     const footText = window.getFootLabel ? window.getFootLabel(player.foot) : (player.foot || 'Diestro');
 
+    const isSelected = selectedPlayerIds.has(player.id);
     const card = document.createElement('div');
-    card.className = 'player-card';
+    card.className = `player-card ${isSelected ? 'is-selected' : ''}`;
     card.style.setProperty('--team-stripe-color', team.color);
     card.style.setProperty('--team-bg-tint', `${team.color}18`);
     card.style.setProperty('--team-border-tint', `${team.color}40`);
@@ -311,6 +425,9 @@ function renderPlayersList() {
     const avatarUrl = player.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name + '+' + player.lastName)}&background=18233c&color=fff&size=120`;
 
     card.innerHTML = `
+      <label class="player-card-select-wrap" title="Seleccionar jugador">
+        <input type="checkbox" class="player-select-checkbox" data-pid="${player.id}" ${isSelected ? 'checked' : ''}>
+      </label>
       <div class="player-card-stripe"></div>
       <div class="player-card-body">
         <div class="player-card-header">
@@ -417,8 +534,31 @@ function renderPlayersList() {
       </div>
     `;
 
-    // REQUISITO ESTRICTO: Clic en cualquier parte de la tarjeta abre su ficha completa
-    card.onclick = () => openPlayerModal(player.id);
+    // Manejo de la selección individual del jugador
+    const selectWrap = card.querySelector('.player-card-select-wrap');
+    const checkbox = card.querySelector('.player-select-checkbox');
+    if (selectWrap) {
+      selectWrap.onclick = (e) => e.stopPropagation();
+    }
+    if (checkbox) {
+      checkbox.onchange = (e) => {
+        e.stopPropagation();
+        if (checkbox.checked) {
+          selectedPlayerIds.add(player.id);
+          card.classList.add('is-selected');
+        } else {
+          selectedPlayerIds.delete(player.id);
+          card.classList.remove('is-selected');
+        }
+        updateBatchActionsBar();
+      };
+    }
+
+    // REQUISITO ESTRICTO: Clic en cualquier parte de la tarjeta abre su ficha completa (salvo al pulsar checkbox o botones)
+    card.onclick = (e) => {
+      if (e.target.closest('.player-card-select-wrap, .player-select-checkbox, button, a')) return;
+      openPlayerModal(player.id);
+    };
 
     // Los botones de acción detienen la propagación para no abrir el modal doblemente
     card.querySelector('.btn-edit-p').onclick = (e) => {
@@ -1367,6 +1507,7 @@ function deletePlayer(playerId) {
 
   if (confirm(`¿Eliminar la ficha de ${p.name} ${p.lastName}?`)) {
     playersList = playersList.filter(x => x.id !== playerId);
+    selectedPlayerIds.delete(playerId);
     window.JKNoovaData.StorageService.savePlayers(playersList);
     showToast('Ficha de jugador eliminada', 'warning');
     renderCategoryPills();

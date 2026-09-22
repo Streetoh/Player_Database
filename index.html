@@ -158,6 +158,25 @@
       <div class="category-pills" id="category-pills-container"></div>
     </div>
 
+    <!-- Barra de acciones en lote (Multi-selección de jugadores) -->
+    <div class="batch-actions-bar" id="batch-actions-bar">
+      <div class="batch-actions-left">
+        <label class="batch-select-all-label">
+          <input type="checkbox" id="batch-master-checkbox" class="player-select-checkbox" title="Seleccionar o desmarcar todos los jugadores visibles">
+          <span class="batch-master-text" id="batch-master-text">Seleccionar todos</span>
+        </label>
+        <span class="batch-count-pill" id="batch-selected-count" style="display: none;">0 seleccionados</span>
+      </div>
+      <div class="batch-actions-right">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-batch-deselect" style="display: none;">
+          ✖️ Desmarcar
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" id="btn-batch-delete" style="display: none; font-weight: 700;">
+          🗑️ Borrar seleccionados (<span id="batch-delete-count">0</span>)
+        </button>
+      </div>
+    </div>
+
     <!-- Rejilla de tarjetas de jugador -->
     <div class="players-grid" id="players-grid-container"></div>
   </main>
