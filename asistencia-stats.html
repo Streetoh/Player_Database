@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Informe de Asistencia | JK Noova Academy</title>
+  <link rel="stylesheet" type="text/css" href="css/style.css">
+  <style>
+    :root { --bg-darkest: #070a12; --text-primary: #f8fafc; }
+    html, body { background-color: #070a12 !important; color: #f8fafc !important; }
+  </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d1322">
+  <link rel="icon" type="image/png" href="icons/app-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/app-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JK Noova">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #070a12;
+      background-image: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 60%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+    .stats-container {
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .stats-header {
+      text-align: center;
+      padding: 1rem 0;
+    }
+    .stats-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #10b981;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .stats-card {
+      background: rgba(13, 19, 34, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+    }
+    .lang-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.25rem 0.55rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .lang-btn:hover, .lang-btn.active {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: #10b981;
+      color: #fff;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 480px) {
+      .kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.4rem;
+      }
+      .kpi-card {
+        padding: 0.65rem 0.4rem !important;
+      }
+      .kpi-num {
+        font-size: 1.2rem !important;
+      }
+      .kpi-lbl {
+        font-size: 0.65rem !important;
+      }
+    }
+    .kpi-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 0.85rem;
+      text-align: center;
+    }
+    .kpi-num {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #38bdf8;
+      line-height: 1.2;
+    }
+    .kpi-lbl {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .player-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .player-row:last-child {
+      border-bottom: none;
+    }
+    .dorsal-pill {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.8rem;
+      color: var(--accent-cyan);
+      flex-shrink: 0;
+    }
+    .progress-bar-bg {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      height: 6px;
+      width: 100%;
+      overflow: hidden;
+      margin-top: 0.35rem;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="stats-container">
+    <!-- Selector de idiomas -->
+    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 0.65rem; gap: 0.35rem; flex-wrap: wrap;" id="lang-selector">
+      <button type="button" class="lang-btn" data-lang="es" onclick="switchLang('es')">🇪🇸 ES</button>
+      <button type="button" class="lang-btn" data-lang="en" onclick="switchLang('en')">🇬🇧 EN</button>
+      <button type="button" class="lang-btn" data-lang="et" onclick="switchLang('et')">🇪🇪 ET</button>
+      <button type="button" class="lang-btn" data-lang="ru" onclick="switchLang('ru')">🇷🇺 RU</button>
+      <button type="button" class="lang-btn" data-lang="uk" onclick="switchLang('uk')">🇺🇦 UK</button>
+    </div>
+
+    <!-- Cabecera institucional -->
+    <header class="stats-header">
+      <div class="stats-badge">
+        <span>🛡️</span> JK Noova Academy
+      </div>
+      <h1 id="stat-report-title" style="font-size: 1.45rem; font-weight: 900; color: #fff; line-height: 1.3;" data-i18n="report.title">
+        Informe de Asistencia a Entrenamientos
+      </h1>
+      <p id="stat-report-team" style="font-size: 0.95rem; color: #10b981; font-weight: 700; margin-top: 0.35rem;">
+        Cargando equipo...
+      </p>
+      <div id="stat-report-daterange" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">
+        --/--/----  -  --/--/----
+      </div>
+    </header>
+
+    <!-- Resumen KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-num" id="kpi-sessions" style="color: #38bdf8;">0</div>
+        <div class="kpi-lbl" data-i18n="report.sessions">Sesiones</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-num" id="kpi-players" style="color: #a78bfa;">0</div>
+        <div class="kpi-lbl" data-i18n="report.players">Jugadores</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-num" id="kpi-global-pct" style="color: #10b981;">0%</div>
+        <div class="kpi-lbl" data-i18n="report.globalRate">Asistencia</div>
+      </div>
+    </div>
+
+    <!-- Detalle de Jugadores -->
+    <div class="stats-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="font-size: 0.9rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 0.4rem;">
+          <span>📊</span> <span data-i18n="report.playersList">Estadísticas por Jugador</span>
+        </div>
+        <div>
+          <input type="text" id="stat-player-filter" placeholder="Buscar jugador..." style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; width: 140px;" oninput="filterPlayersList()">
+        </div>
+      </div>
+
+      <div id="stat-players-container">
+        <!-- Render dinámico de jugadores -->
+      </div>
+    </div>
+
+    <!-- Contacto / Pie -->
+    <div style="text-align: center; margin-top: 1.5rem; margin-bottom: 2rem; font-size: 0.75rem; color: var(--text-muted);">
+      <p data-i18n="report.footerAcademy">JK Noova Academy • Fútbol Base Formativo</p>
+      <p style="margin-top: 4px;" data-i18n="report.footerContact">Registro oficial de entrenamientos y asistencia.</p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script>
+  (function() {
+    const TRANSLATIONS = {
+      es: {
+        'report.metaTitle': 'Informe de Asistencia | JK Noova Academy',
+        'report.title': 'Informe de Asistencia a Entrenamientos',
+        'report.loading': 'Cargando datos de asistencia...',
+        'report.sessions': 'Sesiones',
+        'report.players': 'Jugadores',
+        'report.globalRate': 'Asistencia Global',
+        'report.playersList': 'Estadísticas por Jugador',
+        'report.searchPlaceholder': 'Buscar jugador...',
+        'report.empty': 'No hay datos de asistencia para el período seleccionado.',
+        'report.sessionsCount': '{pres} de {total} sesiones',
+        'report.footerAcademy': 'JK Noova Academy • Fútbol Base Formativo',
+        'report.footerContact': 'Registro oficial de entrenamientos y asistencia.',
+        'report.allTeams': 'Todos los equipos'
+      },
+      en: {
+        'report.metaTitle': 'Attendance Report | JK Noova Academy',
+        'report.title': 'Training Attendance Report',
+        'report.loading': 'Loading attendance data...',
+        'report.sessions': 'Sessions',
+        'report.players': 'Players',
+        'report.globalRate': 'Overall Rate',
+        'report.playersList': 'Player Statistics',
+        'report.searchPlaceholder': 'Search player...',
+        'report.empty': 'No attendance records found for this period.',
+        'report.sessionsCount': '{pres} of {total} sessions',
+        'report.footerAcademy': 'JK Noova Academy • Youth Football Academy',
+        'report.footerContact': 'Official training and attendance record.',
+        'report.allTeams': 'All teams'
+      },
+      et: {
+        'report.metaTitle': 'Osalemise aruanne | JK Noova Academy',
+        'report.title': 'Treeningutel osalemise aruanne',
+        'report.loading': 'Osalemisandmete laadimine...',
+        'report.sessions': 'Treeningud',
+        'report.players': 'Mängijad',
+        'report.globalRate': 'Üldine osalus',
+        'report.playersList': 'Mängijate statistika',
+        'report.searchPlaceholder': 'Otsi mängijat...',
+        'report.empty': 'Valitud perioodi kohta osalemisandmeid pole.',
+        'report.sessionsCount': '{pres} / {total} treeningust',
+        'report.footerAcademy': 'JK Noova Academy • Noorte jalgpalliakadeemia',
+        'report.footerContact': 'Ametlik treeningute ja kohaloleku register.',
+        'report.allTeams': 'Kõik meeskonnad'
+      },
+      ru: {
+        'report.metaTitle': 'Отчет о посещаемости | JK Noova Academy',
+        'report.title': 'Отчет о посещаемости тренировок',
+        'report.loading': 'Загрузка данных посещаемости...',
+        'report.sessions': 'Сессий',
+        'report.players': 'Игроков',
+        'report.globalRate': 'Посещаемость',
+        'report.playersList': 'Статистика по игрокам',
+        'report.searchPlaceholder': 'Поиск игрока...',
+        'report.empty': 'Нет данных о посещаемости за выбранный период.',
+        'report.sessionsCount': '{pres} из {total} тренировок',
+        'report.footerAcademy': 'JK Noova Academy • Детско-юношеский футбол',
+        'report.footerContact': 'Официальный реестр тренировок и посещаемости.',
+        'report.allTeams': 'Все команды'
+      },
+      uk: {
+        'report.metaTitle': 'Звіт про відвідуваність | JK Noova Academy',
+        'report.title': 'Звіт про відвідуваність тренувань',
+        'report.loading': 'Завантаження даних відвідуваності...',
+        'report.sessions': 'Сесій',
+        'report.players': 'Гравців',
+        'report.globalRate': 'Відвідуваність',
+        'report.playersList': 'Статистика по гравцях',
+        'report.searchPlaceholder': 'Пошук гравця...',
+        'report.empty': 'Немає даних про відвідуваність за обраний період.',
+        'report.sessionsCount': '{pres} з {total} тренувань',
+        'report.footerAcademy': 'JK Noova Academy • Дитячо-юнацький футбол',
+        'report.footerContact': 'Офіційний реєстр тренувань та відвідуваності.',
+        'report.allTeams': 'Усі команди'
+      }
+    };
+
+    const CATEGORY_TERMS = {
+      en: {
+        'Iniciación': 'Beginners (Initiation)',
+        'Prebenjamín': 'Pre-Benjamín (U-8)',
+        'Benjamín': 'Benjamín (U-10)',
+        'Alevín': 'Alevín (U-12)',
+        'Infantil': 'Infantil (U-14)',
+        'Cadete': 'Cadet (U-16)',
+        'Juvenil': 'Youth / Juvenil (U-19)',
+        'Fútbol Base': 'Youth Football',
+        'Todos los equipos': 'All teams',
+        'años': 'years',
+        'año': 'year',
+        'meses': 'months'
+      },
+      et: {
+        'Iniciación': 'Algajad (Iniciatsioon)',
+        'Prebenjamín': 'Eel-Benjamín (U-8)',
+        'Benjamín': 'Benjamín (U-10)',
+        'Alevín': 'Alevín (U-12)',
+        'Infantil': 'Juuniorid (U-14)',
+        'Cadete': 'Kadetid (U-16)',
+        'Juvenil': 'Noored (U-19)',
+        'Fútbol Base': 'Noorte jalgpall',
+        'Todos los equipos': 'Kõik meeskonnad',
+        'años': 'aastat',
+        'año': 'aasta',
+        'meses': 'kuud'
+      },
+      ru: {
+        'Iniciación': 'Начальная подготовка',
+        'Prebenjamín': 'Младшие дети (U-8)',
+        'Benjamín': 'Дети (U-10)',
+        'Alevín': 'Младшие юноши (U-12)',
+        'Infantil': 'Юноши (U-14)',
+        'Cadete': 'Кадеты (U-16)',
+        'Juvenil': 'Юниоры (U-19)',
+        'Fútbol Base': 'Детско-юношеский футбол',
+        'Todos los equipos': 'Все команды',
+        'años': 'лет',
+        'año': 'год',
+        'meses': 'месяцев'
+      },
+      uk: {
+        'Iniciación': 'Початкова підготовка',
+        'Prebenjamín': 'Молодші діти (U-8)',
+        'Benjamín': 'Діти (U-10)',
+        'Alevín': 'Молодші юнаки (U-12)',
+        'Infantil': 'Юнаки (U-14)',
+        'Cadete': 'Кадети (U-16)',
+        'Juvenil': 'Юніори (U-19)',
+        'Fútbol Base': 'Дитячо-юнацький футбол',
+        'Todos los equipos': 'Усі команди',
+        'años': 'років',
+        'año': 'рік',
+        'meses': 'місяців'
+      }
+    };
+
+    const SUPPORTED = ['es', 'en', 'et', 'ru', 'uk'];
+    let currentLang = 'es';
+    let currentReportData = null;
+
+    function initLanguage() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = (urlParams.get('lang') || '').toLowerCase();
+        if (urlLang && SUPPORTED.includes(urlLang)) {
+          currentLang = urlLang;
+          try { localStorage.setItem('jknoova_language', currentLang); } catch (e) {}
+          return;
+        }
+        const saved = localStorage.getItem('jknoova_language');
+        if (saved && SUPPORTED.includes(saved)) {
+          currentLang = saved;
+          return;
+        }
+        const navLangs = (navigator.languages && navigator.languages.length > 0)
+          ? navigator.languages
+          : [navigator.language || ''];
+        for (const nl of navLangs) {
+          const code = (nl || '').substring(0, 2).toLowerCase();
+          if (SUPPORTED.includes(code)) {
+            currentLang = code;
+            return;
+          }
+        }
+        currentLang = 'en';
+      } catch (e) {
+        currentLang = 'es';
+      }
+    }
+
+    function t(key, params, fallback) {
+      const dict = TRANSLATIONS[currentLang] || TRANSLATIONS['es'];
+      let val = dict[key];
+      if (val === undefined) {
+        val = (TRANSLATIONS['es'] && TRANSLATIONS['es'][key]) !== undefined
+          ? TRANSLATIONS['es'][key]
+          : (fallback || key);
+      }
+      if (params && typeof params === 'object') {
+        for (const p in params) {
+          val = val.replace(new RegExp(`\\{${p}\\}`, 'g'), params[p]);
+        }
+      }
+      return val;
+    }
+
+    function translateCategoryString(rawStr, lang) {
+      if (!rawStr) return '';
+      if (!lang || lang === 'es') return rawStr;
+      const dict = CATEGORY_TERMS[lang];
+      if (!dict) return rawStr;
+      let result = rawStr;
+      const keys = Object.keys(dict).sort((a, b) => b.length - a.length);
+      for (const key of keys) {
+        const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        result = result.replace(regex, dict[key]);
+      }
+      return result;
+    }
+
+    function formatStrictDMY(dateStr) {
+      if (!dateStr) return '--/--/----';
+      const parts = String(dateStr).trim().split(/[-/]/);
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          const y = parts[0];
+          const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+          const d = String(parseInt(parts[2], 10)).padStart(2, '0');
+          return `${d}/${m}/${y}`;
+        } else if (parts[2].length === 4) {
+          const d = String(parseInt(parts[0], 10)).padStart(2, '0');
+          const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+          const y = parts[2];
+          return `${d}/${m}/${y}`;
+        }
+      }
+      return dateStr;
+    }
+
+    function applyTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key) {
+          const text = t(key);
+          if (text) el.textContent = text;
+        }
+      });
+      document.title = t('report.metaTitle', null, 'Informe de Asistencia | JK Noova Academy');
+      document.documentElement.lang = currentLang;
+
+      const input = document.getElementById('stat-player-filter');
+      if (input) input.placeholder = t('report.searchPlaceholder', null, 'Buscar jugador...');
+    }
+
+    function updateLangButtons() {
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        if (btn.getAttribute('data-lang') === currentLang) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    window.switchLang = function(lang) {
+      if (!SUPPORTED.includes(lang)) return;
+      currentLang = lang;
+      try { localStorage.setItem('jknoova_language', lang); } catch (e) {}
+      updateLangButtons();
+      applyTranslations();
+      renderReportView();
+    };
+
+    function decodeCompactPayload(b64url) {
+      if (!b64url) return null;
+      try {
+        let b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) b64 += '=';
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const jsonStr = new TextDecoder().decode(bytes);
+        return JSON.parse(jsonStr);
+      } catch (err) {
+        console.error('Error al decodificar reporte de asistencia:', err);
+        return null;
+      }
+    }
+
+    function loadData() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const dParam = urlParams.get('d');
+      if (dParam) {
+        const decoded = decodeCompactPayload(dParam);
+        if (decoded) {
+          currentReportData = decoded;
+          return;
+        }
+      }
+
+      // Fallback a StorageService si no hay payload
+      if (window.JKNoovaData && window.JKNoovaData.StorageService) {
+        const storage = window.JKNoovaData.StorageService;
+        const teams = storage.getTeams() || [];
+        const players = storage.getPlayers() || [];
+        const att = storage.getAttendance() || {};
+
+        let totalSessions = 0;
+        const datesSet = new Set();
+        for (const tId in att) {
+          for (const d in att[tId]) datesSet.add(d);
+        }
+        totalSessions = datesSet.size;
+
+        const playersArr = players.map(p => {
+          let pres = 0;
+          let total = 0;
+          for (const tId in att) {
+            for (const d in att[tId]) {
+              if (att[tId][d][p.id]) {
+                total++;
+                if (att[tId][d][p.id] === 'present') pres++;
+              }
+            }
+          }
+          const pct = total > 0 ? Math.round((pres / total) * 100) : 100;
+          return [p.mainDorsal || '-', `${p.name} ${p.lastName}`, pres, total, pct];
+        });
+
+        const sortedDates = Array.from(datesSet).sort();
+        currentReportData = {
+          t: t('report.allTeams', null, 'Todos los equipos'),
+          df: sortedDates[0] || '2026-01-01',
+          dt: sortedDates[sortedDates.length - 1] || '2026-12-31',
+          ts: totalSessions,
+          p: playersArr
+        };
+      }
+    }
+
+    function renderReportView() {
+      if (!currentReportData) {
+        document.getElementById('stat-report-team').textContent = t('report.empty');
+        return;
+      }
+
+      const teamEl = document.getElementById('stat-report-team');
+      if (teamEl) {
+        const rawTeam = currentReportData.t || 'JK Noova Academy';
+        teamEl.textContent = translateCategoryString(rawTeam, currentLang);
+      }
+
+      const dateEl = document.getElementById('stat-report-daterange');
+      if (dateEl) {
+        const dfStr = formatStrictDMY(currentReportData.df);
+        const dtStr = formatStrictDMY(currentReportData.dt);
+        dateEl.textContent = `📅 ${dfStr}  ➜  ${dtStr}`;
+      }
+
+      const players = currentReportData.p || [];
+      const totalSessions = currentReportData.ts || 0;
+      let totalPresentsSum = 0;
+      let totalAssignedSum = 0;
+
+      players.forEach(p => {
+        totalPresentsSum += (p[2] || 0);
+        totalAssignedSum += (p[3] || 0);
+      });
+
+      const globalPct = totalAssignedSum > 0 ? Math.round((totalPresentsSum / totalAssignedSum) * 100) : 100;
+
+      document.getElementById('kpi-sessions').textContent = totalSessions;
+      document.getElementById('kpi-players').textContent = players.length;
+      document.getElementById('kpi-global-pct').textContent = `${globalPct}%`;
+
+      renderPlayersList(players);
+    }
+
+    function renderPlayersList(players) {
+      const container = document.getElementById('stat-players-container');
+      if (!container) return;
+
+      if (!players || players.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">
+            ${t('report.empty')}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+      players.forEach(p => {
+        const dorsal = p[0] || '-';
+        const name = p[1] || 'Jugador';
+        const pres = p[2] || 0;
+        const total = p[3] || 0;
+        const pct = p[4] !== undefined ? p[4] : (total > 0 ? Math.round((pres / total) * 100) : 100);
+
+        let color = '#10b981';
+        let bgBadge = 'rgba(16, 185, 129, 0.15)';
+        if (pct < 60) {
+          color = '#ef4444';
+          bgBadge = 'rgba(239, 68, 68, 0.15)';
+        } else if (pct < 80) {
+          color = '#f59e0b';
+          bgBadge = 'rgba(245, 158, 11, 0.15)';
+        }
+
+        const row = document.createElement('div');
+        row.className = 'player-row';
+        row.dataset.playerName = name.toLowerCase();
+
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.65rem; flex: 1; min-width: 0;">
+            <div class="dorsal-pill">${escapeHTML(String(dorsal))}</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700; font-size: 0.88rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${escapeHTML(name)}
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+                ${t('report.sessionsCount', { pres, total })}
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${pct}%; background-color: ${color};"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: right; flex-shrink: 0; padding-left: 0.5rem;">
+            <span style="display: inline-block; font-size: 0.85rem; font-weight: 900; color: ${color}; background: ${bgBadge}; border: 1px solid ${color}40; padding: 0.2rem 0.55rem; border-radius: 6px;">
+              ${pct}%
+            </span>
+          </div>
+        `;
+
+        container.appendChild(row);
+      });
+    }
+
+    window.filterPlayersList = function() {
+      const q = (document.getElementById('stat-player-filter')?.value || '').toLowerCase().trim();
+      const rows = document.querySelectorAll('#stat-players-container .player-row');
+      rows.forEach(r => {
+        const name = r.dataset.playerName || '';
+        if (!q || name.includes(q)) {
+          r.style.display = 'flex';
+        } else {
+          r.style.display = 'none';
+        }
+      });
+    };
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Inicialización
+    initLanguage();
+    updateLangButtons();
+    applyTranslations();
+    loadData();
+    renderReportView();
+  })();
+  </script>
+</body>
+</html>

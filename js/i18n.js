@@ -8,7 +8,7 @@
   'use strict';
 
   const STORAGE_KEY = 'jknoova_language';
-  const SUPPORTED_LANGS = ['es', 'en', 'et', 'ru'];
+  const SUPPORTED_LANGS = ['es', 'en', 'et', 'ru', 'uk'];
   const DEFAULT_LANG = 'es';
 
   const TRANSLATIONS = {
@@ -30,6 +30,7 @@
       'lang.en': '🇬🇧 English',
       'lang.et': '🇪🇪 Eesti',
       'lang.ru': '🇷🇺 Русский',
+      'lang.uk': '🇺🇦 Українська',
 
       // Configuración y Copias de Seguridad
       'settings.title': 'Configuración del Sistema',
@@ -344,7 +345,41 @@
       'toast.error': 'Ha ocurrido un error',
       'toast.required': 'Por favor completa los campos requeridos (*)',
       'toast.backupDownloaded': 'Copia de seguridad descargada',
-      'toast.dataRestored': 'Datos restaurados correctamente. Recargando...'
+      'toast.dataRestored': 'Datos restaurados correctamente. Recargando...',
+
+      // Portal de Familias (partido.html)
+      'family.metaTitle': 'Consulta de Partido | JK Noova Academy',
+      'family.loading': 'Cargando partido...',
+      'family.officialCategory': 'Categoría oficial',
+      'family.kickoff': 'Pitido inicial',
+      'family.remainingTime': 'Tiempo restante',
+      'family.pitch': 'Instalación deportiva / Campo:',
+      'family.fieldDefault': 'Campo de juego',
+      'family.getDirections': 'Cómo llegar en Google Maps',
+      'family.transportTitle': 'Transporte y Furgonetas',
+      'family.officialFleet': 'Flota oficial',
+      'family.officialVehicle': 'Vehículo oficial',
+      'family.plate': 'Matrícula',
+      'family.departureTime': 'Hora de salida de la furgoneta',
+      'family.driver': 'Conductor responsable',
+      'family.seatsAssigned': 'Asientos asignados en furgoneta:',
+      'family.seatsPending': 'Los asientos se asignarán antes de la salida.',
+      'family.seatPlaza': 'Plaza {seat}',
+      'family.callupTitle': 'Lista de Convocados',
+      'family.callupEmpty': 'La lista de convocados para este partido aún no ha sido publicada.',
+      'family.callupCount': '{n} convocados',
+      'family.calledUp': 'CONVOCADO',
+      'family.clubVan': '🚐 Furgoneta del club',
+      'family.privateCar': '🚗 Coche particular',
+      'family.paid': '🟢 Pagado',
+      'family.pending': '⏳ Pendiente',
+      'family.matchLiveFinished': '¡En juego / Finalizado!',
+      'family.dateTbd': 'Fecha por confirmar',
+      'family.atTime': 'a las {time} h',
+      'family.footerAcademy': 'JK Noova Academy • Fútbol Base Formativo',
+      'family.footerContact': 'Para cualquier duda o incidencia, contacta con tu entrenador o coordinador.',
+      'family.emptyTitle': 'No hay encuentros disponibles',
+      'family.emptySubtitle': 'Consulta con el cuerpo técnico de JK Noova'
     },
 
     en: {
@@ -365,6 +400,7 @@
       'lang.en': '🇬🇧 English',
       'lang.et': '🇪🇪 Eesti',
       'lang.ru': '🇷🇺 Русский',
+      'lang.uk': '🇺🇦 Ukrainian',
 
       // Settings & Backup
       'settings.title': 'System Settings',
@@ -679,7 +715,41 @@
       'toast.error': 'An error occurred',
       'toast.required': 'Please fill in required fields (*)',
       'toast.backupDownloaded': 'Backup file downloaded',
-      'toast.dataRestored': 'Data successfully restored. Reloading...'
+      'toast.dataRestored': 'Data successfully restored. Reloading...',
+
+      // Family Portal (partido.html)
+      'family.metaTitle': 'Match Details | JK Noova Academy',
+      'family.loading': 'Loading match...',
+      'family.officialCategory': 'Official Category',
+      'family.kickoff': 'Kick-off',
+      'family.remainingTime': 'Remaining Time',
+      'family.pitch': 'Sports Facility / Pitch:',
+      'family.fieldDefault': 'Match Pitch',
+      'family.getDirections': 'Get directions on Google Maps',
+      'family.transportTitle': 'Transport & Vans',
+      'family.officialFleet': 'Official Fleet',
+      'family.officialVehicle': 'Official vehicle',
+      'family.plate': 'License plate',
+      'family.departureTime': 'Van departure time',
+      'family.driver': 'Driver in charge',
+      'family.seatsAssigned': 'Assigned van seats:',
+      'family.seatsPending': 'Seats will be assigned before departure.',
+      'family.seatPlaza': 'Seat {seat}',
+      'family.callupTitle': 'Squad Call-up',
+      'family.callupEmpty': 'The call-up list for this match has not been published yet.',
+      'family.callupCount': '{n} called up',
+      'family.calledUp': 'CALLED UP',
+      'family.clubVan': '🚐 Club van',
+      'family.privateCar': '🚗 Private car',
+      'family.paid': '🟢 Paid',
+      'family.pending': '⏳ Pending',
+      'family.matchLiveFinished': 'Match underway / Finished!',
+      'family.dateTbd': 'Date to be confirmed',
+      'family.atTime': 'at {time}',
+      'family.footerAcademy': 'JK Noova Academy • Youth Football Academy',
+      'family.footerContact': 'For questions or issues, please contact your coach or coordinator.',
+      'family.emptyTitle': 'No matches available',
+      'family.emptySubtitle': 'Please contact the JK Noova coaching staff'
     },
 
     et: {
@@ -700,6 +770,7 @@
       'lang.en': '🇬🇧 English',
       'lang.et': '🇪🇪 Eesti',
       'lang.ru': '🇷🇺 Русский',
+      'lang.uk': '🇺🇦 Ukraina',
 
       // Seaded ja Varundus
       'settings.title': 'Süsteemi Seaded',
@@ -1014,7 +1085,41 @@
       'toast.error': 'Tekkis viga',
       'toast.required': 'Palun täida nõutud väljad (*)',
       'toast.backupDownloaded': 'Varukoopia alla laaditud',
-      'toast.dataRestored': 'Andmed edukalt taastatud. Leht laaditakse uuesti...'
+      'toast.dataRestored': 'Andmed edukalt taastatud. Leht laaditakse uuesti...',
+
+      // Perede portaal (partido.html)
+      'family.metaTitle': 'Mängu info | JK Noova Academy',
+      'family.loading': 'Mängu laadimine...',
+      'family.officialCategory': 'Ametlik kategooria',
+      'family.kickoff': 'Algusvile',
+      'family.remainingTime': 'Järelejäänud aeg',
+      'family.pitch': 'Spordirajatis / Väljak:',
+      'family.fieldDefault': 'Mänguväljak',
+      'family.getDirections': 'Juhised Google Mapsis',
+      'family.transportTitle': 'Transport ja väikebussid',
+      'family.officialFleet': 'Klubi transport',
+      'family.officialVehicle': 'Ametlik sõiduk',
+      'family.plate': 'Numbrimärk',
+      'family.departureTime': 'Väikebussi väljumisaeg',
+      'family.driver': 'Vastutav juht',
+      'family.seatsAssigned': 'Määratud kohad väikebussis:',
+      'family.seatsPending': 'Istekohad määratakse enne väljasõitu.',
+      'family.seatPlaza': 'Koht {seat}',
+      'family.callupTitle': 'Koosseis / Kutsutud mängijad',
+      'family.callupEmpty': 'Selle mängu koosseisu pole veel avaldatud.',
+      'family.callupCount': '{n} kutsutud',
+      'family.calledUp': 'KUTSUTUD',
+      'family.clubVan': '🚐 Klubi väikebuss',
+      'family.privateCar': '🚗 Isiklik auto',
+      'family.paid': '🟢 Makstud',
+      'family.pending': '⏳ Ootel',
+      'family.matchLiveFinished': 'Mäng käib / Lõppenud!',
+      'family.dateTbd': 'Kuupäev kinnitamisel',
+      'family.atTime': 'kell {time}',
+      'family.footerAcademy': 'JK Noova Academy • Noorte jalgpalliakadeemia',
+      'family.footerContact': 'Küsimuste korral võtke ühendust treeneri või koordinaatoriga.',
+      'family.emptyTitle': 'Mänge pole saadaval',
+      'family.emptySubtitle': 'Võtke ühendust JK Noova treeneritega'
     },
 
     ru: {
@@ -1035,6 +1140,7 @@
       'lang.en': '🇬🇧 English',
       'lang.et': '🇪🇪 Eesti',
       'lang.ru': '🇷🇺 Русский',
+      'lang.uk': '🇺🇦 Украинский',
 
       // Настройки и Резервные Копии
       'settings.title': 'Настройки Системы',
@@ -1349,7 +1455,110 @@
       'toast.error': 'Произошла ошибка',
       'toast.required': 'Пожалуйста, заполните обязательные поля (*)',
       'toast.backupDownloaded': 'Резервная копия скачана',
-      'toast.dataRestored': 'Данные успешно восстановлены. Перезагрузка...'
+      'toast.dataRestored': 'Данные успешно восстановлены. Перезагрузка...',
+
+      // Портал для родителей (partido.html)
+      'family.metaTitle': 'Информация о матче | JK Noova Academy',
+      'family.loading': 'Загрузка матча...',
+      'family.officialCategory': 'Официальная категория',
+      'family.kickoff': 'Свисток к началу',
+      'family.remainingTime': 'До матча осталось',
+      'family.pitch': 'Спортивный комплекс / Поле:',
+      'family.fieldDefault': 'Игровое поле',
+      'family.getDirections': 'Маршрут в Google Maps',
+      'family.transportTitle': 'Транспорт и микроавтобусы',
+      'family.officialFleet': 'Клубный транспорт',
+      'family.officialVehicle': 'Официальный автомобиль',
+      'family.plate': 'Номерной знак',
+      'family.departureTime': 'Время отправления микроавтобуса',
+      'family.driver': 'Ответственный водитель',
+      'family.seatsAssigned': 'Назначенные места в микроавтобусе:',
+      'family.seatsPending': 'Места будут распределены перед выездом.',
+      'family.seatPlaza': 'Место {seat}',
+      'family.callupTitle': 'Список вызванных игроков',
+      'family.callupEmpty': 'Список игроков на этот матч еще не опубликован.',
+      'family.callupCount': '{n} вызвано',
+      'family.calledUp': 'В СОСТАВЕ',
+      'family.clubVan': '🚐 Микроавтобус клуба',
+      'family.privateCar': '🚗 Личный автомобиль',
+      'family.paid': '🟢 Оплачено',
+      'family.pending': '⏳ Ожидается',
+      'family.matchLiveFinished': 'Идет матч / Завершен!',
+      'family.dateTbd': 'Дата уточняется',
+      'family.atTime': 'в {time}',
+      'family.footerAcademy': 'JK Noova Academy • Детско-юношеский футбол',
+      'family.footerContact': 'По всем вопросам обращайтесь к тренеру или координатору.',
+      'family.emptyTitle': 'Нет доступных матчей',
+      'family.emptySubtitle': 'Обратитесь к тренерскому штабу JK Noova'
+    },
+
+    uk: {
+      // Навігація та Бренд
+      'brand.academy': 'Academy',
+      'brand.sub': 'Комплексне управління дитячо-юнацьким футболом',
+      'nav.database': 'База даних',
+      'nav.teams': 'Команди',
+      'nav.calendar': 'Календар',
+      'nav.transport': 'Транспорт',
+      'nav.settings': '⚙️ Налаштування',
+      'nav.newPlayer': 'Новий гравець',
+      'nav.installApp': '📲 Встановити',
+
+      // Мови
+      'lang.select': 'Мова',
+      'lang.es': '🇪🇸 Español',
+      'lang.en': '🇬🇧 English',
+      'lang.et': '🇪🇪 Eesti',
+      'lang.ru': '🇷🇺 Русский',
+      'lang.uk': '🇺🇦 Українська',
+
+      // Portal de Familias (partido.html)
+      'family.metaTitle': 'Інформація про матч | JK Noova Academy',
+      'family.loading': 'Завантаження матчу...',
+      'family.officialCategory': 'Офіційна категорія',
+      'family.kickoff': 'Початковий свисток',
+      'family.remainingTime': 'Час до початку',
+      'family.pitch': 'Спортивний комплекс / Поле:',
+      'family.fieldDefault': 'Футбольне поле',
+      'family.getDirections': 'Маршрут у Google Maps',
+      'family.transportTitle': 'Транспорт та мікроавтобуси',
+      'family.officialFleet': 'Клубний транспорт',
+      'family.officialVehicle': 'Офіційний автомобіль',
+      'family.plate': 'Номерний знак',
+      'family.departureTime': 'Час виїзду мікроавтобуса',
+      'family.driver': 'Відповідальний водій',
+      'family.seatsAssigned': 'Призначені місця в мікроавтобусі:',
+      'family.seatsPending': 'Місця будуть розподілені перед виїздом.',
+      'family.seatPlaza': 'Місце {seat}',
+      'family.callupTitle': 'Список викликаних гравців',
+      'family.callupEmpty': 'Список гравців на цей матч ще не опубліковано.',
+      'family.callupCount': '{n} викликано',
+      'family.calledUp': 'У СКЛАДІ',
+      'family.clubVan': '🚐 Мікроавтобус клубу',
+      'family.privateCar': '🚗 Власний автомобіль',
+      'family.paid': '🟢 Оплачено',
+      'family.pending': '⏳ Очікується',
+      'family.matchLiveFinished': 'Матч триває / Завершено!',
+      'family.dateTbd': 'Дата уточнюється',
+      'family.atTime': 'о {time}',
+      'family.footerAcademy': 'JK Noova Academy • Дитячо-юнацький футбол',
+      'family.footerContact': 'З усіх питань звертайтеся до тренера або координатора.',
+      'family.emptyTitle': 'Немає доступних матчів',
+      'family.emptySubtitle': 'Зверніться до тренерського штабу JK Noova',
+
+      // Сповіщення (Toast)
+      'toast.saved': 'Успішно збережено',
+      'toast.playerUpdated': 'Профіль гравця оновлено',
+      'toast.playerCreated': 'Нового гравця зареєстровано',
+      'toast.playerDeleted': 'Гравця видалено',
+      'toast.teamUpdated': 'Команду оновлено',
+      'toast.eventSaved': 'Подію збережено',
+      'toast.attendanceSaved': 'Відвідуваність збережено',
+      'toast.copied': 'Скопійовано в буфер обміну',
+      'toast.error': 'Виникла помилка',
+      'toast.required': 'Будь ласка, заповніть обовʼязкові поля (*)',
+      'toast.backupDownloaded': 'Резервну копію завантажено',
+      'toast.dataRestored': 'Дані успішно відновлено. Перезавантаження...'
     }
   };
 
@@ -1357,13 +1566,33 @@
 
   function initI18n() {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && SUPPORTED_LANGS.includes(saved)) {
-        currentLang = saved;
+      // 1. Parámetro en la URL (?lang=en / ?lang=uk / etc.)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLang = (urlParams.get('lang') || '').toLowerCase();
+      if (urlLang && SUPPORTED_LANGS.includes(urlLang)) {
+        currentLang = urlLang;
+        try { localStorage.setItem(STORAGE_KEY, currentLang); } catch (e) {}
       } else {
-        const browserLang = (navigator.language || '').substring(0, 2).toLowerCase();
-        if (SUPPORTED_LANGS.includes(browserLang)) {
-          currentLang = browserLang;
+        // 2. Preferencia guardada en localStorage
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved && SUPPORTED_LANGS.includes(saved)) {
+          currentLang = saved;
+        } else {
+          // 3. Detección automática según el idioma del teléfono del usuario
+          const navLangs = (navigator.languages && navigator.languages.length > 0)
+            ? navigator.languages
+            : [navigator.language || ''];
+          let detected = null;
+          for (const nl of navLangs) {
+            const code = (nl || '').substring(0, 2).toLowerCase();
+            if (SUPPORTED_LANGS.includes(code)) {
+              detected = code;
+              break;
+            }
+          }
+          // Si el teléfono tiene un idioma soportado (es, en, et, ru, uk), lo adopta.
+          // Si tiene otro idioma no contemplado (finés, alemán, polaco...), recurre a 'en' (Inglés).
+          currentLang = detected || 'en';
         }
       }
     } catch (e) {
@@ -1371,6 +1600,13 @@
     }
 
     document.documentElement.lang = currentLang;
+
+    // Sincronizar selectores si existen en el DOM
+    const selectors = document.querySelectorAll('.lang-select, #lang-selector');
+    selectors.forEach(sel => {
+      if (sel.value !== currentLang) sel.value = currentLang;
+    });
+
     applyTranslations();
   }
 

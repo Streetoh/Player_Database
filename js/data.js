@@ -7,6 +7,7 @@ const STORAGE_KEY_TEAMS = 'jknoova_teams_v1';
 const STORAGE_KEY_EVENTS = 'jknoova_events_v1';
 const STORAGE_KEY_TRANSPORT = 'jknoova_transport_v1';
 const STORAGE_KEY_ATTENDANCE = 'jknoova_attendance_v1';
+const STORAGE_KEY_TRAININGS = 'jknoova_trainings_v1';
 
 // Equipos y grupos de entrenamiento predeterminados con sus códigos de color oficiales
 const DEFAULT_TEAMS = [
@@ -601,6 +602,50 @@ const DEFAULT_TRANSPORT_CONFIG = {
 };
 
 
+// Sesiones de entrenamiento predeterminadas
+const DEFAULT_TRAININGS = [
+  {
+    id: 'tr_u10_1',
+    date: '2026-09-22',
+    time: '17:30 - 19:00',
+    title: 'Entrenamiento Táctico y Posesión',
+    teamId: 'team_u10',
+    location: 'Campo 1 (Césped)',
+    coach: 'Entrenador JK Noova',
+    notes: 'Rondos de presión y transiciones defensa-ataque.'
+  },
+  {
+    id: 'tr_u12_1',
+    date: '2026-09-23',
+    time: '19:00 - 20:30',
+    title: 'Preparación Física y Estrategia',
+    teamId: 'team_u12',
+    location: 'Campo 2 (Fútbol 11)',
+    coach: 'Preparador Físico',
+    notes: 'Circuitos de velocidad y balón parado.'
+  },
+  {
+    id: 'tr_u14_1',
+    date: '2026-09-24',
+    time: '18:00 - 19:30',
+    title: 'Finalizaciones y Juego de Posición',
+    teamId: 'team_u14',
+    location: 'Campo 1 (Césped)',
+    coach: 'Entrenador U14',
+    notes: 'Centros laterales y remates.'
+  },
+  {
+    id: 'tr_u8_1',
+    date: '2026-09-25',
+    time: '17:00 - 18:15',
+    title: 'Coordinación y Conducción',
+    teamId: 'team_u8',
+    location: 'Campo 3 (Fútbol 7)',
+    coach: 'Coordinador Base',
+    notes: 'Juegos de habilidad motriz y partidillo.'
+  }
+];
+
 // Adaptador seguro de almacenamiento con fallback en memoria
 const SafeStorage = {
   _mem: {},
@@ -942,6 +987,29 @@ const StorageService = {
     SafeStorage.setItem(STORAGE_KEY_ATTENDANCE, JSON.stringify(attendance));
   },
 
+  getTrainingSessions() {
+    const data = SafeStorage.getItem(STORAGE_KEY_TRAININGS);
+    if (!data) {
+      this.saveTrainingSessions(DEFAULT_TRAININGS);
+      return DEFAULT_TRAININGS;
+    }
+    try {
+      const list = JSON.parse(data);
+      if (!Array.isArray(list)) {
+        this.saveTrainingSessions(DEFAULT_TRAININGS);
+        return DEFAULT_TRAININGS;
+      }
+      return list;
+    } catch (e) {
+      console.error('Error al parsear entrenamientos:', e);
+      return DEFAULT_TRAININGS;
+    }
+  },
+
+  saveTrainingSessions(sessions) {
+    SafeStorage.setItem(STORAGE_KEY_TRAININGS, JSON.stringify(sessions));
+  },
+
   resetAllToDefault() {
     SafeStorage.removeItem(STORAGE_KEY_PLAYERS);
     SafeStorage.removeItem(STORAGE_KEY_TEAMS);
@@ -949,11 +1017,13 @@ const StorageService = {
     SafeStorage.removeItem(STORAGE_KEY_TRANSPORT);
     SafeStorage.removeItem(STORAGE_KEY_VANS);
     SafeStorage.removeItem(STORAGE_KEY_ATTENDANCE);
+    SafeStorage.removeItem(STORAGE_KEY_TRAININGS);
     this.savePlayers(DEFAULT_PLAYERS);
     this.saveTeams(DEFAULT_TEAMS);
     this.saveEvents(DEFAULT_EVENTS);
     this.saveTransport(DEFAULT_TRANSPORT_CONFIG);
     this.saveVans(DEFAULT_VANS);
+    this.saveTrainingSessions(DEFAULT_TRAININGS);
   },
 
   exportAllData() {
@@ -965,7 +1035,8 @@ const StorageService = {
       events: this.getEvents(),
       transport: this.getTransport(),
       vans: this.getVans(),
-      attendance: this.getAttendance()
+      attendance: this.getAttendance(),
+      trainings: this.getTrainingSessions()
     }, null, 2);
   },
 
@@ -978,6 +1049,7 @@ const StorageService = {
       if (data.transport && typeof data.transport === 'object') this.saveTransport(data.transport);
       if (data.vans && Array.isArray(data.vans)) this.saveVans(data.vans);
       if (data.attendance && typeof data.attendance === 'object') this.saveAttendance(data.attendance);
+      if (data.trainings && Array.isArray(data.trainings)) this.saveTrainingSessions(data.trainings);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
@@ -991,6 +1063,7 @@ if (typeof window !== 'undefined') {
     DEFAULT_TEAMS,
     DEFAULT_PLAYERS,
     DEFAULT_EVENTS,
+    DEFAULT_TRAININGS,
     DEFAULT_TRANSPORT_CONFIG,
     DEFAULT_VANS,
     StorageService,

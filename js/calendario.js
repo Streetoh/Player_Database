@@ -18,10 +18,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   renderEventsList();
   renderConvocatoriaPanel();
+  initTrainingCalendarLogic();
+  initAttendanceStatsLogic();
+  if (typeof initAttendanceModal === 'function') {
+    initAttendanceModal();
+  }
+
+  // Comprobar parámetro ?tab=trainings o ?tab=stats
+  const urlParams = new URLSearchParams(window.location.search);
+  const activeTabParam = urlParams.get('tab');
+  if (activeTabParam === 'trainings' || activeTabParam === 'entrenamientos') {
+    switchCalendarMainTab('trainings');
+  } else if (activeTabParam === 'stats' || activeTabParam === 'asistencia' || activeTabParam === 'attendance') {
+    switchCalendarMainTab('attendance-stats');
+  } else {
+    switchCalendarMainTab('matches');
+  }
 
   window.addEventListener('languageChanged', () => {
     renderEventsList();
     renderConvocatoriaPanel();
+    if (activeCalendarMainTab === 'trainings') renderTrainingSessions();
+    if (activeCalendarMainTab === 'attendance-stats') renderAttendanceStats();
   });
 });
 
@@ -1352,3 +1370,841 @@ function openShareFamilyModal(event) {
     modal.classList.add('active');
   }
 }
+
+/* ==========================================================================
+   GESTIÓN DE PESTAÑAS Y SESIONES DE ENTRENAMIENTO
+   ========================================================================== */
+let activeCalendarMainTab = 'matches';
+let trainingSessionsList = [];
+let filterTrainingTeamId = 'all';
+let filterTrainingDate = '';
+
+function switchCalendarMainTab(tab) {
+  activeCalendarMainTab = tab;
+  const btnMatches = document.getElementById('tab-btn-matches');
+  const btnTrainings = document.getElementById('tab-btn-trainings');
+  const btnStats = document.getElementById('tab-btn-attendance-stats');
+
+  const secMatches = document.getElementById('section-matches');
+  const secTrainings = document.getElementById('section-trainings');
+  const secStats = document.getElementById('section-attendance-stats');
+
+  if (btnMatches) {
+    btnMatches.classList.toggle('active', tab === 'matches');
+  }
+  if (btnTrainings) {
+    btnTrainings.classList.toggle('active', tab === 'trainings');
+    btnTrainings.classList.toggle('tab-trainings-active', tab === 'trainings');
+  }
+  if (btnStats) {
+    btnStats.classList.toggle('active', tab === 'attendance-stats');
+    btnStats.classList.toggle('tab-stats-active', tab === 'attendance-stats');
+  }
+
+  if (secMatches) secMatches.style.display = (tab === 'matches') ? 'block' : 'none';
+  if (secTrainings) secTrainings.style.display = (tab === 'trainings') ? 'block' : 'none';
+  if (secStats) secStats.style.display = (tab === 'attendance-stats') ? 'block' : 'none';
+
+  if (tab === 'trainings') {
+    renderTrainingSessions();
+  } else if (tab === 'attendance-stats') {
+    renderAttendanceStats();
+  }
+}
+
+function initTrainingCalendarLogic() {
+  if (!window.JKNoovaData) return;
+  const storage = window.JKNoovaData.StorageService;
+  trainingSessionsList = storage.getTrainingSessions();
+
+  const btnAdd = document.getElementById('btn-add-training-session');
+  if (btnAdd) {
+    btnAdd.onclick = () => openEditTrainingModal(null);
+  }
+
+  const btnQuickAtt = document.getElementById('btn-quick-attendance');
+  if (btnQuickAtt) {
+    btnQuickAtt.onclick = () => {
+      if (typeof openAttendanceModal === 'function') {
+        openAttendanceModal();
+      }
+    };
+  }
+
+  const teamFilter = document.getElementById('filter-training-team');
+  if (teamFilter) {
+    teamFilter.onchange = (e) => {
+      filterTrainingTeamId = e.target.value;
+      renderTrainingSessions();
+    };
+  }
+
+  const dateFilter = document.getElementById('filter-training-date');
+  if (dateFilter) {
+    dateFilter.onchange = (e) => {
+      filterTrainingDate = e.target.value;
+      renderTrainingSessions();
+    };
+  }
+
+  const btnClear = document.getElementById('btn-clear-training-filters');
+  if (btnClear) {
+    btnClear.onclick = () => {
+      filterTrainingTeamId = 'all';
+      filterTrainingDate = '';
+      if (teamFilter) teamFilter.value = 'all';
+      if (dateFilter) dateFilter.value = '';
+      renderTrainingSessions();
+    };
+  }
+
+  const btnSave = document.getElementById('btn-save-training-session');
+  if (btnSave) {
+    btnSave.onclick = saveTrainingSession;
+  }
+}
+
+function renderTrainingSessions() {
+  const container = document.getElementById('trainings-list-container');
+  const countIndicator = document.getElementById('training-count-indicator');
+  const teamFilter = document.getElementById('filter-training-team');
+  if (!container) return;
+
+  const storage = window.JKNoovaData.StorageService;
+  trainingSessionsList = storage.getTrainingSessions();
+  const teams = storage.getTeams();
+  const allAttendance = storage.getAttendance() || {};
+
+  if (teamFilter && teamFilter.options.length === 0) {
+    teamFilter.innerHTML = '<option value="all">🌟 Todos los equipos</option>';
+    teams.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      teamFilter.appendChild(opt);
+    });
+    teamFilter.value = filterTrainingTeamId;
+  }
+
+  let list = [...trainingSessionsList];
+  if (filterTrainingTeamId !== 'all') {
+    list = list.filter(s => s.teamId === filterTrainingTeamId || s.teamId === 'all');
+  }
+  if (filterTrainingDate) {
+    list = list.filter(s => s.date === filterTrainingDate);
+  }
+
+  list.sort((a, b) => {
+    const da = a.date + ' ' + (a.time || '');
+    const db = b.date + ' ' + (b.time || '');
+    return da.localeCompare(db);
+  });
+
+  if (countIndicator) {
+    countIndicator.textContent = `${list.length} sesiones`;
+  }
+
+  container.innerHTML = '';
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-subtle);">
+        <p style="font-size: 1.1rem; color: #fff; font-weight: 700; margin-bottom: 0.5rem;">No hay entrenamientos programados</p>
+        <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Añade tu primera sesión para comenzar a registrar asistencias en fechas determinadas.</p>
+        <button type="button" class="btn btn-primary btn-sm" onclick="openEditTrainingModal(null)">➕ Programar entrenamiento</button>
+      </div>
+    `;
+    return;
+  }
+
+  list.forEach(session => {
+    const team = teams.find(t => t.id === session.teamId) || { name: 'Todos los equipos', color: '#10b981' };
+    const teamColor = team.color || '#06b6d4';
+
+    const teamAtt = allAttendance[session.teamId] || {};
+    const dateAtt = teamAtt[session.date];
+    let attBadgeHtml = '';
+
+    if (dateAtt) {
+      const pids = Object.keys(dateAtt);
+      const presCount = pids.filter(id => dateAtt[id] === 'present').length;
+      const totalCount = pids.length;
+      const pct = totalCount > 0 ? Math.round((presCount / totalCount) * 100) : 0;
+      attBadgeHtml = `
+        <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
+          ✔ ${presCount}/${totalCount} (${pct}%)
+        </span>
+      `;
+    } else {
+      attBadgeHtml = `
+        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
+          ⏳ Sin pasar lista
+        </span>
+      `;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'training-card-pro';
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+        <div>
+          <span style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 700; background: rgba(255, 255, 255, 0.06); padding: 0.15rem 0.5rem; border-radius: 6px; color: ${teamColor}; margin-bottom: 0.35rem;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${teamColor};"></span>
+            ${escapeHTML(team.name)}
+          </span>
+          <h4 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0; line-height: 1.3;">
+            ${escapeHTML(session.title)}
+          </h4>
+        </div>
+        ${attBadgeHtml}
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span>📅</span> <strong>${formatDate(session.date)}</strong>
+          <span>•</span>
+          <span>⏰</span> <span>${escapeHTML(session.time || 'Horario por confirmar')}</span>
+        </div>
+        ${session.location ? `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>📍</span> <span>${escapeHTML(session.location)}</span>
+          </div>
+        ` : ''}
+        ${session.coach ? `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>👤</span> <span>${escapeHTML(session.coach)}</span>
+          </div>
+        ` : ''}
+        ${session.notes ? `
+          <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 0.4rem 0.6rem; border-radius: 6px; margin-top: 0.2rem;">
+            ${escapeHTML(session.notes)}
+          </div>
+        ` : ''}
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
+          📋 Pasar lista
+        </button>
+        <div style="display: flex; gap: 0.3rem;">
+          <button type="button" class="btn btn-secondary btn-sm btn-session-edit" data-sid="${session.id}" style="font-size: 0.75rem; padding: 0.35rem 0.55rem;" title="Editar entrenamiento">
+            ✏️
+          </button>
+          <button type="button" class="btn btn-danger btn-sm btn-session-delete" data-sid="${session.id}" style="font-size: 0.75rem; padding: 0.35rem 0.55rem;" title="Eliminar entrenamiento">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `;
+
+    const btnAtt = card.querySelector('.btn-session-attendance');
+    if (btnAtt) {
+      btnAtt.onclick = () => {
+        if (typeof openAttendanceModal === 'function') {
+          openAttendanceModal(session.teamId, session.date);
+        }
+      };
+    }
+
+    const btnEdit = card.querySelector('.btn-session-edit');
+    if (btnEdit) {
+      btnEdit.onclick = () => openEditTrainingModal(session.id);
+    }
+
+    const btnDel = card.querySelector('.btn-session-delete');
+    if (btnDel) {
+      btnDel.onclick = () => deleteTrainingSession(session.id);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+function openEditTrainingModal(sessionId = null) {
+  const modal = document.getElementById('modal-training-session');
+  if (!modal) return;
+
+  const storage = window.JKNoovaData.StorageService;
+  const teams = storage.getTeams();
+  const selectTeam = document.getElementById('training-team-id');
+  const titleHeader = document.getElementById('training-modal-title');
+  const editIdInput = document.getElementById('edit-training-id');
+  const form = document.getElementById('form-training-session');
+
+  if (form) form.reset();
+
+  if (selectTeam) {
+    selectTeam.innerHTML = '';
+    teams.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      selectTeam.appendChild(opt);
+    });
+  }
+
+  if (sessionId) {
+    const session = trainingSessionsList.find(s => s.id === sessionId);
+    if (!session) return;
+    if (titleHeader) titleHeader.textContent = '✏️ Editar entrenamiento';
+    if (editIdInput) editIdInput.value = session.id;
+
+    document.getElementById('training-title').value = session.title || '';
+    if (selectTeam) selectTeam.value = session.teamId || '';
+    document.getElementById('training-date').value = session.date || '';
+    document.getElementById('training-time').value = session.time || '';
+    document.getElementById('training-location').value = session.location || '';
+    document.getElementById('training-coach').value = session.coach || '';
+    document.getElementById('training-notes').value = session.notes || '';
+  } else {
+    if (titleHeader) titleHeader.textContent = '➕ Programar nuevo entrenamiento';
+    if (editIdInput) editIdInput.value = '';
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('training-date').value = today;
+    document.getElementById('training-time').value = '17:30 - 19:00';
+    document.getElementById('training-location').value = 'Campo Municipal';
+  }
+
+  if (typeof openModal === 'function') {
+    openModal(modal);
+  } else {
+    modal.classList.add('active');
+  }
+}
+
+function saveTrainingSession() {
+  const title = document.getElementById('training-title').value.trim();
+  const teamId = document.getElementById('training-team-id').value;
+  const date = document.getElementById('training-date').value;
+  const time = document.getElementById('training-time').value.trim();
+  const location = document.getElementById('training-location').value.trim();
+  const coach = document.getElementById('training-coach').value.trim();
+  const notes = document.getElementById('training-notes').value.trim();
+  const editId = document.getElementById('edit-training-id').value;
+
+  if (!title || !date || !teamId) {
+    showToast('Por favor completa título, equipo y fecha', 'error');
+    return;
+  }
+
+  const storage = window.JKNoovaData.StorageService;
+  trainingSessionsList = storage.getTrainingSessions();
+
+  if (editId) {
+    const existing = trainingSessionsList.find(s => s.id === editId);
+    if (existing) {
+      existing.title = title;
+      existing.teamId = teamId;
+      existing.date = date;
+      existing.time = time;
+      existing.location = location;
+      existing.coach = coach;
+      existing.notes = notes;
+      showToast('Entrenamiento actualizado correctamente', 'success');
+    }
+  } else {
+    const newSession = {
+      id: `tr_${Date.now()}`,
+      title,
+      teamId,
+      date,
+      time,
+      location,
+      coach,
+      notes
+    };
+    trainingSessionsList.push(newSession);
+    showToast('Entrenamiento programado con éxito', 'success');
+  }
+
+  storage.saveTrainingSessions(trainingSessionsList);
+
+  const modal = document.getElementById('modal-training-session');
+  if (modal) {
+    if (typeof closeModal === 'function') closeModal(modal);
+    else modal.classList.remove('active');
+  }
+
+  renderTrainingSessions();
+}
+
+function deleteTrainingSession(sessionId) {
+  const session = trainingSessionsList.find(s => s.id === sessionId);
+  if (!session) return;
+
+  if (!confirm(`¿Eliminar la sesión "${session.title}" del ${formatDate(session.date)}?`)) {
+    return;
+  }
+
+  const storage = window.JKNoovaData.StorageService;
+  trainingSessionsList = trainingSessionsList.filter(s => s.id !== sessionId);
+  storage.saveTrainingSessions(trainingSessionsList);
+  showToast('Sesión de entrenamiento eliminada', 'info');
+  renderTrainingSessions();
+}
+
+/* ==========================================================================
+   REGISTRO Y ESTADÍSTICAS DE ASISTENCIA A ENTRENAMIENTOS
+   ========================================================================== */
+let statsTeamId = 'all';
+let statsDateFrom = '';
+let statsDateTo = '';
+let statsSearchQuery = '';
+
+function initAttendanceStatsLogic() {
+  if (!window.JKNoovaData) return;
+  const storage = window.JKNoovaData.StorageService;
+  const teams = storage.getTeams();
+  const teamSelect = document.getElementById('stats-team-select');
+  const inputFrom = document.getElementById('stats-date-from');
+  const inputTo = document.getElementById('stats-date-to');
+  const inputSearch = document.getElementById('stats-player-search');
+
+  if (teamSelect) {
+    teamSelect.innerHTML = '<option value="all">🌟 Todos los equipos</option>';
+    teams.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      teamSelect.appendChild(opt);
+    });
+    teamSelect.onchange = (e) => {
+      statsTeamId = e.target.value;
+      renderAttendanceStats();
+    };
+  }
+
+  const now = new Date();
+  const past30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  statsDateTo = now.toISOString().split('T')[0];
+  statsDateFrom = past30.toISOString().split('T')[0];
+
+  if (inputFrom) {
+    inputFrom.value = statsDateFrom;
+    inputFrom.onchange = (e) => {
+      statsDateFrom = e.target.value;
+      renderAttendanceStats();
+    };
+  }
+  if (inputTo) {
+    inputTo.value = statsDateTo;
+    inputTo.onchange = (e) => {
+      statsDateTo = e.target.value;
+      renderAttendanceStats();
+    };
+  }
+  if (inputSearch) {
+    inputSearch.oninput = (e) => {
+      statsSearchQuery = e.target.value.toLowerCase().trim();
+      renderAttendanceStats();
+    };
+  }
+
+  document.querySelectorAll('.btn-preset-date').forEach(btn => {
+    btn.onclick = () => {
+      const preset = btn.getAttribute('data-preset');
+      setStatsDatePreset(preset);
+    };
+  });
+
+  const btnShareQr = document.getElementById('btn-share-attendance-stats-qr');
+  if (btnShareQr) {
+    btnShareQr.onclick = openAttendanceQrModal;
+  }
+
+  const btnPrint = document.getElementById('btn-print-attendance-stats');
+  if (btnPrint) {
+    btnPrint.onclick = () => window.print();
+  }
+}
+
+function setStatsDatePreset(preset) {
+  const now = new Date();
+  statsDateTo = now.toISOString().split('T')[0];
+
+  if (preset === '7' || preset === 7) {
+    const d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    statsDateFrom = d.toISOString().split('T')[0];
+  } else if (preset === '30' || preset === 30) {
+    const d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    statsDateFrom = d.toISOString().split('T')[0];
+  } else if (preset === 'month') {
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    statsDateFrom = `${y}-${m}-01`;
+  } else if (preset === 'season') {
+    statsDateFrom = '2025-09-01';
+  }
+
+  const inputFrom = document.getElementById('stats-date-from');
+  const inputTo = document.getElementById('stats-date-to');
+  if (inputFrom) inputFrom.value = statsDateFrom;
+  if (inputTo) inputTo.value = statsDateTo;
+
+  renderAttendanceStats();
+}
+
+function renderAttendanceStats() {
+  const kpiContainer = document.getElementById('stats-kpi-container');
+  const playersListContainer = document.getElementById('stats-players-list');
+  const badgeCount = document.getElementById('stats-player-count-badge');
+  if (!kpiContainer || !playersListContainer) return;
+
+  const storage = window.JKNoovaData.StorageService;
+  const allPlayers = storage.getPlayers();
+  const teams = storage.getTeams();
+  const attendance = storage.getAttendance() || {};
+
+  const filteredPlayers = (statsTeamId === 'all')
+    ? allPlayers
+    : allPlayers.filter(p => p.teamId === statsTeamId);
+
+  const dFrom = statsDateFrom ? new Date(statsDateFrom) : new Date('2000-01-01');
+  const dTo = statsDateTo ? new Date(statsDateTo + 'T23:59:59') : new Date('2099-12-31');
+
+  const sessionDatesSet = new Set();
+  const playerStatsMap = {};
+
+  filteredPlayers.forEach(p => {
+    playerStatsMap[p.id] = {
+      player: p,
+      totalSessions: 0,
+      presentCount: 0,
+      absentCount: 0,
+      history: []
+    };
+  });
+
+  for (const tId in attendance) {
+    if (statsTeamId !== 'all' && tId !== statsTeamId) continue;
+    const teamDates = attendance[tId] || {};
+
+    for (const dStr in teamDates) {
+      const d = new Date(dStr);
+      if (d >= dFrom && d <= dTo) {
+        sessionDatesSet.add(dStr);
+        const dayAttendance = teamDates[dStr] || {};
+
+        filteredPlayers.forEach(p => {
+          if (dayAttendance[p.id]) {
+            const st = dayAttendance[p.id];
+            playerStatsMap[p.id].totalSessions++;
+            if (st === 'present') {
+              playerStatsMap[p.id].presentCount++;
+            } else {
+              playerStatsMap[p.id].absentCount++;
+            }
+            playerStatsMap[p.id].history.push({ date: dStr, status: st });
+          }
+        });
+      }
+    }
+  }
+
+  let playersStatsList = Object.values(playerStatsMap);
+
+  if (statsSearchQuery) {
+    playersStatsList = playersStatsList.filter(item => {
+      const fullName = `${item.player.name} ${item.player.lastName}`.toLowerCase();
+      const dorsal = String(item.player.mainDorsal || '');
+      return fullName.includes(statsSearchQuery) || dorsal.includes(statsSearchQuery);
+    });
+  }
+
+  playersStatsList.forEach(item => {
+    item.percentage = item.totalSessions > 0 ? Math.round((item.presentCount / item.totalSessions) * 100) : 100;
+  });
+
+  const totalSessionsRecorded = sessionDatesSet.size;
+  let globalSumPct = 0;
+  let evaluatedCount = 0;
+  let perfectCount = 0;
+  let alertCount = 0;
+
+  playersStatsList.forEach(item => {
+    if (item.totalSessions > 0) {
+      globalSumPct += item.percentage;
+      evaluatedCount++;
+      if (item.percentage === 100) perfectCount++;
+      if (item.percentage < 75) alertCount++;
+    }
+  });
+
+  const avgGlobalPct = evaluatedCount > 0 ? Math.round(globalSumPct / evaluatedCount) : 100;
+
+  kpiContainer.innerHTML = `
+    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.85rem 1rem;">
+      <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">📅 Sesiones en periodo</div>
+      <strong style="font-size: 1.35rem; color: #fff; margin-top: 2px; display: block;">${totalSessionsRecorded}</strong>
+      <span style="font-size: 0.7rem; color: var(--accent-cyan);">${formatDate(statsDateFrom)} - ${formatDate(statsDateTo)}</span>
+    </div>
+    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.85rem 1rem;">
+      <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">📊 Asistencia media grupal</div>
+      <strong style="font-size: 1.35rem; color: ${avgGlobalPct >= 80 ? '#34d399' : '#fbbf24'}; margin-top: 2px; display: block;">${avgGlobalPct}%</strong>
+      <span style="font-size: 0.7rem; color: var(--text-secondary);">${evaluatedCount} jugadores evaluados</span>
+    </div>
+    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.85rem 1rem;">
+      <div style="font-size: 0.72rem; color: #34d399; font-weight: 700;">🏆 Asistencia 100%</div>
+      <strong style="font-size: 1.35rem; color: #34d399; margin-top: 2px; display: block;">${perfectCount} jug.</strong>
+      <span style="font-size: 0.7rem; color: var(--text-secondary);">Asistencia impecable</span>
+    </div>
+    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.85rem 1rem;">
+      <div style="font-size: 0.72rem; color: #f87171; font-weight: 700;">⚠️ Alerta de ausencias</div>
+      <strong style="font-size: 1.35rem; color: #f87171; margin-top: 2px; display: block;">${alertCount} jug.</strong>
+      <span style="font-size: 0.7rem; color: var(--text-secondary);">&lt; 75% de asistencia</span>
+    </div>
+  `;
+
+  if (badgeCount) {
+    badgeCount.textContent = `${playersStatsList.length} jugadores`;
+  }
+
+  playersStatsList.sort((a, b) => {
+    if (b.percentage !== a.percentage) return b.percentage - a.percentage;
+    const da = parseInt(a.player.mainDorsal, 10) || 999;
+    const db = parseInt(b.player.mainDorsal, 10) || 999;
+    return da - db;
+  });
+
+  playersListContainer.innerHTML = '';
+  if (playersStatsList.length === 0) {
+    playersListContainer.innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">
+        No hay registros de jugadores para los filtros seleccionados.
+      </div>
+    `;
+    return;
+  }
+
+  playersStatsList.forEach(item => {
+    const p = item.player;
+    const team = teams.find(t => t.id === p.teamId);
+    const avatarUrl = p.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name + '+' + p.lastName)}&background=18233c&color=fff`;
+
+    let barColor = '#10b981';
+    let badgeBg = 'rgba(16, 185, 129, 0.15)';
+    let badgeColorText = '#34d399';
+
+    if (item.percentage < 70) {
+      barColor = '#ef4444';
+      badgeBg = 'rgba(239, 68, 68, 0.15)';
+      badgeColorText = '#f87171';
+    } else if (item.percentage < 85) {
+      barColor = '#f59e0b';
+      badgeBg = 'rgba(245, 158, 11, 0.15)';
+      badgeColorText = '#fbbf24';
+    }
+
+    const row = document.createElement('div');
+    row.style.cssText = `
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      transition: all 0.2s;
+    `;
+
+    row.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1.5;">
+          <img src="${avatarUrl}" alt="${p.name}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid ${team?.color || 'rgba(255,255,255,0.15)'}; flex-shrink: 0;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=18233c&color=fff'">
+          <div style="min-width: 0;">
+            <div style="font-weight: 800; color: #fff; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              #${p.mainDorsal || '-'} ${escapeHTML(p.name)} ${escapeHTML(p.lastName)}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 0.4rem; align-items: center; margin-top: 2px;">
+              <span style="color: var(--accent-cyan); font-weight: 700;">${p.mainPosition || 'JUG'}</span>
+              ${team ? `<span>•</span><span style="color: ${team.color}; font-weight: 600;">${escapeHTML(team.name)}</span>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 1.25rem; flex-shrink: 0; flex-wrap: wrap;">
+          <div style="text-align: center; min-width: 90px;">
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Asistencias</div>
+            <div style="font-size: 0.88rem; font-weight: 700; margin-top: 1px;">
+              <span style="color: #34d399;">✔ ${item.presentCount}</span>
+              <span style="color: var(--text-muted); margin: 0 3px;">/</span>
+              <span style="color: #f87171;">✖ ${item.absentCount}</span>
+            </div>
+          </div>
+
+          <div style="min-width: 130px; text-align: right;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+              <span style="font-size: 0.7rem; color: var(--text-muted);">${item.totalSessions} sesiones</span>
+              <span style="font-size: 0.85rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 4px; background: ${badgeBg}; color: ${badgeColorText};">
+                ${item.percentage}%
+              </span>
+            </div>
+            <div class="attendance-stat-bar-track">
+              <div class="attendance-stat-bar-fill" style="width: ${item.percentage}%; background: ${barColor};"></div>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-secondary btn-xs btn-toggle-dates-history" style="font-size: 0.72rem; padding: 0.3rem 0.55rem;">
+            📅 Fechas (${item.history.length})
+          </button>
+        </div>
+      </div>
+
+      <!-- Detalle desplegable de fechas -->
+      <div class="dates-history-panel" style="display: none; margin-top: 0.75rem; padding-top: 0.6rem; border-top: 1px dashed rgba(255,255,255,0.08);">
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">Registro por día:</div>
+        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+          ${item.history.length === 0 ? '<span style="font-size: 0.75rem; color: var(--text-muted);">Sin sesiones en este periodo</span>' : ''}
+          ${item.history.map(h => `
+            <span style="font-size: 0.72rem; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 700; ${h.status === 'present' ? 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : 'background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);'}">
+              ${h.status === 'present' ? '✔' : '✖'} ${formatDate(h.date)}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    const btnHistory = row.querySelector('.btn-toggle-dates-history');
+    const panelHistory = row.querySelector('.dates-history-panel');
+    if (btnHistory && panelHistory) {
+      btnHistory.onclick = () => {
+        const isHidden = panelHistory.style.display === 'none';
+        panelHistory.style.display = isHidden ? 'block' : 'none';
+        btnHistory.textContent = isHidden ? '▲ Ocultar fechas' : `📅 Fechas (${item.history.length})`;
+      };
+    }
+
+    playersListContainer.appendChild(row);
+  });
+}
+
+let attendanceQrInstance = null;
+
+function openAttendanceQrModal() {
+  const modal = document.getElementById('modal-share-attendance-qr');
+  if (!modal) return;
+
+  const storage = window.JKNoovaData.StorageService;
+  const teams = storage.getTeams();
+  const allPlayers = storage.getPlayers();
+  const attendance = storage.getAttendance() || {};
+
+  const teamObj = teams.find(t => t.id === statsTeamId) || { name: 'Todos los equipos' };
+
+  const filteredPlayers = (statsTeamId === 'all')
+    ? allPlayers
+    : allPlayers.filter(p => p.teamId === statsTeamId);
+
+  const dFrom = statsDateFrom ? new Date(statsDateFrom) : new Date('2000-01-01');
+  const dTo = statsDateTo ? new Date(statsDateTo + 'T23:59:59') : new Date('2099-12-31');
+
+  const datesSet = new Set();
+  const playersSummary = [];
+
+  for (const tId in attendance) {
+    if (statsTeamId !== 'all' && tId !== statsTeamId) continue;
+    const teamDates = attendance[tId] || {};
+    for (const dStr in teamDates) {
+      const d = new Date(dStr);
+      if (d >= dFrom && d <= dTo) {
+        datesSet.add(dStr);
+      }
+    }
+  }
+
+  const totalSessions = datesSet.size;
+
+  filteredPlayers.forEach(p => {
+    let pres = 0;
+    let total = 0;
+    for (const tId in attendance) {
+      if (statsTeamId !== 'all' && tId !== statsTeamId) continue;
+      const teamDates = attendance[tId] || {};
+      for (const dStr in teamDates) {
+        const d = new Date(dStr);
+        if (d >= dFrom && d <= dTo && teamDates[dStr][p.id]) {
+          total++;
+          if (teamDates[dStr][p.id] === 'present') pres++;
+        }
+      }
+    }
+    const pct = total > 0 ? Math.round((pres / total) * 100) : 100;
+    playersSummary.push([
+      p.mainDorsal || '-',
+      `${p.name} ${p.lastName}`.substring(0, 24),
+      pres,
+      total,
+      pct
+    ]);
+  });
+
+  const payload = {
+    t: teamObj.name,
+    df: statsDateFrom,
+    dt: statsDateTo,
+    ts: totalSessions,
+    p: playersSummary.slice(0, 35)
+  };
+
+  const jsonStr = JSON.stringify(payload);
+  let base64url = '';
+  try {
+    const utf8Bytes = new TextEncoder().encode(jsonStr);
+    let bin = '';
+    for (let i = 0; i < utf8Bytes.length; i++) bin += String.fromCharCode(utf8Bytes[i]);
+    base64url = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch (e) {
+    base64url = btoa(unescape(encodeURIComponent(jsonStr))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  let baseUrl = window.location.href.split('?')[0].replace('calendario.html', 'asistencia-stats.html');
+  const shareUrl = `${baseUrl}?d=${base64url}`;
+
+  const inputUrl = document.getElementById('share-att-url-input');
+  if (inputUrl) inputUrl.value = shareUrl;
+
+  const linkReport = document.getElementById('btn-open-att-report-link');
+  if (linkReport) linkReport.href = shareUrl;
+
+  const qrContainer = document.getElementById('attendance-qr-canvas-container');
+  if (qrContainer && typeof QRCode !== 'undefined') {
+    qrContainer.innerHTML = '';
+    try {
+      attendanceQrInstance = new QRCode(qrContainer, {
+        text: shareUrl,
+        width: 200,
+        height: 200,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: 'M'
+      });
+    } catch (err) {
+      console.error('Error generando QR de asistencia:', err);
+    }
+  }
+
+  const btnCopy = document.getElementById('btn-copy-att-url');
+  if (btnCopy) {
+    btnCopy.onclick = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast('Enlace copiado al portapapeles', 'success');
+        });
+      } else {
+        inputUrl?.select();
+        document.execCommand('copy');
+        showToast('Enlace copiado', 'success');
+      }
+    };
+  }
+
+  if (typeof openModal === 'function') {
+    openModal(modal);
+  } else {
+    modal.classList.add('active');
+  }
+}
+
+// Exponer globalmente
+window.switchCalendarMainTab = switchCalendarMainTab;
+window.openEditTrainingModal = openEditTrainingModal;
+window.setStatsDatePreset = setStatsDatePreset;
+window.renderTrainingSessions = renderTrainingSessions;
+window.renderAttendanceStats = renderAttendanceStats;

@@ -516,6 +516,127 @@
       }
     }
 
+    const CATEGORY_TERMS = {
+      en: {
+        'Iniciación': 'Beginners (Initiation)',
+        'Prebenjamín': 'Pre-Benjamín (U-8)',
+        'Benjamín': 'Benjamín (U-10)',
+        'Alevín': 'Alevín (U-12)',
+        'Infantil': 'Infantil (U-14)',
+        'Cadete': 'Cadet (U-16)',
+        'Juvenil': 'Youth / Juvenil (U-19)',
+        'Fútbol Base': 'Youth Football',
+        'Competición oficial': 'Official Competition',
+        'Convocatoria Oficial': 'Official Call-up',
+        'Categoría oficial': 'Official Category',
+        'Categoría no asignada': 'Unassigned category',
+        'años': 'years',
+        'año': 'year',
+        'meses': 'months'
+      },
+      et: {
+        'Iniciación': 'Algajad (Iniciatsioon)',
+        'Prebenjamín': 'Eel-Benjamín (U-8)',
+        'Benjamín': 'Benjamín (U-10)',
+        'Alevín': 'Alevín (U-12)',
+        'Infantil': 'Juuniorid (U-14)',
+        'Cadete': 'Kadetid (U-16)',
+        'Juvenil': 'Noored (U-19)',
+        'Fútbol Base': 'Noorte jalgpall',
+        'Competición oficial': 'Ametlik võistlus',
+        'Convocatoria Oficial': 'Ametlik koosseis',
+        'Categoría oficial': 'Ametlik kategooria',
+        'Categoría no asignada': 'Määramata kategooria',
+        'años': 'aastat',
+        'año': 'aasta',
+        'meses': 'kuud'
+      },
+      ru: {
+        'Iniciación': 'Начальная подготовка',
+        'Prebenjamín': 'Младшие дети (U-8)',
+        'Benjamín': 'Дети (U-10)',
+        'Alevín': 'Младшие юноши (U-12)',
+        'Infantil': 'Юноши (U-14)',
+        'Cadete': 'Кадеты (U-16)',
+        'Juvenil': 'Юниоры (U-19)',
+        'Fútbol Base': 'Детско-юношеский футбол',
+        'Competición oficial': 'Официальные соревнования',
+        'Convocatoria Oficial': 'Официальная заявка',
+        'Categoría oficial': 'Официальная категория',
+        'Categoría no asignada': 'Категория не назначена',
+        'años': 'лет',
+        'año': 'год',
+        'meses': 'месяцев'
+      },
+      uk: {
+        'Iniciación': 'Початкова підготовка',
+        'Prebenjamín': 'Молодші діти (U-8)',
+        'Benjamín': 'Діти (U-10)',
+        'Alevín': 'Молодші юнаки (U-12)',
+        'Infantil': 'Юнаки (U-14)',
+        'Cadete': 'Кадети (U-16)',
+        'Juvenil': 'Юніори (U-19)',
+        'Fútbol Base': 'Дитячо-юнацький футбол',
+        'Competición oficial': 'Офіційні змагання',
+        'Convocatoria Oficial': 'Офіційна заявка',
+        'Categoría oficial': 'Офіційна категорія',
+        'Categoría no asignada': 'Категорія не призначена',
+        'años': 'років',
+        'año': 'рік',
+        'meses': 'місяців'
+      }
+    };
+
+    function translateCategoryString(rawStr, lang) {
+      if (!rawStr) return '';
+      if (!lang || lang === 'es') return rawStr;
+      const dict = CATEGORY_TERMS[lang];
+      if (!dict) return rawStr;
+      let result = rawStr;
+      const keys = Object.keys(dict).sort((a, b) => b.length - a.length);
+      for (const key of keys) {
+        const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        result = result.replace(regex, dict[key]);
+      }
+      return result;
+    }
+
+    function renderMatchDetail(event, teams, players, transportData, vans) {
+      const team = teams.find(t => t.id === event.teamId) || { name: 'Equipo JK Noova', category: t('family.officialCategory', null, 'Fútbol Base') };
+
+      document.getElementById('pub-match-title').textContent = event.title || `JK Noova vs ${event.rival}`;
+      const catTranslated = translateCategoryString(team.category || t('family.officialCategory', null, 'Competición oficial'), currentLang);
+      document.getElementById('pub-match-team').textContent = `${team.name} • ${catTranslated}`;
+
+      const formattedDate = formatMatchDate(event.date);
+      const timeText = event.time ? ` • ${t('family.atTime', { time: event.time }, `a las ${event.time} h`)}` : '';
+      document.getElementById('pub-match-datetime').textContent = `${formattedDate}${timeText}`;
+
+      startCountdown(event.date, event.time);
+
+      const loc = event.location || t('family.fieldDefault', null, 'Campo de fútbol');
+      document.getElementById('pub-match-location').textContent = loc;
+      const mapsBtn = document.getElementById('pub-maps-button');
+      if (mapsBtn) {
+        mapsBtn.style.display = 'flex';
+        mapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+      }
+
+      const callUp = event.callUp || [];
+      const tournamentPrice = Number(event.tournamentPrice) || 0;
+      const transportPrice = Number(event.transportPrice) || 0;
+      const minibusCount = callUp.filter(c => c.transport === 'minibus').length;
+      const totalCallUp = callUp.length;
+
+      const priceTournamentPerPlayer = totalCallUp > 0 ? (tournamentPrice / totalCallUp) : 0;
+      const priceTransportPerBus = minibusCount > 0 ? (transportPrice / minibusCount) : 0;
+      const totalBusPlayer = priceTournamentPerPlayer + priceTransportPerBus;
+      const totalCarPlayer = priceTournamentPerPlayer;
+
+      renderTransportInfo(event, transportData, vans, players);
+      renderCallUpList(callUp, players, totalBusPlayer, totalCarPlayer);
+    }
+
     function loadFamilyMatchView() {
       const urlParams = new URLSearchParams(window.location.search);
       const dParam = urlParams.get('d');
@@ -556,43 +677,13 @@
         return;
       }
 
-      const team = teams.find(t => t.id === event.teamId) || { name: 'Equipo JK Noova', category: t('family.officialCategory', null, 'Fútbol Base') };
-
-      document.getElementById('pub-match-title').textContent = event.title || `JK Noova vs ${event.rival}`;
-      document.getElementById('pub-match-team').textContent = `${team.name} • ${team.category || t('family.officialCategory', null, 'Competición oficial')}`;
-
-      const formattedDate = formatMatchDate(event.date);
-      const timeText = event.time ? ` • ${t('family.atTime', { time: event.time }, `a las ${event.time} h`)}` : '';
-      document.getElementById('pub-match-datetime').textContent = `${formattedDate}${timeText}`;
-
-      startCountdown(event.date, event.time);
-
-      const loc = event.location || t('family.fieldDefault', null, 'Campo de fútbol');
-      document.getElementById('pub-match-location').textContent = loc;
-      const mapsBtn = document.getElementById('pub-maps-button');
-      if (mapsBtn) {
-        mapsBtn.style.display = 'flex';
-        mapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
-      }
-
-      const callUp = event.callUp || [];
-      const tournamentPrice = Number(event.tournamentPrice) || 0;
-      const transportPrice = Number(event.transportPrice) || 0;
-      const minibusCount = callUp.filter(c => c.transport === 'minibus').length;
-      const totalCallUp = callUp.length;
-
-      const priceTournamentPerPlayer = totalCallUp > 0 ? (tournamentPrice / totalCallUp) : 0;
-      const priceTransportPerBus = minibusCount > 0 ? (transportPrice / minibusCount) : 0;
-      const totalBusPlayer = priceTournamentPerPlayer + priceTransportPerBus;
-      const totalCarPlayer = priceTournamentPerPlayer;
-
-      renderTransportInfo(event, transportData, vans, players);
-      renderCallUpList(callUp, players, totalBusPlayer, totalCarPlayer);
+      renderMatchDetail(event, teams, players, transportData, vans);
     }
 
     function renderFromPayload(data) {
       document.getElementById('pub-match-title').textContent = data.t || 'JK Noova Academy';
-      document.getElementById('pub-match-team').textContent = data.m || t('family.officialCategory', null, 'Convocatoria Oficial');
+      const rawCategory = data.m || t('family.officialCategory', null, 'Convocatoria Oficial');
+      document.getElementById('pub-match-team').textContent = translateCategoryString(rawCategory, currentLang);
 
       const formattedDate = formatMatchDate(data.d);
       const timeText = data.h ? ` • ${t('family.atTime', { time: data.h }, `a las ${data.h} h`)}` : '';

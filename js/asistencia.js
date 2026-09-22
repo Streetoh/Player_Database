@@ -91,7 +91,7 @@ function initAttendanceModal() {
  * Abre el modal de asistencia para el equipo y fecha seleccionada
  * @param {string} defaultTeamId 
  */
-function openAttendanceModal(defaultTeamId = null) {
+function openAttendanceModal(defaultTeamId = null, defaultDate = null) {
   const modal = document.getElementById('modal-attendance');
   if (!modal) return;
 
@@ -134,9 +134,9 @@ function openAttendanceModal(defaultTeamId = null) {
 
   const dateInput = document.getElementById('attendance-date-input');
   if (dateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    activeAttendanceDate = today;
-    dateInput.value = today;
+    const targetDate = defaultDate || new Date().toISOString().split('T')[0];
+    activeAttendanceDate = targetDate;
+    dateInput.value = targetDate;
   }
 
   loadSessionData();
@@ -269,61 +269,88 @@ function renderAttendanceRoster() {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.65rem 0.85rem;
+      padding: 0.75rem 0.95rem;
       background: var(--bg-secondary);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      margin-bottom: 0.45rem;
-      gap: 0.65rem;
+      border: 1px solid ${isPresent ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'};
+      border-radius: 10px;
+      margin-bottom: 0.5rem;
+      gap: 0.75rem;
+      transition: all 0.15s ease;
     `;
 
     row.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0; flex: 1;">
-        <img src="${avatarUrl}" alt="${p.name}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.1); flex-shrink: 0;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=18233c&color=fff'">
+      <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
+        <img src="${avatarUrl}" alt="${p.name}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid ${teamObj?.color || 'rgba(255,255,255,0.2)'}; flex-shrink: 0;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=18233c&color=fff'">
         <div style="min-width: 0;">
-          <div style="font-weight: 700; color: #fff; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <div style="font-weight: 800; color: #fff; font-size: 0.98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             #${p.mainDorsal || '-'} ${escapeHTML(p.name)} ${escapeHTML(p.lastName)}
           </div>
-          <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 0.4rem; align-items: center; margin-top: 1px; flex-wrap: wrap;">
-            <span style="color: var(--accent-cyan); font-weight: 700;">${p.mainPosition || 'JUG'}</span>
-            ${teamObj ? `<span style="background: rgba(255,255,255,0.06); padding: 0.05rem 0.35rem; border-radius: 4px; color: ${teamObj.color}; font-weight: 600;">${escapeHTML(teamObj.name)}</span>` : ''}
+          <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.45rem; align-items: center; margin-top: 2px; flex-wrap: wrap;">
+            <span style="color: var(--accent-cyan); font-weight: 700; background: rgba(6,182,212,0.12); padding: 0.1rem 0.4rem; border-radius: 4px;">${p.mainPosition || 'JUG'}</span>
+            ${teamObj ? `<span style="background: rgba(255,255,255,0.06); padding: 0.1rem 0.45rem; border-radius: 4px; color: ${teamObj.color}; font-weight: 700;">${escapeHTML(teamObj.name)}</span>` : ''}
           </div>
         </div>
       </div>
 
       <!-- BOTONES DE TICK VERDE ✔ (Está) Y TICK ROJO ✖ (No está) -->
-      <div class="attendance-tick-actions" style="display: flex; gap: 0.4rem; flex-shrink: 0;">
-        <button type="button" class="btn-tick-present ${isPresent ? 'is-active' : ''}" data-pid="${p.id}" title="Marcar como presente en el entrenamiento">
+      <div class="attendance-tick-actions" style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+        <button type="button" class="btn-tick-present ${isPresent ? 'is-active' : ''}" data-pid="${p.id}" title="Marcar como presente en el entrenamiento" style="min-width: 82px; min-height: 42px; font-size: 0.88rem; font-weight: 800; border-radius: 8px;">
           ✔ <span class="tick-label">Está</span>
         </button>
-        <button type="button" class="btn-tick-absent ${!isPresent ? 'is-active' : ''}" data-pid="${p.id}" title="Marcar como ausente">
+        <button type="button" class="btn-tick-absent ${!isPresent ? 'is-active' : ''}" data-pid="${p.id}" title="Marcar como ausente" style="min-width: 82px; min-height: 42px; font-size: 0.88rem; font-weight: 800; border-radius: 8px;">
           ✖ <span class="tick-label">No está</span>
         </button>
       </div>
     `;
 
-    // Conectar eventos táctiles directos
+    // Conectar eventos táctiles directos con feedback instantáneo
     const btnPres = row.querySelector('.btn-tick-present');
     const btnAbs = row.querySelector('.btn-tick-absent');
 
+    const updateRowState = (status) => {
+      tempSessionAttendance[p.id] = status;
+      if (status === 'present') {
+        btnPres.classList.add('is-active');
+        btnAbs.classList.remove('is-active');
+        row.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+      } else {
+        btnAbs.classList.add('is-active');
+        btnPres.classList.remove('is-active');
+        row.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+      }
+      recalculateAttendanceStats();
+    };
+
     if (btnPres) {
-      btnPres.onclick = () => {
-        tempSessionAttendance[p.id] = 'present';
-        renderAttendanceRoster();
-      };
+      btnPres.onclick = () => updateRowState('present');
     }
 
     if (btnAbs) {
-      btnAbs.onclick = () => {
-        tempSessionAttendance[p.id] = 'absent';
-        renderAttendanceRoster();
-      };
+      btnAbs.onclick = () => updateRowState('absent');
     }
 
     container.appendChild(row);
   });
 
-  updateAttendanceCounters(presentCount, absentCount);
+  recalculateAttendanceStats();
+}
+
+function recalculateAttendanceStats() {
+  if (!window.JKNoovaData) return;
+  const storage = window.JKNoovaData.StorageService;
+  const allPlayers = storage.getPlayers();
+  const players = (activeAttendanceTeamId === 'all')
+    ? allPlayers
+    : allPlayers.filter(p => p.teamId === activeAttendanceTeamId);
+
+  let present = 0;
+  let absent = 0;
+  players.forEach(p => {
+    const st = tempSessionAttendance[p.id] || 'present';
+    if (st === 'present') present++;
+    else absent++;
+  });
+  updateAttendanceCounters(present, absent);
 }
 
 /**

@@ -1,16 +1,51 @@
 /**
  * JK NOOVA - Lógica del Portal Público de Consulta para Familias (partido.html)
  * Vista optimizada para teléfonos móviles de padres, sin opciones de edición,
- * con cuenta atrás en tiempo real, enlace de Google Maps y asiento asignado en furgoneta.
+ * con soporte multilingüe automático (Español, English, Eesti keel, Русский)
+ * según el idioma configurado en el teléfono del usuario o selección manual.
+ * Con cuenta atrás en tiempo real, enlace de Google Maps y asiento asignado en furgoneta.
  * Soporta carga autónoma desde URL (?d=...) para visualizar partidos generados desde la APK
  * sin necesidad de base de datos externa ni sincronización en la nube.
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadFamilyMatchView();
-});
-
 let countdownInterval = null;
+let currentPayloadData = null;
+
+// Helper de traducción dinámico
+function t(key, params, fallback) {
+  if (window.i18n && typeof window.i18n.t === 'function') {
+    return window.i18n.t(key, params, fallback);
+  }
+  return fallback || key;
+}
+
+// Cambio manual de idioma desde los botones superiores
+window.switchFamilyLang = function(lang) {
+  if (window.i18n && typeof window.i18n.setLanguage === 'function') {
+    window.i18n.setLanguage(lang);
+  }
+};
+
+function updateLangButtons(activeLang) {
+  const lang = activeLang || (window.i18n && window.i18n.getLanguage ? window.i18n.getLanguage() : 'es');
+  document.querySelectorAll('.family-lang-btn').forEach(btn => {
+    if (btn.getAttribute('data-lang') === lang) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateLangButtons();
+  loadFamilyMatchView();
+
+  window.addEventListener('languageChanged', (e) => {
+    updateLangButtons(e.detail && e.detail.lang);
+    loadFamilyMatchView();
+  });
+});
 
 function decodeCompactMatchPayload(b64url) {
   if (!b64url) return null;
@@ -34,16 +69,21 @@ function loadFamilyMatchView() {
 
   // 1. Prioridad: Datos autónomos compactados en la URL
   if (dParam) {
-    const payloadData = decodeCompactMatchPayload(dParam);
-    if (payloadData) {
-      renderFromPayload(payloadData);
+    if (!currentPayloadData) {
+      currentPayloadData = decodeCompactMatchPayload(dParam);
+    }
+    if (currentPayloadData) {
+      renderFromPayload(currentPayloadData);
       return;
     }
   }
 
   // 2. Fallback: Base de datos local (StorageService)
   if (!window.JKNoovaData || !window.JKNoovaData.StorageService) {
-    showEmptyState('JK Noova Academy', 'Consulta con el cuerpo técnico el enlace del partido');
+    showEmptyState(
+      t('family.emptyTitle', null, 'JK Noova Academy'),
+      t('family.emptySubtitle', null, 'Consulta con el cuerpo técnico el enlace del partido')
+    );
     return;
   }
 
@@ -61,26 +101,29 @@ function loadFamilyMatchView() {
   }
 
   if (!event) {
-    showEmptyState('No hay encuentros disponibles', 'Consulta con el cuerpo técnico de JK Noova');
+    showEmptyState(
+      t('family.emptyTitle', null, 'No hay encuentros disponibles'),
+      t('family.emptySubtitle', null, 'Consulta con el cuerpo técnico de JK Noova')
+    );
     return;
   }
 
-  const team = teams.find(t => t.id === event.teamId) || { name: 'Equipo JK Noova', category: 'Fútbol Base' };
+  const team = teams.find(t => t.id === event.teamId) || { name: 'Equipo JK Noova', category: t('family.officialCategory', null, 'Fútbol Base') };
 
   // Título y categoría
   document.getElementById('pub-match-title').textContent = event.title || `JK Noova vs ${event.rival}`;
-  document.getElementById('pub-match-team').textContent = `${team.name} • ${team.category || 'Competición oficial'}`;
+  document.getElementById('pub-match-team').textContent = `${team.name} • ${team.category || t('family.officialCategory', null, 'Competición oficial')}`;
 
   // Fecha y hora
   const formattedDate = formatMatchDate(event.date);
-  const timeText = event.time ? `a las ${event.time} h` : '';
-  document.getElementById('pub-match-datetime').textContent = `${formattedDate} ${timeText}`;
+  const timeText = event.time ? ` • ${t('family.atTime', { time: event.time }, `a las ${event.time} h`)}` : '';
+  document.getElementById('pub-match-datetime').textContent = `${formattedDate}${timeText}`;
 
   // Iniciar cuenta atrás
   startCountdown(event.date, event.time);
 
   // Ubicación y enlace a Google Maps
-  const loc = event.location || 'Campo de fútbol';
+  const loc = event.location || t('family.fieldDefault', null, 'Campo de fútbol');
   document.getElementById('pub-match-location').textContent = loc;
   const mapsBtn = document.getElementById('pub-maps-button');
   if (mapsBtn) {
@@ -110,18 +153,18 @@ function loadFamilyMatchView() {
 function renderFromPayload(data) {
   // Título y categoría
   document.getElementById('pub-match-title').textContent = data.t || 'JK Noova Academy';
-  document.getElementById('pub-match-team').textContent = data.m || 'Convocatoria Oficial';
+  document.getElementById('pub-match-team').textContent = data.m || t('family.officialCategory', null, 'Convocatoria Oficial');
 
   // Fecha y hora
   const formattedDate = formatMatchDate(data.d);
-  const timeText = data.h ? `a las ${data.h} h` : '';
-  document.getElementById('pub-match-datetime').textContent = `${formattedDate} ${timeText}`;
+  const timeText = data.h ? ` • ${t('family.atTime', { time: data.h }, `a las ${data.h} h`)}` : '';
+  document.getElementById('pub-match-datetime').textContent = `${formattedDate}${timeText}`;
 
   // Iniciar cuenta atrás
   startCountdown(data.d, data.h);
 
   // Ubicación y Google Maps
-  const loc = data.l || 'Instalación deportiva';
+  const loc = data.l || t('family.fieldDefault', null, 'Instalación deportiva');
   document.getElementById('pub-match-location').textContent = loc;
   const mapsBtn = document.getElementById('pub-maps-button');
   if (mapsBtn) {
@@ -153,20 +196,20 @@ function renderPayloadTransport(vanArr, callUp) {
   const seatsListEl = document.getElementById('pub-seats-list');
   const badgeEl = document.getElementById('pub-transport-badge');
 
-  const vanName = vanArr[0] || 'Furgoneta del Club';
+  const vanName = vanArr[0] || t('family.clubVan', null, 'Furgoneta del Club');
   const plate = vanArr[1] || '';
   const departureTime = vanArr[2] || '';
   const driver = vanArr[3] || '';
 
   if (badgeEl) {
-    badgeEl.textContent = plate ? `Matrícula: ${plate}` : 'Vehículo Oficial';
+    badgeEl.textContent = plate ? `${t('family.plate', null, 'Matrícula')}: ${plate}` : t('family.officialFleet', null, 'Vehículo Oficial');
   }
 
   if (detailsEl) {
-    let vanInfo = `<strong>Vehículo oficial:</strong> ${escapeHTML(vanName)}`;
-    if (plate) vanInfo += ` • <strong>Matrícula:</strong> ${escapeHTML(plate)}`;
-    if (departureTime) vanInfo += `<br>⏰ <strong>Hora de salida de la furgoneta:</strong> ${escapeHTML(departureTime)}`;
-    if (driver) vanInfo += `<br>👤 <strong>Conductor responsable:</strong> ${escapeHTML(driver)}`;
+    let vanInfo = `<strong>${t('family.officialVehicle', null, 'Vehículo oficial')}:</strong> ${escapeHTML(vanName)}`;
+    if (plate) vanInfo += ` • <strong>${t('family.plate', null, 'Matrícula')}:</strong> ${escapeHTML(plate)}`;
+    if (departureTime) vanInfo += `<br>⏰ <strong>${t('family.departureTime', null, 'Hora de salida de la furgoneta')}:</strong> ${escapeHTML(departureTime)}`;
+    if (driver) vanInfo += `<br>👤 <strong>${t('family.driver', null, 'Conductor responsable')}:</strong> ${escapeHTML(driver)}`;
     detailsEl.innerHTML = vanInfo;
   }
 
@@ -177,7 +220,7 @@ function renderPayloadTransport(vanArr, callUp) {
     if (assigned.length === 0) {
       seatsListEl.innerHTML = `
         <div style="font-size: 0.78rem; color: var(--text-muted); padding: 0.4rem 0;">
-          Los asientos se asignarán antes de la salida.
+          ${t('family.seatsPending', null, 'Los asientos se asignarán antes de la salida.')}
         </div>
       `;
       return;
@@ -187,6 +230,7 @@ function renderPayloadTransport(vanArr, callUp) {
       const dorsal = c[0] || '-';
       const name = c[1] || 'Jugador';
       const seatKey = c[4];
+      const seatLabel = t('family.seatPlaza', { seat: escapeHTML(String(seatKey).toUpperCase()) }, `Plaza ${escapeHTML(String(seatKey).toUpperCase())}`);
 
       const item = document.createElement('div');
       item.style.cssText = `
@@ -202,7 +246,7 @@ function renderPayloadTransport(vanArr, callUp) {
           #${escapeHTML(dorsal)} ${escapeHTML(name)}
         </span>
         <span class="seat-badge">
-          💺 Plaza ${escapeHTML(String(seatKey).toUpperCase())}
+          💺 ${seatLabel}
         </span>
       `;
       seatsListEl.appendChild(item);
@@ -217,13 +261,13 @@ function renderPayloadCallUp(callUp, totalBus, totalCar) {
   container.innerHTML = '';
 
   if (countBadge) {
-    countBadge.textContent = `${callUp.length} convocados`;
+    countBadge.textContent = t('family.callupCount', { n: callUp.length }, `${callUp.length} convocados`);
   }
 
   if (callUp.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
-        La lista de convocados para este partido aún no ha sido publicada.
+        ${t('family.callupEmpty', null, 'La lista de convocados para este partido aún no ha sido publicada.')}
       </div>
     `;
     return;
@@ -240,6 +284,9 @@ function renderPayloadCallUp(callUp, totalBus, totalCar) {
     const row = document.createElement('div');
     row.className = 'family-player-row';
 
+    const transportLabel = isBus ? t('family.clubVan', null, '🚐 Furgoneta del club') : t('family.privateCar', null, '🚗 Coche particular');
+    const calledUpLabel = t('family.calledUp', null, 'CONVOCADO');
+
     row.innerHTML = `
       <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
         <img src="${avatarUrl}" alt="${escapeHTML(name)}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.15);">
@@ -248,9 +295,9 @@ function renderPayloadCallUp(callUp, totalBus, totalCar) {
             #${escapeHTML(dorsal)} ${escapeHTML(name)}
           </div>
           <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 0.4rem; align-items: center; margin-top: 1px;">
-            <span style="color: var(--accent-cyan); font-weight: 600;">CONVOCADO</span>
+            <span style="color: var(--accent-cyan); font-weight: 600;">${calledUpLabel}</span>
             <span>•</span>
-            <span>${isBus ? '🚐 Furgoneta del club' : '🚗 Coche particular'}</span>
+            <span>${transportLabel}</span>
           </div>
         </div>
       </div>
@@ -262,11 +309,11 @@ function renderPayloadCallUp(callUp, totalBus, totalCar) {
         <div style="margin-top: 2px;">
           ${isPaid ? `
             <span style="font-size: 0.68rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
-              🟢 Pagado
+              ${t('family.paid', null, '🟢 Pagado')}
             </span>
           ` : `
             <span style="font-size: 0.68rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
-              ⏳ Pendiente
+              ${t('family.pending', null, '⏳ Pendiente')}
             </span>
           `}
         </div>
@@ -287,9 +334,9 @@ function showEmptyState(title, subtitle) {
 
   if (tEl) tEl.textContent = title;
   if (sEl) sEl.textContent = subtitle;
-  if (dtEl) dtEl.textContent = 'En espera de convocatoria';
-  if (cdEl) cdEl.textContent = 'Sin encuentro activo';
-  if (locEl) locEl.textContent = 'Por favor, escanea el código QR facilitado por el club.';
+  if (dtEl) dtEl.textContent = t('family.dateTbd', null, 'En espera de convocatoria');
+  if (cdEl) cdEl.textContent = t('family.emptyTitle', null, 'Sin encuentro activo');
+  if (locEl) locEl.textContent = t('family.emptySubtitle', null, 'Por favor, escanea el código QR facilitado por el club.');
   if (mapsBtn) mapsBtn.style.display = 'none';
 }
 
@@ -306,12 +353,12 @@ function startCountdown(dateStr, timeStr) {
     const diff = targetDate.getTime() - now.getTime();
 
     if (isNaN(diff)) {
-      display.textContent = 'Fecha por confirmar';
+      display.textContent = t('family.dateTbd', null, 'Fecha por confirmar');
       return;
     }
 
     if (diff <= 0) {
-      display.textContent = '¡En juego / Finalizado!';
+      display.textContent = t('family.matchLiveFinished', null, '¡En juego / Finalizado!');
       display.style.color = '#34d399';
       return;
     }
@@ -342,17 +389,17 @@ function renderTransportInfo(event, transportData, vans, players) {
   const van = vans.find(v => v.id === vanId) || vans[0] || { name: 'Renault Trafic (Club)', plate: '4821 - KLP', capacity: 8 };
 
   if (badgeEl) {
-    badgeEl.textContent = van.plate ? `Matrícula: ${van.plate}` : `${van.capacity} plazas`;
+    badgeEl.textContent = van.plate ? `${t('family.plate', null, 'Matrícula')}: ${van.plate}` : `${van.capacity} plazas`;
   }
 
   if (detailsEl) {
-    let vanInfo = `<strong>Vehículo oficial:</strong> ${van.name} (${van.capacity} plazas)`;
-    if (van.plate) vanInfo += ` • <strong>Matrícula:</strong> ${van.plate}`;
+    let vanInfo = `<strong>${t('family.officialVehicle', null, 'Vehículo oficial')}:</strong> ${van.name} (${van.capacity} plazas)`;
+    if (van.plate) vanInfo += ` • <strong>${t('family.plate', null, 'Matrícula')}:</strong> ${van.plate}`;
     if (evTransport.departureTime) {
-      vanInfo += `<br>⏰ <strong>Hora de salida de la furgoneta:</strong> ${evTransport.departureTime}`;
+      vanInfo += `<br>⏰ <strong>${t('family.departureTime', null, 'Hora de salida de la furgoneta')}:</strong> ${evTransport.departureTime}`;
     }
     if (evTransport.driver) {
-      vanInfo += `<br>👤 <strong>Conductor responsable:</strong> ${evTransport.driver}`;
+      vanInfo += `<br>👤 <strong>${t('family.driver', null, 'Conductor responsable')}:</strong> ${evTransport.driver}`;
     }
     detailsEl.innerHTML = vanInfo;
   }
@@ -365,7 +412,7 @@ function renderTransportInfo(event, transportData, vans, players) {
     if (assignedSeats.length === 0) {
       seatsListEl.innerHTML = `
         <div style="font-size: 0.78rem; color: var(--text-muted); padding: 0.4rem 0;">
-          Los asientos se asignarán antes de la salida.
+          ${t('family.seatsPending', null, 'Los asientos se asignarán antes de la salida.')}
         </div>
       `;
       return;
@@ -374,6 +421,8 @@ function renderTransportInfo(event, transportData, vans, players) {
     assignedSeats.forEach(([seatKey, playerId]) => {
       const p = players.find(x => x.id === playerId);
       if (!p) return;
+
+      const seatLabel = t('family.seatPlaza', { seat: formatSeatKey(seatKey) }, `Plaza ${formatSeatKey(seatKey)}`);
 
       const item = document.createElement('div');
       item.style.cssText = `
@@ -390,7 +439,7 @@ function renderTransportInfo(event, transportData, vans, players) {
           #${p.mainDorsal || '-'} ${escapeHTML(p.name)} ${escapeHTML(p.lastName)}
         </span>
         <span class="seat-badge">
-          💺 Plaza ${formatSeatKey(seatKey)}
+          💺 ${seatLabel}
         </span>
       `;
       seatsListEl.appendChild(item);
@@ -405,13 +454,13 @@ function renderCallUpList(callUp, players, totalBus, totalCar) {
   container.innerHTML = '';
 
   if (countBadge) {
-    countBadge.textContent = `${callUp.length} convocados`;
+    countBadge.textContent = t('family.callupCount', { n: callUp.length }, `${callUp.length} convocados`);
   }
 
   if (callUp.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
-        La lista de convocados para este partido aún no ha sido publicada.
+        ${t('family.callupEmpty', null, 'La lista de convocados para este partido aún no ha sido publicada.')}
       </div>
     `;
     return;
@@ -426,6 +475,8 @@ function renderCallUpList(callUp, players, totalBus, totalCar) {
     const isPaid = item.paymentStatus === 'paid';
     const avatarUrl = p.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name + '+' + p.lastName)}&background=18233c&color=fff`;
 
+    const transportLabel = isBus ? t('family.clubVan', null, '🚐 Furgoneta del club') : t('family.privateCar', null, '🚗 Coche particular');
+
     const row = document.createElement('div');
     row.className = 'family-player-row';
 
@@ -439,7 +490,7 @@ function renderCallUpList(callUp, players, totalBus, totalCar) {
           <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 0.4rem; align-items: center; margin-top: 1px;">
             <span style="color: var(--accent-cyan); font-weight: 600;">${p.mainPosition || 'JUG'}</span>
             <span>•</span>
-            <span>${isBus ? '🚐 Furgoneta del club' : '🚗 Coche particular'}</span>
+            <span>${transportLabel}</span>
           </div>
         </div>
       </div>
@@ -451,11 +502,11 @@ function renderCallUpList(callUp, players, totalBus, totalCar) {
         <div style="margin-top: 2px;">
           ${isPaid ? `
             <span style="font-size: 0.68rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
-              🟢 Pagado
+              ${t('family.paid', null, '🟢 Pagado')}
             </span>
           ` : `
             <span style="font-size: 0.68rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
-              ⏳ Pendiente
+              ${t('family.pending', null, '⏳ Pendiente')}
             </span>
           `}
         </div>
@@ -472,12 +523,24 @@ function formatSeatKey(key) {
 }
 
 function formatMatchDate(dateStr) {
-  if (!dateStr) return '';
-  const [y, m, d] = dateStr.split('-');
-  if (!d || !m || !y) return dateStr;
-  const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-  const monthName = months[parseInt(m, 10) - 1] || m;
-  return `${parseInt(d, 10)} de ${monthName} de ${y}`;
+  if (!dateStr) return '--/--/----';
+  const parts = String(dateStr).trim().split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      // YYYY-MM-DD -> DD/MM/YYYY
+      const y = parts[0];
+      const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+      const d = String(parseInt(parts[2], 10)).padStart(2, '0');
+      return `${d}/${m}/${y}`;
+    } else if (parts[2].length === 4) {
+      // DD-MM-YYYY o DD/MM/YYYY -> DD/MM/YYYY
+      const d = String(parseInt(parts[0], 10)).padStart(2, '0');
+      const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+      const y = parts[2];
+      return `${d}/${m}/${y}`;
+    }
+  }
+  return dateStr;
 }
 
 function escapeHTML(str) {

@@ -83,11 +83,14 @@ function renderTeamsBoard() {
           <span>🎯 DEL: ${delCount}</span>
         </div>
         <div style="margin-top: 0.5rem; display: flex; gap: 0.35rem; flex-wrap: wrap;">
-          <button type="button" class="btn btn-secondary btn-xs btn-toggle-team-fold" data-team-id="${team.id}" style="flex: 1.3; font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.35); font-weight: 700;">
+          <button type="button" class="btn btn-secondary btn-xs btn-toggle-team-fold" data-team-id="${team.id}" style="flex: 1.2; font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.35); font-weight: 700;">
             <span class="fold-chevron">▼</span> <span class="fold-text">Ver jugadores (${teamPlayers.length})</span>
           </button>
-          <button type="button" class="btn btn-secondary btn-xs btn-view-full-team" data-team-id="${team.id}" style="flex: 1; font-size: 0.72rem; padding: 0.28rem 0.4rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(255,255,255,0.06);" title="Ver ficha y detalles del equipo">
+          <button type="button" class="btn btn-secondary btn-xs btn-view-full-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.28rem 0.4rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(255,255,255,0.06);" title="Ver ficha y detalles del equipo">
             <span>👁️ Plantilla</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-xs btn-edit-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(255,255,255,0.06);" title="Editar información del equipo">
+            <span>✏️ Editar</span>
           </button>
           <button type="button" class="btn btn-secondary btn-xs btn-att-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.35);" title="Pasar lista para ${escapeHTML(team.name)}">
             <span>📋 Lista</span>
@@ -150,6 +153,15 @@ function renderTeamsBoard() {
       btnView.onclick = (e) => {
         e.stopPropagation();
         openTeamViewModal(team.id);
+      };
+    }
+
+    // Botón para editar equipo
+    const btnEdit = col.querySelector('.btn-edit-team');
+    if (btnEdit) {
+      btnEdit.onclick = (e) => {
+        e.stopPropagation();
+        openEditTeamModal(team.id);
       };
     }
 
@@ -275,7 +287,19 @@ function initCustomTeamModalLogic() {
   const modal = document.getElementById('modal-custom-team');
 
   if (btnAdd && modal) {
-    btnAdd.onclick = () => openModal(modal);
+    btnAdd.onclick = () => {
+      const form = document.getElementById('form-custom-team');
+      if (form) form.reset();
+      const editId = document.getElementById('edit-team-id');
+      if (editId) editId.value = '';
+      const title = document.getElementById('custom-team-modal-title');
+      if (title) title.textContent = 'Añadir nuevo equipo o grupo';
+      const btnSave = document.getElementById('btn-save-custom-team');
+      if (btnSave) btnSave.textContent = 'Crear equipo';
+      const colInput = document.getElementById('new-team-color');
+      if (colInput) colInput.value = '#06b6d4';
+      openModal(modal);
+    };
   }
 
   const btnSave = document.getElementById('btn-save-custom-team');
@@ -284,33 +308,84 @@ function initCustomTeamModalLogic() {
   }
 }
 
+function openEditTeamModal(teamId) {
+  const team = teamsList.find(t => t.id === teamId);
+  if (!team) return;
+
+  const modal = document.getElementById('modal-custom-team');
+  if (!modal) return;
+
+  const editId = document.getElementById('edit-team-id');
+  if (editId) editId.value = team.id;
+
+  const title = document.getElementById('custom-team-modal-title');
+  if (title) title.textContent = `✏️ Editar equipo: ${team.name}`;
+
+  const btnSave = document.getElementById('btn-save-custom-team');
+  if (btnSave) btnSave.textContent = '💾 Guardar cambios';
+
+  const nameInput = document.getElementById('new-team-name');
+  const catInput = document.getElementById('new-team-category');
+  const colInput = document.getElementById('new-team-color');
+  const descInput = document.getElementById('new-team-desc');
+
+  if (nameInput) nameInput.value = team.name || '';
+  if (catInput) catInput.value = team.category || '';
+  if (colInput) colInput.value = team.color || '#06b6d4';
+  if (descInput) descInput.value = team.description || '';
+
+  openModal(modal);
+}
+
 function saveCustomTeam() {
+  const editId = (document.getElementById('edit-team-id')?.value || '').trim();
   const name = document.getElementById('new-team-name').value.trim();
   const category = document.getElementById('new-team-category').value.trim();
   const color = document.getElementById('new-team-color').value;
   const description = document.getElementById('new-team-desc').value.trim();
 
   if (!name) {
-    showToast('Ingresa el nombre del nuevo equipo', 'error');
+    showToast('Ingresa el nombre del equipo', 'error');
     return;
   }
 
-  const newTeam = {
-    id: `team_custom_${Date.now()}`,
-    name,
-    shortName: name.substring(0, 4).toUpperCase(),
-    category,
-    color,
-    description
-  };
+  if (editId) {
+    const existing = teamsList.find(t => t.id === editId);
+    if (!existing) {
+      showToast('Equipo no encontrado', 'error');
+      return;
+    }
 
-  teamsList.push(newTeam);
-  window.JKNoovaData.StorageService.saveTeams(teamsList);
+    existing.name = name;
+    existing.shortName = name.substring(0, 4).toUpperCase();
+    existing.category = category;
+    existing.color = color;
+    existing.description = description;
 
-  closeModal(document.getElementById('modal-custom-team'));
-  renderTeamsBoard();
-  initSharedNavbar('teams');
-  showToast(`Equipo "${name}" creado con éxito`, 'success');
+    window.JKNoovaData.StorageService.saveTeams(teamsList);
+
+    closeModal(document.getElementById('modal-custom-team'));
+    renderTeamsBoard();
+    initSharedNavbar('teams');
+    showToast(`Equipo "${name}" actualizado con éxito`, 'success');
+  } else {
+    const newTeam = {
+      id: `team_custom_${Date.now()}`,
+      name,
+      shortName: name.substring(0, 4).toUpperCase(),
+      category,
+      color,
+      description
+    };
+
+    teamsList.push(newTeam);
+    window.JKNoovaData.StorageService.saveTeams(teamsList);
+
+    closeModal(document.getElementById('modal-custom-team'));
+    renderTeamsBoard();
+    initSharedNavbar('teams');
+    showToast(`Equipo "${name}" creado con éxito`, 'success');
+  }
 }
 
 function openTeamViewModal(teamId) {
@@ -326,6 +401,15 @@ function openTeamViewModal(teamId) {
   if (title) title.textContent = `${team.name} • ${team.category || 'Categoría no asignada'}`;
   if (badgeColor) badgeColor.style.background = team.color || '#06b6d4';
   if (countBadge) countBadge.textContent = `${teamPlayers.length} jugadores inscritos`;
+
+  // Botón editar dentro de la vista completa
+  const btnEditFromView = document.getElementById('btn-edit-from-view');
+  if (btnEditFromView) {
+    btnEditFromView.onclick = () => {
+      closeModal(document.getElementById('modal-team-view'));
+      openEditTeamModal(team.id);
+    };
+  }
 
   // Desglose por posiciones
   const porPlayers = teamPlayers.filter(p => p.mainPosition === 'POR');

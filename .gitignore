@@ -1,0 +1,28 @@
+# Dependencias de Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos temporales y de entorno
+.env
+.env.local
+*.tmp
+*.bak
+*.log
+
+# Carpetas de editores e IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Compilación Android
+android-build/
+*.keystore

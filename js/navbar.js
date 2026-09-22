@@ -4,11 +4,21 @@
  */
 
 function initSharedNavbar(activePage) {
+  // Aliases normalizados para páginas activas
+  const isCalendarPage = activePage === 'calendar' || activePage === 'events' || activePage === 'calendario' || activePage === 'partidos';
+  const isDatabasePage = activePage === 'database' || activePage === 'jugadores';
+  const isTeamsPage = activePage === 'teams' || activePage === 'equipos';
+  const isTransportPage = activePage === 'transport' || activePage === 'transporte';
+
   // 1. Marcar pestaña activa según la página actual
   const navLinks = document.querySelectorAll('.nav-tab-btn');
   navLinks.forEach(link => {
     const pageTarget = link.getAttribute('data-page');
-    const isActive = pageTarget === activePage;
+    const isActive = (pageTarget === activePage) ||
+      ((pageTarget === 'calendar' || pageTarget === 'events') && isCalendarPage) ||
+      ((pageTarget === 'database' || pageTarget === 'jugadores') && isDatabasePage) ||
+      ((pageTarget === 'teams' || pageTarget === 'equipos') && isTeamsPage) ||
+      ((pageTarget === 'transport' || pageTarget === 'transporte') && isTransportPage);
     link.classList.toggle('active', isActive);
     link.setAttribute('aria-selected', isActive);
   });
@@ -20,19 +30,19 @@ function initSharedNavbar(activePage) {
     bottomNav.className = 'mobile-bottom-nav';
     bottomNav.setAttribute('aria-label', 'Navegación móvil');
     bottomNav.innerHTML = `
-      <a href="index.html" class="mobile-nav-item ${activePage === 'database' || activePage === 'jugadores' ? 'active' : ''}" data-page="database">
+      <a href="index.html" class="mobile-nav-item ${isDatabasePage ? 'active' : ''}" data-page="database">
         <span class="mobile-nav-icon">📋</span>
         <span class="mobile-nav-label" data-i18n="nav.database">Jugadores</span>
       </a>
-      <a href="equipos.html" class="mobile-nav-item ${activePage === 'teams' || activePage === 'equipos' ? 'active' : ''}" data-page="teams">
+      <a href="equipos.html" class="mobile-nav-item ${isTeamsPage ? 'active' : ''}" data-page="teams">
         <span class="mobile-nav-icon">🛡️</span>
         <span class="mobile-nav-label" data-i18n="nav.teams">Equipos</span>
       </a>
-      <a href="calendario.html" class="mobile-nav-item ${activePage === 'events' || activePage === 'calendario' ? 'active' : ''}" data-page="events">
+      <a href="calendario.html" class="mobile-nav-item ${isCalendarPage ? 'active' : ''}" data-page="calendar">
         <span class="mobile-nav-icon">⚽</span>
         <span class="mobile-nav-label" data-i18n="nav.events">Partidos</span>
       </a>
-      <a href="transporte.html" class="mobile-nav-item ${activePage === 'transport' || activePage === 'transporte' ? 'active' : ''}" data-page="transport">
+      <a href="transporte.html" class="mobile-nav-item ${isTransportPage ? 'active' : ''}" data-page="transport">
         <span class="mobile-nav-icon">🚐</span>
         <span class="mobile-nav-label" data-i18n="nav.transport">Transporte</span>
       </a>
@@ -41,7 +51,11 @@ function initSharedNavbar(activePage) {
   } else {
     bottomNav.querySelectorAll('.mobile-nav-item').forEach(item => {
       const p = item.getAttribute('data-page');
-      const isAct = p === activePage || (p === 'database' && activePage === 'jugadores') || (p === 'teams' && activePage === 'equipos') || (p === 'events' && activePage === 'calendario') || (p === 'transport' && activePage === 'transporte');
+      const isAct = ((p === 'calendar' || p === 'events') && isCalendarPage) ||
+                    ((p === 'database' || p === 'jugadores') && isDatabasePage) ||
+                    ((p === 'teams' || p === 'equipos') && isTeamsPage) ||
+                    ((p === 'transport' || p === 'transporte') && isTransportPage) ||
+                    (p === activePage);
       item.classList.toggle('active', isAct);
     });
   }
