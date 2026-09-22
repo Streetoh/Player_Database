@@ -1026,6 +1026,9 @@
         </form>
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-training-modal-attendance" style="margin-right: auto; display: none; font-weight: 700; color: #34d399; border-color: rgba(16, 185, 129, 0.4);">
+          📋 Pasar lista
+        </button>
         <button type="button" class="btn btn-secondary" data-close-modal="modal-training-session">Cancelar</button>
         <button type="button" class="btn btn-primary" id="btn-save-training-session" style="background: #10b981; border-color: #059669; font-weight: 700;">
           💾 Guardar sesión
@@ -1114,7 +1117,7 @@
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-close-modal="modal-attendance">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btn-save-attendance" style="background: #10b981; border-color: #059669; font-weight: 700;">💾 Guardar asistencia</button>
+        <button type="button" class="btn btn-primary" id="btn-save-attendance" onclick="saveCurrentAttendanceSession()" style="background: #10b981; border-color: #059669; font-weight: 700;">💾 Guardar asistencia</button>
       </div>
     </div>
   </div>

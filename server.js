@@ -44,6 +44,16 @@ const server = http.createServer((req, res) => {
           currentDb.updatedAt = new Date().toISOString();
           fs.writeFileSync(dbFile, JSON.stringify(currentDb, null, 2), 'utf8');
           console.log(`[API] Guardados ${payload.teams?.length || 0} equipos en data/database.json`);
+        } else if (req.url === '/api/save-attendance') {
+          currentDb.attendance = payload.attendance;
+          currentDb.updatedAt = new Date().toISOString();
+          fs.writeFileSync(dbFile, JSON.stringify(currentDb, null, 2), 'utf8');
+          console.log(`[API] Guardada asistencia en data/database.json`);
+        } else if (req.url === '/api/save-trainings') {
+          currentDb.trainings = payload.trainings;
+          currentDb.updatedAt = new Date().toISOString();
+          fs.writeFileSync(dbFile, JSON.stringify(currentDb, null, 2), 'utf8');
+          console.log(`[API] Guardados ${payload.trainings?.length || 0} entrenamientos en data/database.json`);
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });

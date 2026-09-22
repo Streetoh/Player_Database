@@ -147,6 +147,34 @@ function openAttendanceModal(defaultTeamId = null, defaultDate = null) {
   } else {
     modal.classList.add('active');
   }
+
+  // Garantizar que los botones y selectores estén activos cada vez que se abre el modal
+  const btnSave = document.getElementById('btn-save-attendance');
+  if (btnSave) {
+    btnSave.onclick = saveCurrentAttendanceSession;
+  }
+  const btnAllPresent = document.getElementById('btn-attendance-all-present');
+  if (btnAllPresent) {
+    btnAllPresent.onclick = markAllPresent;
+  }
+  const btnAllAbsent = document.getElementById('btn-attendance-all-absent');
+  if (btnAllAbsent) {
+    btnAllAbsent.onclick = markAllAbsent;
+  }
+  if (teamSelect) {
+    teamSelect.onchange = (e) => {
+      activeAttendanceTeamId = e.target.value;
+      loadSessionData();
+      renderAttendanceRoster();
+    };
+  }
+  if (dateInput) {
+    dateInput.onchange = (e) => {
+      activeAttendanceDate = e.target.value;
+      loadSessionData();
+      renderAttendanceRoster();
+    };
+  }
 }
 
 /**
@@ -361,7 +389,31 @@ function updateAttendanceCounters(present, absent) {
  * Guarda la sesión de asistencia en el StorageService
  */
 function saveCurrentAttendanceSession() {
-  if (!activeAttendanceTeamId || !activeAttendanceDate) return;
+  const teamSelect = document.getElementById('attendance-team-select');
+  const dateInput = document.getElementById('attendance-date-input') || document.getElementById('attendance-date');
+
+  if (!activeAttendanceTeamId && teamSelect) {
+    activeAttendanceTeamId = teamSelect.value;
+  }
+  if (!activeAttendanceDate && dateInput) {
+    activeAttendanceDate = dateInput.value;
+  }
+
+  if (!activeAttendanceDate) {
+    activeAttendanceDate = new Date().toISOString().split('T')[0];
+  }
+  if (!activeAttendanceTeamId) {
+    activeAttendanceTeamId = 'all';
+  }
+
+  if (!window.JKNoovaData || !window.JKNoovaData.StorageService) {
+    console.error('StorageService no disponible');
+    if (typeof showToast === 'function') {
+      showToast('Error: Servicio de datos no disponible', 'error');
+    }
+    return;
+  }
+
   const storage = window.JKNoovaData.StorageService;
   const allAttendance = storage.getAttendance() || {};
 
@@ -375,6 +427,8 @@ function saveCurrentAttendanceSession() {
         allAttendance[tId][activeAttendanceDate][p.id] = tempSessionAttendance[p.id];
       }
     });
+    if (!allAttendance['all']) allAttendance['all'] = {};
+    allAttendance['all'][activeAttendanceDate] = { ...tempSessionAttendance };
   } else {
     if (!allAttendance[activeAttendanceTeamId]) {
       allAttendance[activeAttendanceTeamId] = {};
@@ -397,8 +451,29 @@ function saveCurrentAttendanceSession() {
     }
   }
 
+  // Refrescar equipos si está en equipos.html
   if (typeof renderTeamsBoard === 'function') {
     renderTeamsBoard();
+  }
+
+  // Refrescar vistas de calendario y entrenamientos en tiempo real
+  if (typeof window.renderWeeklyCalendarStrip === 'function') {
+    window.renderWeeklyCalendarStrip();
+  }
+  if (typeof window.renderSelectedDayTrainings === 'function') {
+    window.renderSelectedDayTrainings();
+  }
+  if (typeof window.renderTrainingSessions === 'function') {
+    window.renderTrainingSessions();
+  }
+  if (typeof window.renderMonthlyCalendar === 'function') {
+    window.renderMonthlyCalendar();
+  }
+  if (typeof window.renderTrainingCalendarView === 'function') {
+    window.renderTrainingCalendarView();
+  }
+  if (typeof window.renderAttendanceStats === 'function') {
+    window.renderAttendanceStats();
   }
 }
 
@@ -425,3 +500,6 @@ function escapeHTML(str) {
 window.getPlayerAttendanceStats = getPlayerAttendanceStats;
 window.initAttendanceModal = initAttendanceModal;
 window.openAttendanceModal = openAttendanceModal;
+window.saveCurrentAttendanceSession = saveCurrentAttendanceSession;
+window.markAllPresent = markAllPresent;
+window.markAllAbsent = markAllAbsent;

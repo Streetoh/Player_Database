@@ -1015,6 +1015,15 @@ const StorageService = {
 
   saveAttendance(attendance) {
     SafeStorage.setItem(STORAGE_KEY_ATTENDANCE, JSON.stringify(attendance));
+    if (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+      try {
+        fetch('/api/save-attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attendance })
+        }).catch(() => {});
+      } catch (e) {}
+    }
   },
 
   getTrainingSessions() {
@@ -1036,6 +1045,15 @@ const StorageService = {
 
   saveTrainingSessions(sessions) {
     SafeStorage.setItem(STORAGE_KEY_TRAININGS, JSON.stringify(sessions));
+    if (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+      try {
+        fetch('/api/save-trainings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trainings: sessions })
+        }).catch(() => {});
+      } catch (e) {}
+    }
   },
 
   resetAllToDefault() {

@@ -1663,6 +1663,22 @@ function renderWeeklyCalendarStrip() {
   updateTrainingNavTitle();
 }
 
+function getAttendanceForSession(session, allAttendance) {
+  if (!session || !session.date || !allAttendance) return null;
+  if (session.teamId && allAttendance[session.teamId] && allAttendance[session.teamId][session.date]) {
+    return allAttendance[session.teamId][session.date];
+  }
+  if (allAttendance['all'] && allAttendance['all'][session.date]) {
+    return allAttendance['all'][session.date];
+  }
+  for (const tId in allAttendance) {
+    if (allAttendance[tId] && allAttendance[tId][session.date]) {
+      return allAttendance[tId][session.date];
+    }
+  }
+  return null;
+}
+
 function renderSelectedDayTrainings() {
   const headingEl = document.getElementById('training-selected-day-heading');
   const container = document.getElementById('training-selected-day-list');
@@ -1720,8 +1736,7 @@ function renderSelectedDayTrainings() {
     const team = teams.find(t => t.id === session.teamId) || { name: 'Todos los equipos', color: '#3b82f6' };
     const teamColor = team.color || '#3b82f6';
 
-    const teamAtt = allAttendance[session.teamId] || {};
-    const dateAtt = teamAtt[session.date];
+    const dateAtt = getAttendanceForSession(session, allAttendance);
     let attBadgeHtml = '';
 
     if (dateAtt) {
@@ -2033,8 +2048,7 @@ function renderSelectedDayDetails(dateStr) {
     const team = teams.find(t => t.id === session.teamId) || { name: 'Todos los equipos', color: '#10b981' };
     const teamColor = team.color || '#06b6d4';
 
-    const teamAtt = allAttendance[session.teamId] || {};
-    const dateAtt = teamAtt[session.date];
+    const dateAtt = getAttendanceForSession(session, allAttendance);
     let attBadgeHtml = '';
 
     if (dateAtt) {
@@ -2286,8 +2300,7 @@ function renderTrainingSessions() {
     const team = teams.find(t => t.id === session.teamId) || { name: 'Todos los equipos', color: '#10b981' };
     const teamColor = team.color || '#06b6d4';
 
-    const teamAtt = allAttendance[session.teamId] || {};
-    const dateAtt = teamAtt[session.date];
+    const dateAtt = getAttendanceForSession(session, allAttendance);
     let attBadgeHtml = '';
 
     if (dateAtt) {
@@ -2643,6 +2656,30 @@ function openEditTrainingModal(sessionId = null, defaultDate = null, forceMode =
       setTrainingCreationMode('recurring');
     } else {
       setTrainingCreationMode('single');
+    }
+  }
+
+  const btnModalAtt = document.getElementById('btn-training-modal-attendance');
+  if (btnModalAtt) {
+    if (sessionId) {
+      const session = trainingSessionsList.find(s => s.id === sessionId);
+      if (session) {
+        btnModalAtt.style.display = 'inline-flex';
+        btnModalAtt.onclick = () => {
+          if (typeof closeModal === 'function') {
+            closeModal(modal);
+          } else {
+            modal.classList.remove('active');
+          }
+          if (typeof openAttendanceModal === 'function') {
+            openAttendanceModal(session.teamId, session.date);
+          }
+        };
+      } else {
+        btnModalAtt.style.display = 'none';
+      }
+    } else {
+      btnModalAtt.style.display = 'none';
     }
   }
 
@@ -3313,3 +3350,12 @@ window.openEditTrainingModal = openEditTrainingModal;
 window.setStatsDatePreset = setStatsDatePreset;
 window.renderTrainingSessions = renderTrainingSessions;
 window.renderAttendanceStats = renderAttendanceStats;
+window.loadData = loadData;
+window.loadCalendarData = loadData;
+window.initTrainingCalendarLogic = initTrainingCalendarLogic;
+window.initTrainingSessionsLogic = initTrainingCalendarLogic;
+window.renderWeeklyCalendarStrip = renderWeeklyCalendarStrip;
+window.renderSelectedDayTrainings = renderSelectedDayTrainings;
+window.renderMonthlyCalendar = renderMonthlyCalendar;
+window.renderTrainingCalendarView = renderTrainingCalendarView;
+window.getAttendanceForSession = getAttendanceForSession;
