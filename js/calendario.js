@@ -1406,10 +1406,374 @@ function switchCalendarMainTab(tab) {
   if (secStats) secStats.style.display = (tab === 'attendance-stats') ? 'block' : 'none';
 
   if (tab === 'trainings') {
-    renderTrainingSessions();
+    if (trainingActiveView === 'month') {
+      renderMonthlyCalendar();
+    } else {
+      renderTrainingSessions();
+    }
   } else if (tab === 'attendance-stats') {
     renderAttendanceStats();
   }
+}
+
+/* ==========================================================================
+   CALENDARIO VISUAL INTERACTIVO Y GESTIÓN DE ENTRENAMIENTOS
+   ========================================================================== */
+let trainingActiveView = 'month'; // 'month' | 'list'
+let calendarCurrentYear = 2026;
+let calendarCurrentMonth = 8; // Septiembre (0-indexed)
+let calendarSelectedDate = '';
+let trainingCreationMode = 'single'; // 'single' | 'recurring'
+let selectedWeekdays = new Set([1, 3, 5]); // Lun, Mié, Vie por defecto
+let selectedDurationMinutes = 90;
+
+const SPANISH_MONTHS = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+const WEEKDAY_NAMES = {
+  1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 0: 'Domingo'
+};
+
+function switchTrainingView(view) {
+  trainingActiveView = view;
+  const calView = document.getElementById('training-calendar-view');
+  const listView = document.getElementById('training-list-view');
+  const btnMonth = document.getElementById('btn-view-month');
+  const btnList = document.getElementById('btn-view-list');
+
+  if (view === 'month') {
+    if (calView) calView.style.display = 'block';
+    if (listView) listView.style.display = 'none';
+    btnMonth?.classList.add('active');
+    btnList?.classList.remove('active');
+    renderMonthlyCalendar();
+  } else {
+    if (calView) calView.style.display = 'none';
+    if (listView) listView.style.display = 'block';
+    btnList?.classList.add('active');
+    btnMonth?.classList.remove('active');
+    renderTrainingSessions();
+  }
+}
+
+function navCalendarMonth(delta) {
+  calendarCurrentMonth += delta;
+  if (calendarCurrentMonth < 0) {
+    calendarCurrentMonth = 11;
+    calendarCurrentYear--;
+  } else if (calendarCurrentMonth > 11) {
+    calendarCurrentMonth = 0;
+    calendarCurrentYear++;
+  }
+  renderMonthlyCalendar();
+}
+
+function navCalendarToday() {
+  const now = new Date();
+  calendarCurrentYear = now.getFullYear();
+  calendarCurrentMonth = now.getMonth();
+  calendarSelectedDate = now.toISOString().split('T')[0];
+  renderMonthlyCalendar();
+}
+
+function onCalendarTeamFilterChange(teamId) {
+  filterTrainingTeamId = teamId;
+  const listSelect = document.getElementById('filter-training-team');
+  if (listSelect) listSelect.value = teamId;
+  renderMonthlyCalendar();
+  renderTrainingSessions();
+}
+
+function renderMonthlyCalendar() {
+  const grid = document.getElementById('cal-days-grid');
+  const monthTitle = document.getElementById('cal-month-title');
+  const calFilterTeam = document.getElementById('cal-filter-team');
+  if (!grid) return;
+
+  const storage = window.JKNoovaData.StorageService;
+  trainingSessionsList = storage.getTrainingSessions();
+  const teams = storage.getTeams();
+  const allAttendance = storage.getAttendance() || {};
+
+  // Rellenar selector de equipo en el calendario si está vacío
+  if (calFilterTeam && calFilterTeam.options.length === 0) {
+    calFilterTeam.innerHTML = '<option value="all">🌟 Todos los equipos</option>';
+    teams.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      calFilterTeam.appendChild(opt);
+    });
+    calFilterTeam.value = filterTrainingTeamId;
+  }
+
+  if (monthTitle) {
+    monthTitle.textContent = `${SPANISH_MONTHS[calendarCurrentMonth]} ${calendarCurrentYear}`;
+  }
+
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  if (!calendarSelectedDate) {
+    calendarSelectedDate = todayStr;
+  }
+
+  // Primer día del mes
+  const firstDay = new Date(calendarCurrentYear, calendarCurrentMonth, 1);
+  // Total días del mes actual
+  const daysInMonth = new Date(calendarCurrentYear, calendarCurrentMonth + 1, 0).getDate();
+  // Total días del mes anterior
+  const daysInPrevMonth = new Date(calendarCurrentYear, calendarCurrentMonth, 0).getDate();
+
+  // Día de la semana del día 1 (0 = Dom, 1 = Lun ... 6 = Sáb)
+  let firstDayIndex = firstDay.getDay();
+  // Ajuste para que la semana empiece en Lunes (0 = Lun ... 6 = Dom)
+  let startOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+  grid.innerHTML = '';
+
+  // 1. Días del mes anterior
+  for (let i = startOffset - 1; i >= 0; i--) {
+    const dayNum = daysInPrevMonth - i;
+    const prevM = calendarCurrentMonth === 0 ? 11 : calendarCurrentMonth - 1;
+    const prevY = calendarCurrentMonth === 0 ? calendarCurrentYear - 1 : calendarCurrentYear;
+    const dateStr = `${prevY}-${String(prevM + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+
+    const cell = createCalendarDayCell(dayNum, dateStr, true, teams, allAttendance);
+    grid.appendChild(cell);
+  }
+
+  // 2. Días del mes actual
+  for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+    const dateStr = `${calendarCurrentYear}-${String(calendarCurrentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+    const cell = createCalendarDayCell(dayNum, dateStr, false, teams, allAttendance);
+    grid.appendChild(cell);
+  }
+
+  // 3. Días del mes siguiente para completar múltiplos de 7 (35 o 42 celdas)
+  const totalRendered = startOffset + daysInMonth;
+  const remainingCells = (totalRendered <= 35 ? 35 : 42) - totalRendered;
+  for (let dayNum = 1; dayNum <= remainingCells; dayNum++) {
+    const nextM = calendarCurrentMonth === 11 ? 0 : calendarCurrentMonth + 1;
+    const nextY = calendarCurrentMonth === 11 ? calendarCurrentYear + 1 : calendarCurrentYear;
+    const dateStr = `${nextY}-${String(nextM + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+
+    const cell = createCalendarDayCell(dayNum, dateStr, true, teams, allAttendance);
+    grid.appendChild(cell);
+  }
+
+  renderSelectedDayDetails(calendarSelectedDate);
+}
+
+function createCalendarDayCell(dayNum, dateStr, isOtherMonth, teams, allAttendance) {
+  const cell = document.createElement('div');
+  cell.className = 'calendar-day-cell';
+  if (isOtherMonth) cell.classList.add('is-other-month');
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (dateStr === todayStr) cell.classList.add('is-today');
+  if (dateStr === calendarSelectedDate) cell.classList.add('is-selected');
+
+  // Obtener sesiones para este día y equipo
+  let daySessions = trainingSessionsList.filter(s => s.date === dateStr);
+  if (filterTrainingTeamId !== 'all') {
+    daySessions = daySessions.filter(s => s.teamId === filterTrainingTeamId || s.teamId === 'all');
+  }
+
+  let badgesHtml = '';
+  if (daySessions.length > 0) {
+    badgesHtml = '<div class="day-cell-trainings-container">';
+    daySessions.slice(0, 2).forEach(s => {
+      const tm = teams.find(t => t.id === s.teamId) || { name: 'Equipo', color: '#06b6d4' };
+      const teamColor = tm.color || '#06b6d4';
+      const timeShort = s.time ? s.time.split('-')[0].trim() : '17:30';
+      badgesHtml += `
+        <div class="day-cell-training-badge" style="background: rgba(255,255,255,0.06); color: #fff; border-left: 3px solid ${teamColor};">
+          <span style="font-size: 0.62rem; color: ${teamColor}; font-weight: 800;">${timeShort}</span>
+          <span style="overflow: hidden; text-overflow: ellipsis; max-width: 55px;">${escapeHTML(tm.name)}</span>
+        </div>
+      `;
+    });
+    if (daySessions.length > 2) {
+      badgesHtml += `
+        <div style="font-size: 0.62rem; color: var(--accent-cyan); font-weight: 700; margin-top: 1px;">
+          +${daySessions.length - 2} más
+        </div>
+      `;
+    }
+    badgesHtml += '</div>';
+  }
+
+  cell.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <span class="day-cell-num">${dayNum}</span>
+      ${daySessions.length > 0 ? `<span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>` : ''}
+    </div>
+    ${badgesHtml}
+  `;
+
+  cell.onclick = () => {
+    calendarSelectedDate = dateStr;
+    document.querySelectorAll('.calendar-day-cell').forEach(c => c.classList.remove('is-selected'));
+    cell.classList.add('is-selected');
+    renderSelectedDayDetails(dateStr);
+  };
+
+  return cell;
+}
+
+function renderSelectedDayDetails(dateStr) {
+  const titleEl = document.getElementById('cal-selected-day-title');
+  const subEl = document.getElementById('cal-selected-day-subtitle');
+  const container = document.getElementById('cal-selected-day-sessions-list');
+  const btnAddOnDay = document.getElementById('btn-add-session-on-day');
+  if (!container) return;
+
+  const storage = window.JKNoovaData.StorageService;
+  const teams = storage.getTeams();
+  const allAttendance = storage.getAttendance() || {};
+
+  if (titleEl) {
+    titleEl.textContent = `📅 Entrenamientos del ${formatDate(dateStr)}`;
+  }
+
+  if (btnAddOnDay) {
+    btnAddOnDay.onclick = () => {
+      openEditTrainingModal(null, dateStr);
+    };
+  }
+
+  let daySessions = trainingSessionsList.filter(s => s.date === dateStr);
+  if (filterTrainingTeamId !== 'all') {
+    daySessions = daySessions.filter(s => s.teamId === filterTrainingTeamId || s.teamId === 'all');
+  }
+
+  if (subEl) {
+    subEl.textContent = daySessions.length === 1
+      ? '1 sesión programada para esta fecha'
+      : `${daySessions.length} sesiones programadas para esta fecha`;
+  }
+
+  container.innerHTML = '';
+  if (daySessions.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed var(--border-subtle);">
+        <p style="margin: 0; font-size: 0.9rem; color: #fff; font-weight: 700;">No hay entrenamientos programados para este día.</p>
+        <p style="margin: 0.35rem 0 1rem; font-size: 0.78rem;">Puedes programar una sesión única o configurar un ciclo de entrenamientos semanales.</p>
+        <button type="button" class="btn btn-primary btn-sm" onclick="openEditTrainingModal(null, '${dateStr}')" style="background: #10b981; border-color: #059669; font-weight: 700;">
+          ➕ Programar en este día
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  const gridSessions = document.createElement('div');
+  gridSessions.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 0.85rem; margin-top: 0.5rem;';
+
+  daySessions.forEach(session => {
+    const team = teams.find(t => t.id === session.teamId) || { name: 'Todos los equipos', color: '#10b981' };
+    const teamColor = team.color || '#06b6d4';
+
+    const teamAtt = allAttendance[session.teamId] || {};
+    const dateAtt = teamAtt[session.date];
+    let attBadgeHtml = '';
+
+    if (dateAtt) {
+      const pids = Object.keys(dateAtt);
+      const presCount = pids.filter(id => dateAtt[id] === 'present').length;
+      const totalCount = pids.length;
+      const pct = totalCount > 0 ? Math.round((presCount / totalCount) * 100) : 0;
+      attBadgeHtml = `
+        <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
+          ✔ ${presCount}/${totalCount} (${pct}%)
+        </span>
+      `;
+    } else {
+      attBadgeHtml = `
+        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
+          ⏳ Sin pasar lista
+        </span>
+      `;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'training-card-pro';
+    card.style.margin = '0';
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+        <div>
+          <span style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 700; background: rgba(255, 255, 255, 0.06); padding: 0.15rem 0.5rem; border-radius: 6px; color: ${teamColor}; margin-bottom: 0.35rem;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${teamColor};"></span>
+            ${escapeHTML(team.name)}
+          </span>
+          <h4 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0; line-height: 1.3;">
+            ${escapeHTML(session.title)}
+          </h4>
+        </div>
+        ${attBadgeHtml}
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span>⏰</span> <strong>${escapeHTML(session.time || 'Horario a confirmar')}</strong>
+        </div>
+        ${session.location ? `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>📍</span> <span>${escapeHTML(session.location)}</span>
+          </div>
+        ` : ''}
+        ${session.coach ? `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>👤</span> <span>${escapeHTML(session.coach)}</span>
+          </div>
+        ` : ''}
+        ${session.notes ? `
+          <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 0.4rem 0.6rem; border-radius: 6px; margin-top: 0.2rem;">
+            ${escapeHTML(session.notes)}
+          </div>
+        ` : ''}
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
+          📋 Pasar lista
+        </button>
+        <div style="display: flex; gap: 0.3rem;">
+          <button type="button" class="btn btn-secondary btn-sm btn-session-edit" data-sid="${session.id}" style="font-size: 0.75rem; padding: 0.35rem 0.55rem;" title="Editar entrenamiento">
+            ✏️
+          </button>
+          <button type="button" class="btn btn-danger btn-sm btn-session-delete" data-sid="${session.id}" style="font-size: 0.75rem; padding: 0.35rem 0.55rem;" title="Eliminar entrenamiento">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `;
+
+    const btnAtt = card.querySelector('.btn-session-attendance');
+    if (btnAtt) {
+      btnAtt.onclick = () => {
+        if (typeof openAttendanceModal === 'function') {
+          openAttendanceModal(session.teamId, session.date);
+        }
+      };
+    }
+
+    const btnEdit = card.querySelector('.btn-session-edit');
+    if (btnEdit) {
+      btnEdit.onclick = () => openEditTrainingModal(session.id);
+    }
+
+    const btnDel = card.querySelector('.btn-session-delete');
+    if (btnDel) {
+      btnDel.onclick = () => deleteTrainingSession(session.id);
+    }
+
+    gridSessions.appendChild(card);
+  });
+
+  container.appendChild(gridSessions);
 }
 
 function initTrainingCalendarLogic() {
@@ -1435,6 +1799,9 @@ function initTrainingCalendarLogic() {
   if (teamFilter) {
     teamFilter.onchange = (e) => {
       filterTrainingTeamId = e.target.value;
+      const calSelect = document.getElementById('cal-filter-team');
+      if (calSelect) calSelect.value = filterTrainingTeamId;
+      renderMonthlyCalendar();
       renderTrainingSessions();
     };
   }
@@ -1454,6 +1821,9 @@ function initTrainingCalendarLogic() {
       filterTrainingDate = '';
       if (teamFilter) teamFilter.value = 'all';
       if (dateFilter) dateFilter.value = '';
+      const calSelect = document.getElementById('cal-filter-team');
+      if (calSelect) calSelect.value = 'all';
+      renderMonthlyCalendar();
       renderTrainingSessions();
     };
   }
@@ -1462,6 +1832,8 @@ function initTrainingCalendarLogic() {
   if (btnSave) {
     btnSave.onclick = saveTrainingSession;
   }
+
+  renderMonthlyCalendar();
 }
 
 function renderTrainingSessions() {
@@ -1508,8 +1880,8 @@ function renderTrainingSessions() {
   if (list.length === 0) {
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-subtle);">
-        <p style="font-size: 1.1rem; color: #fff; font-weight: 700; margin-bottom: 0.5rem;">No hay entrenamientos programados</p>
-        <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Añade tu primera sesión para comenzar a registrar asistencias en fechas determinadas.</p>
+        <p style="font-size: 1.1rem; color: #fff; font-weight: 700; margin-bottom: 0.5rem;">No hay entrenamientos en este filtro</p>
+        <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Pulsa para programar una nueva sesión o cambiar los filtros.</p>
         <button type="button" class="btn btn-primary btn-sm" onclick="openEditTrainingModal(null)">➕ Programar entrenamiento</button>
       </div>
     `;
@@ -1619,7 +1991,161 @@ function renderTrainingSessions() {
   });
 }
 
-function openEditTrainingModal(sessionId = null) {
+function setTrainingCreationMode(mode) {
+  trainingCreationMode = mode;
+  const btnSingle = document.getElementById('btn-mode-single');
+  const btnRecur = document.getElementById('btn-mode-recurring');
+  const blockSingle = document.getElementById('block-single-date');
+  const blockRecur = document.getElementById('block-recurring-schedule');
+  const previewBox = document.getElementById('training-recurring-preview-box');
+  const btnSave = document.getElementById('btn-save-training-session');
+
+  if (mode === 'single') {
+    btnSingle?.classList.add('active');
+    btnRecur?.classList.remove('active');
+    if (blockSingle) blockSingle.style.display = 'block';
+    if (blockRecur) blockRecur.style.display = 'none';
+    if (previewBox) previewBox.style.display = 'none';
+    if (btnSave) btnSave.textContent = '💾 Guardar sesión';
+  } else {
+    btnRecur?.classList.add('active');
+    btnSingle?.classList.remove('active');
+    if (blockSingle) blockSingle.style.display = 'none';
+    if (blockRecur) blockRecur.style.display = 'block';
+    if (previewBox) previewBox.style.display = 'block';
+    if (btnSave) btnSave.textContent = '💾 Guardar sesiones recurrentes';
+    updateRecurringPreview();
+  }
+}
+
+function toggleWeekdayChip(el) {
+  const day = parseInt(el.getAttribute('data-day'), 10);
+  if (selectedWeekdays.has(day)) {
+    if (selectedWeekdays.size > 1) {
+      selectedWeekdays.delete(day);
+      el.classList.remove('active');
+    } else {
+      showToast('Selecciona al menos un día de la semana', 'info');
+      return;
+    }
+  } else {
+    selectedWeekdays.add(day);
+    el.classList.add('active');
+  }
+  updateRecurringPreview();
+}
+
+function setTrainingDuration(min) {
+  selectedDurationMinutes = parseInt(min, 10) || 90;
+  document.querySelectorAll('.duration-chip').forEach(c => {
+    if (parseInt(c.getAttribute('data-min'), 10) === selectedDurationMinutes) {
+      c.classList.add('active');
+    } else {
+      c.classList.remove('active');
+    }
+  });
+  calcTrainingEndTime();
+  updateRecurringPreview();
+}
+
+function calcTrainingEndTime() {
+  const startInput = document.getElementById('training-time-start');
+  const hint = document.getElementById('training-time-summary-hint');
+  const startTime = startInput?.value || '17:30';
+
+  const parts = startTime.split(':');
+  let h = parseInt(parts[0], 10) || 17;
+  let m = parseInt(parts[1], 10) || 30;
+
+  let totalMinutes = h * 60 + m + selectedDurationMinutes;
+  let endH = Math.floor(totalMinutes / 60) % 24;
+  let endM = totalMinutes % 60;
+  let endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+  const summaryStr = `${startTime} - ${endTime}`;
+  if (hint) {
+    hint.textContent = `Franja horaria: ${summaryStr} (${selectedDurationMinutes} minutos)`;
+  }
+
+  return { startTime, endTime, summaryStr };
+}
+
+function setRecurDuration(type) {
+  const startInput = document.getElementById('training-recur-start');
+  const endInput = document.getElementById('training-recur-end');
+  const startDateStr = startInput?.value || new Date().toISOString().split('T')[0];
+  const startDate = new Date(startDateStr);
+
+  let endDate = new Date(startDate);
+  if (type === 1) {
+    endDate.setMonth(endDate.getMonth() + 1);
+  } else if (type === 3) {
+    endDate.setMonth(endDate.getMonth() + 3);
+  } else if (type === 'season') {
+    const y = startDate.getMonth() >= 6 ? startDate.getFullYear() + 1 : startDate.getFullYear();
+    endDate = new Date(y, 5, 30); // 30 de Junio
+  }
+
+  if (endInput) {
+    endInput.value = endDate.toISOString().split('T')[0];
+  }
+  updateRecurringPreview();
+}
+
+function updateRecurringPreview() {
+  const previewBox = document.getElementById('training-recurring-preview-box');
+  if (!previewBox || trainingCreationMode !== 'recurring') return;
+
+  const storage = window.JKNoovaData?.StorageService;
+  const teams = storage?.getTeams() || [];
+
+  const teamSelect = document.getElementById('training-team-id');
+  const teamObj = teams.find(t => t.id === teamSelect?.value) || { name: 'el equipo' };
+
+  const startInput = document.getElementById('training-recur-start');
+  const endInput = document.getElementById('training-recur-end');
+  const locInput = document.getElementById('training-location');
+
+  const startDateStr = startInput?.value;
+  const endDateStr = endInput?.value;
+  const location = locInput?.value || 'Instalación deportiva';
+
+  if (!startDateStr || !endDateStr) {
+    previewBox.textContent = 'Selecciona el rango de fechas para calcular las sesiones.';
+    return;
+  }
+
+  const dStart = new Date(startDateStr);
+  const dEnd = new Date(endDateStr);
+
+  if (dStart > dEnd) {
+    previewBox.textContent = '⚠️ La fecha de inicio debe ser anterior a la fecha de fin.';
+    return;
+  }
+
+  let count = 0;
+  let cur = new Date(dStart);
+  while (cur <= dEnd) {
+    if (selectedWeekdays.has(cur.getDay())) {
+      count++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  const daysArr = Array.from(selectedWeekdays).sort().map(d => WEEKDAY_NAMES[d]);
+  const { summaryStr } = calcTrainingEndTime();
+
+  previewBox.innerHTML = `
+    <strong>📋 Previsualización:</strong><br>
+    Se crearán <strong>${count} sesiones</strong> de entrenamiento para <strong>${escapeHTML(teamObj.name)}</strong>.<br>
+    • <strong>Días:</strong> ${daysArr.join(', ')}<br>
+    • <strong>Horario:</strong> ${summaryStr} (${selectedDurationMinutes} min)<br>
+    • <strong>Lugar:</strong> ${escapeHTML(location)}<br>
+    • <strong>Periodo:</strong> Del ${formatDate(startDateStr)} al ${formatDate(endDateStr)}
+  `;
+}
+
+function openEditTrainingModal(sessionId = null, defaultDate = null) {
   const modal = document.getElementById('modal-training-session');
   if (!modal) return;
 
@@ -1628,9 +2154,7 @@ function openEditTrainingModal(sessionId = null) {
   const selectTeam = document.getElementById('training-team-id');
   const titleHeader = document.getElementById('training-modal-title');
   const editIdInput = document.getElementById('edit-training-id');
-  const form = document.getElementById('form-training-session');
-
-  if (form) form.reset();
+  const toggleBar = document.getElementById('training-mode-toggle-bar');
 
   if (selectTeam) {
     selectTeam.innerHTML = '';
@@ -1640,6 +2164,9 @@ function openEditTrainingModal(sessionId = null) {
       opt.textContent = t.name;
       selectTeam.appendChild(opt);
     });
+    if (filterTrainingTeamId !== 'all') {
+      selectTeam.value = filterTrainingTeamId;
+    }
   }
 
   if (sessionId) {
@@ -1647,21 +2174,46 @@ function openEditTrainingModal(sessionId = null) {
     if (!session) return;
     if (titleHeader) titleHeader.textContent = '✏️ Editar entrenamiento';
     if (editIdInput) editIdInput.value = session.id;
+    if (toggleBar) toggleBar.style.display = 'none';
+    setTrainingCreationMode('single');
 
     document.getElementById('training-title').value = session.title || '';
     if (selectTeam) selectTeam.value = session.teamId || '';
     document.getElementById('training-date').value = session.date || '';
-    document.getElementById('training-time').value = session.time || '';
+
+    let sTime = '17:30';
+    if (session.time) {
+      sTime = session.time.split('-')[0].trim();
+    }
+    const startInput = document.getElementById('training-time-start');
+    if (startInput) startInput.value = sTime;
+
     document.getElementById('training-location').value = session.location || '';
     document.getElementById('training-coach').value = session.coach || '';
     document.getElementById('training-notes').value = session.notes || '';
+    calcTrainingEndTime();
   } else {
-    if (titleHeader) titleHeader.textContent = '➕ Programar nuevo entrenamiento';
+    if (titleHeader) titleHeader.textContent = '➕ Programar entrenamiento';
     if (editIdInput) editIdInput.value = '';
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('training-date').value = today;
-    document.getElementById('training-time').value = '17:30 - 19:00';
-    document.getElementById('training-location').value = 'Campo Municipal';
+    if (toggleBar) toggleBar.style.display = 'flex';
+
+    const todayStr = defaultDate || new Date().toISOString().split('T')[0];
+    document.getElementById('training-date').value = todayStr;
+    document.getElementById('training-recur-start').value = todayStr;
+
+    // Fecha fin por defecto: +3 meses
+    const defaultEnd = new Date(todayStr);
+    defaultEnd.setMonth(defaultEnd.getMonth() + 3);
+    document.getElementById('training-recur-end').value = defaultEnd.toISOString().split('T')[0];
+
+    document.getElementById('training-title').value = 'Entrenamiento habitual';
+    document.getElementById('training-time-start').value = '17:30';
+    document.getElementById('training-location').value = 'Campo 1 (Césped)';
+    document.getElementById('training-coach').value = '';
+    document.getElementById('training-notes').value = '';
+
+    setTrainingDuration(90);
+    setTrainingCreationMode('single');
   }
 
   if (typeof openModal === 'function') {
@@ -1674,15 +2226,14 @@ function openEditTrainingModal(sessionId = null) {
 function saveTrainingSession() {
   const title = document.getElementById('training-title').value.trim();
   const teamId = document.getElementById('training-team-id').value;
-  const date = document.getElementById('training-date').value;
-  const time = document.getElementById('training-time').value.trim();
   const location = document.getElementById('training-location').value.trim();
   const coach = document.getElementById('training-coach').value.trim();
   const notes = document.getElementById('training-notes').value.trim();
   const editId = document.getElementById('edit-training-id').value;
+  const { summaryStr } = calcTrainingEndTime();
 
-  if (!title || !date || !teamId) {
-    showToast('Por favor completa título, equipo y fecha', 'error');
+  if (!title || !teamId) {
+    showToast('Por favor introduce un título y selecciona un equipo', 'error');
     return;
   }
 
@@ -1694,26 +2245,78 @@ function saveTrainingSession() {
     if (existing) {
       existing.title = title;
       existing.teamId = teamId;
-      existing.date = date;
-      existing.time = time;
+      existing.date = document.getElementById('training-date').value;
+      existing.time = summaryStr;
       existing.location = location;
       existing.coach = coach;
       existing.notes = notes;
       showToast('Entrenamiento actualizado correctamente', 'success');
     }
-  } else {
+  } else if (trainingCreationMode === 'single') {
+    const date = document.getElementById('training-date').value;
+    if (!date) {
+      showToast('Por favor selecciona una fecha', 'error');
+      return;
+    }
     const newSession = {
       id: `tr_${Date.now()}`,
       title,
       teamId,
       date,
-      time,
+      time: summaryStr,
       location,
       coach,
       notes
     };
     trainingSessionsList.push(newSession);
+    calendarSelectedDate = date;
     showToast('Entrenamiento programado con éxito', 'success');
+  } else {
+    // Modo recurrente
+    const startStr = document.getElementById('training-recur-start').value;
+    const endStr = document.getElementById('training-recur-end').value;
+
+    if (!startStr || !endStr) {
+      showToast('Por favor indica fecha de inicio y fecha de fin', 'error');
+      return;
+    }
+    if (selectedWeekdays.size === 0) {
+      showToast('Por favor selecciona al menos un día de la semana', 'error');
+      return;
+    }
+
+    const dStart = new Date(startStr);
+    const dEnd = new Date(endStr);
+    if (dStart > dEnd) {
+      showToast('La fecha de inicio debe ser anterior a la de fin', 'error');
+      return;
+    }
+
+    let cur = new Date(dStart);
+    let createdCount = 0;
+    const tsBase = Date.now();
+
+    while (cur <= dEnd) {
+      if (selectedWeekdays.has(cur.getDay())) {
+        const dIso = cur.toISOString().split('T')[0];
+        const newSession = {
+          id: `tr_${tsBase}_${createdCount}`,
+          title,
+          teamId,
+          date: dIso,
+          time: summaryStr,
+          location,
+          coach,
+          notes
+        };
+        trainingSessionsList.push(newSession);
+        createdCount++;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    calendarSelectedDate = startStr;
+    showToast(`¡Se han programado ${createdCount} sesiones de entrenamiento con éxito!`, 'success');
   }
 
   storage.saveTrainingSessions(trainingSessionsList);
@@ -1724,6 +2327,7 @@ function saveTrainingSession() {
     else modal.classList.remove('active');
   }
 
+  renderMonthlyCalendar();
   renderTrainingSessions();
 }
 
@@ -1739,8 +2343,22 @@ function deleteTrainingSession(sessionId) {
   trainingSessionsList = trainingSessionsList.filter(s => s.id !== sessionId);
   storage.saveTrainingSessions(trainingSessionsList);
   showToast('Sesión de entrenamiento eliminada', 'info');
+  renderMonthlyCalendar();
   renderTrainingSessions();
 }
+
+// Exponer funciones en window para invocación desde eventos HTML
+window.switchTrainingView = switchTrainingView;
+window.navCalendarMonth = navCalendarMonth;
+window.navCalendarToday = navCalendarToday;
+window.onCalendarTeamFilterChange = onCalendarTeamFilterChange;
+window.setTrainingCreationMode = setTrainingCreationMode;
+window.toggleWeekdayChip = toggleWeekdayChip;
+window.setTrainingDuration = setTrainingDuration;
+window.calcTrainingEndTime = calcTrainingEndTime;
+window.setRecurDuration = setRecurDuration;
+window.updateRecurringPreview = updateRecurringPreview;
+window.openEditTrainingModal = openEditTrainingModal;
 
 /* ==========================================================================
    REGISTRO Y ESTADÍSTICAS DE ASISTENCIA A ENTRENAMIENTOS

@@ -264,59 +264,48 @@ function renderAttendanceRoster() {
     const avatarUrl = p.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name + '+' + p.lastName)}&background=18233c&color=fff`;
 
     const row = document.createElement('div');
-    row.className = 'attendance-row-clean';
-    row.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem 0.95rem;
-      background: var(--bg-secondary);
-      border: 1px solid ${isPresent ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'};
-      border-radius: 10px;
-      margin-bottom: 0.5rem;
-      gap: 0.75rem;
-      transition: all 0.15s ease;
-    `;
+    row.className = 'att-player-card';
+    row.style.border = isPresent ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)';
 
     row.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
-        <img src="${avatarUrl}" alt="${p.name}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid ${teamObj?.color || 'rgba(255,255,255,0.2)'}; flex-shrink: 0;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=18233c&color=fff'">
-        <div style="min-width: 0;">
-          <div style="font-weight: 800; color: #fff; font-size: 0.98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            #${p.mainDorsal || '-'} ${escapeHTML(p.name)} ${escapeHTML(p.lastName)}
+      <div class="att-player-info">
+        <img class="att-avatar" src="${avatarUrl}" alt="${p.name}" style="border-color: ${teamObj?.color || 'rgba(255,255,255,0.2)'};" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=18233c&color=fff'">
+        <div class="att-name-box">
+          <div class="att-name-line">
+            <span style="color: var(--accent-cyan); margin-right: 4px; font-weight: 800;">#${p.mainDorsal || '-'}</span>
+            ${escapeHTML(p.name)} ${escapeHTML(p.lastName)}
           </div>
-          <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.45rem; align-items: center; margin-top: 2px; flex-wrap: wrap;">
-            <span style="color: var(--accent-cyan); font-weight: 700; background: rgba(6,182,212,0.12); padding: 0.1rem 0.4rem; border-radius: 4px;">${p.mainPosition || 'JUG'}</span>
-            ${teamObj ? `<span style="background: rgba(255,255,255,0.06); padding: 0.1rem 0.45rem; border-radius: 4px; color: ${teamObj.color}; font-weight: 700;">${escapeHTML(teamObj.name)}</span>` : ''}
+          <div class="att-meta-line">
+            <span style="color: var(--accent-cyan); font-weight: 700; background: rgba(6,182,212,0.12); padding: 0 0.35rem; border-radius: 4px;">${p.mainPosition || 'JUG'}</span>
+            ${teamObj ? `<span style="color: ${teamObj.color || 'var(--text-muted)'}; font-weight: 600;">${escapeHTML(teamObj.name)}</span>` : ''}
           </div>
         </div>
       </div>
 
-      <!-- BOTONES DE TICK VERDE ✔ (Está) Y TICK ROJO ✖ (No está) -->
-      <div class="attendance-tick-actions" style="display: flex; gap: 0.5rem; flex-shrink: 0;">
-        <button type="button" class="btn-tick-present ${isPresent ? 'is-active' : ''}" data-pid="${p.id}" title="Marcar como presente en el entrenamiento" style="min-width: 82px; min-height: 42px; font-size: 0.88rem; font-weight: 800; border-radius: 8px;">
-          ✔ <span class="tick-label">Está</span>
+      <!-- BOTONES COMPACTOS ✔ Y ✖ (100% estables, 42x36px cada uno, sin solapamiento) -->
+      <div class="att-btn-actions">
+        <button type="button" class="att-btn-compact att-btn-compact-pres ${isPresent ? 'is-active' : ''}" data-pid="${p.id}" title="Marcar como Presente (✔)">
+          ✔
         </button>
-        <button type="button" class="btn-tick-absent ${!isPresent ? 'is-active' : ''}" data-pid="${p.id}" title="Marcar como ausente" style="min-width: 82px; min-height: 42px; font-size: 0.88rem; font-weight: 800; border-radius: 8px;">
-          ✖ <span class="tick-label">No está</span>
+        <button type="button" class="att-btn-compact att-btn-compact-abs ${!isPresent ? 'is-active' : ''}" data-pid="${p.id}" title="Marcar como Ausente (✖)">
+          ✖
         </button>
       </div>
     `;
 
-    // Conectar eventos táctiles directos con feedback instantáneo
-    const btnPres = row.querySelector('.btn-tick-present');
-    const btnAbs = row.querySelector('.btn-tick-absent');
+    const btnPres = row.querySelector('.att-btn-compact-pres');
+    const btnAbs = row.querySelector('.att-btn-compact-abs');
 
     const updateRowState = (status) => {
       tempSessionAttendance[p.id] = status;
       if (status === 'present') {
         btnPres.classList.add('is-active');
         btnAbs.classList.remove('is-active');
-        row.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        row.style.border = '1px solid rgba(16, 185, 129, 0.4)';
       } else {
         btnAbs.classList.add('is-active');
         btnPres.classList.remove('is-active');
-        row.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+        row.style.border = '1px solid rgba(239, 68, 68, 0.4)';
       }
       recalculateAttendanceStats();
     };

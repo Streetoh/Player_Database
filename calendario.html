@@ -228,40 +228,107 @@
         <div class="section-header-title">
           <h2>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-            <span>Sesiones y Calendario de Entrenamientos</span>
+            <span>Calendario de Entrenamientos</span>
           </h2>
-          <p>Programa entrenamientos por fecha y franja horaria, asigna equipos y pasa lista de asistencia.</p>
+          <p>Planifica sesiones únicas o recurrentes, visualiza el calendario mensual por equipo y gestiona asistencias.</p>
         </div>
-        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
-          <button type="button" class="btn btn-secondary" id="btn-quick-attendance" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.35); color: #34d399; font-weight: 700;">
-            📋 Pasar lista rápida
-          </button>
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+          <!-- Conmutador de vista: Calendario Mensual vs Listado -->
+          <div class="calendar-view-toggle">
+            <button type="button" class="calendar-view-btn active" id="btn-view-month" onclick="switchTrainingView('month')">
+              📅 Vista Calendario
+            </button>
+            <button type="button" class="calendar-view-btn" id="btn-view-list" onclick="switchTrainingView('list')">
+              📋 Vista Lista
+            </button>
+          </div>
           <button type="button" class="btn btn-primary" id="btn-add-training-session" style="background: #10b981; border-color: #059669; font-weight: 700;">
             ➕ Programar entrenamiento
           </button>
         </div>
       </div>
 
-      <!-- Filtros de sesiones -->
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; background: var(--bg-card); padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid var(--border-subtle);">
-        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-          <div class="form-group" style="margin: 0; min-width: 170px;">
-            <label class="form-label" for="filter-training-team" style="font-size: 0.75rem;">Filtrar por equipo</label>
-            <select class="form-select" id="filter-training-team" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;"></select>
+      <!-- VISTA 1: CALENDARIO VISUAL MENSUAL INTERACTIVO -->
+      <div id="training-calendar-view">
+        <div class="calendar-month-container">
+          <!-- Cabecera y Navegación del mes -->
+          <div class="calendar-month-nav">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-cal-prev-month" onclick="navCalendarMonth(-1)" title="Mes anterior">
+                ◀
+              </button>
+              <h3 id="cal-month-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #fff; min-width: 170px; text-align: center;">
+                Septiembre 2026
+              </h3>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-cal-next-month" onclick="navCalendarMonth(1)" title="Mes siguiente">
+                ▶
+              </button>
+              <button type="button" class="btn btn-secondary btn-xs" id="btn-cal-today" onclick="navCalendarToday()" style="margin-left: 0.25rem;">
+                Hoy
+              </button>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <label for="cal-filter-team" style="font-size: 0.78rem; color: var(--text-muted);">Equipo:</label>
+              <select class="form-select" id="cal-filter-team" style="padding: 0.35rem 0.65rem; font-size: 0.82rem; min-width: 170px;" onchange="onCalendarTeamFilterChange(this.value)"></select>
+            </div>
           </div>
-          <div class="form-group" style="margin: 0; min-width: 150px;">
-            <label class="form-label" for="filter-training-date" style="font-size: 0.75rem;">Fecha específica</label>
-            <input type="date" class="form-input" id="filter-training-date" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;">
+
+          <!-- Cuadrícula mensual (Lunes a Domingo) -->
+          <div class="calendar-month-grid">
+            <div class="calendar-day-header">LUN</div>
+            <div class="calendar-day-header">MAR</div>
+            <div class="calendar-day-header">MIÉ</div>
+            <div class="calendar-day-header">JUE</div>
+            <div class="calendar-day-header">VIE</div>
+            <div class="calendar-day-header" style="color: #fbbf24;">SÁB</div>
+            <div class="calendar-day-header" style="color: #f87171;">DOM</div>
           </div>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-training-filters" style="margin-top: 1.15rem; font-size: 0.78rem;">
-            🔄 Ver todos
-          </button>
+          <!-- Contenedor dinámico de los 35 o 42 días -->
+          <div class="calendar-month-grid" id="cal-days-grid" style="margin-top: 4px;"></div>
         </div>
-        <div id="training-count-indicator" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;"></div>
+
+        <!-- Panel de detalle del día seleccionado -->
+        <div class="calendar-day-detail-box" id="cal-day-detail-panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h4 id="cal-selected-day-title" style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #fff;">
+                📅 Entrenamientos del día
+              </h4>
+              <p id="cal-selected-day-subtitle" style="margin: 2px 0 0; font-size: 0.75rem; color: var(--text-muted);"></p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-add-session-on-day" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.35); color: #34d399; font-weight: 700; font-size: 0.78rem;">
+              ➕ Programar en este día
+            </button>
+          </div>
+
+          <div id="cal-selected-day-sessions-list"></div>
+        </div>
       </div>
 
-      <!-- Listado de entrenamientos -->
-      <div id="trainings-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;"></div>
+      <!-- VISTA 2: LISTADO DE SESIONES Y FILTROS -->
+      <div id="training-list-view" style="display: none;">
+        <!-- Filtros de sesiones -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; background: var(--bg-card); padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid var(--border-subtle);">
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <div class="form-group" style="margin: 0; min-width: 170px;">
+              <label class="form-label" for="filter-training-team" style="font-size: 0.75rem;">Filtrar por equipo</label>
+              <select class="form-select" id="filter-training-team" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;"></select>
+            </div>
+            <div class="form-group" style="margin: 0; min-width: 150px;">
+              <label class="form-label" for="filter-training-date" style="font-size: 0.75rem;">Fecha específica</label>
+              <input type="date" class="form-input" id="filter-training-date" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;">
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-training-filters" style="margin-top: 1.15rem; font-size: 0.78rem;">
+              🔄 Ver todos
+            </button>
+          </div>
+          <div id="training-count-indicator" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;"></div>
+        </div>
+
+        <!-- Listado de entrenamientos en tarjetas -->
+        <div id="trainings-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;"></div>
+      </div>
     </div>
 
     <!-- PESTAÑA 3: REGISTRO Y ESTADÍSTICAS DE ASISTENCIA -->
@@ -916,53 +983,131 @@
     </div>
   </div>
 
-  <!-- Modal: Crear / Editar Entrenamiento -->
+  <!-- Modal: Crear / Editar Entrenamiento (Soporte sesión única y recurrencia semanal) -->
   <div class="modal-backdrop" id="modal-training-session" data-no-backdrop-close="true">
-    <div class="modal-window" style="max-width: 520px;">
+    <div class="modal-window" style="max-width: 580px; max-height: 94vh;">
       <div class="modal-header">
         <h3 id="training-modal-title">Programar entrenamiento</h3>
         <button type="button" class="modal-close-btn" data-close-modal="modal-training-session">&times;</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="padding: 1rem 1.25rem;">
+        <!-- Conmutador: Sesión única vs Repetir semanalmente -->
+        <div class="recurrence-mode-toggle" id="training-mode-toggle-bar">
+          <button type="button" class="recurrence-mode-btn active" id="btn-mode-single" onclick="setTrainingCreationMode('single')">
+            🔘 Sesión única
+          </button>
+          <button type="button" class="recurrence-mode-btn" id="btn-mode-recurring" onclick="setTrainingCreationMode('recurring')">
+            🔁 Repetir semanalmente (Varios días)
+          </button>
+        </div>
+
         <form id="form-training-session" onsubmit="return false;">
           <input type="hidden" id="edit-training-id" value="">
-          <div class="form-group">
-            <label class="form-label" for="training-title">Título o tipo de entrenamiento *</label>
-            <input type="text" class="form-input" id="training-title" required placeholder="Ej. Táctica, posesión y finalización">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="training-team-id">Equipo o grupo asignado *</label>
-            <select class="form-select" id="training-team-id" required></select>
-          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div class="form-group">
-              <label class="form-label" for="training-date">Fecha (DD/MM/YYYY) *</label>
-              <input type="date" class="form-input" id="training-date" required>
+              <label class="form-label" for="training-team-id">Equipo o grupo asignado *</label>
+              <select class="form-select" id="training-team-id" required onchange="updateRecurringPreview()"></select>
             </div>
             <div class="form-group">
-              <label class="form-label" for="training-time">Horario *</label>
-              <input type="text" class="form-input" id="training-time" placeholder="Ej. 17:30 - 19:00" required>
+              <label class="form-label" for="training-title">Tipo / Título de sesión *</label>
+              <input type="text" class="form-input" id="training-title" required placeholder="Ej. Entrenamiento habitual" value="Entrenamiento habitual" oninput="updateRecurringPreview()">
             </div>
           </div>
+
+          <!-- BLOQUE 1: MODO SESIÓN ÚNICA -->
+          <div id="block-single-date">
+            <div class="form-group">
+              <label class="form-label" for="training-date">Fecha del entrenamiento (DD/MM/YYYY) *</label>
+              <input type="date" class="form-input" id="training-date">
+            </div>
+          </div>
+
+          <!-- BLOQUE 2: MODO RECURRENTE (DÍAS DE LA SEMANA Y PERIODO) -->
+          <div id="block-recurring-schedule" style="display: none; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.85rem; margin-bottom: 0.75rem;">
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+              <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Días de la semana de entrenamiento *</span>
+                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: normal;">(Toca para activar/desactivar)</span>
+              </label>
+              <div class="weekdays-picker">
+                <div class="weekday-chip active" data-day="1" onclick="toggleWeekdayChip(this)">Lun</div>
+                <div class="weekday-chip" data-day="2" onclick="toggleWeekdayChip(this)">Mar</div>
+                <div class="weekday-chip active" data-day="3" onclick="toggleWeekdayChip(this)">Mié</div>
+                <div class="weekday-chip" data-day="4" onclick="toggleWeekdayChip(this)">Jue</div>
+                <div class="weekday-chip active" data-day="5" onclick="toggleWeekdayChip(this)">Vie</div>
+                <div class="weekday-chip" data-day="6" onclick="toggleWeekdayChip(this)">Sáb</div>
+                <div class="weekday-chip" data-day="0" onclick="toggleWeekdayChip(this)">Dom</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" for="training-recur-start">Desde la fecha *</label>
+                <input type="date" class="form-input" id="training-recur-start" onchange="updateRecurringPreview()">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" for="training-recur-end">Hasta la fecha *</label>
+                <input type="date" class="form-input" id="training-recur-end" onchange="updateRecurringPreview()">
+              </div>
+            </div>
+
+            <!-- Atajos de periodo -->
+            <div style="display: flex; gap: 0.35rem; margin-top: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <span style="font-size: 0.7rem; color: var(--text-muted);">Atajos:</span>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setRecurDuration(1)">+1 mes</button>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setRecurDuration(3)">+3 meses</button>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setRecurDuration('season')">Fin de temporada (Junio)</button>
+            </div>
+          </div>
+
+          <!-- HORARIO Y DURACIÓN -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label" for="training-time-start">Hora de inicio *</label>
+              <input type="time" class="form-input" id="training-time-start" value="17:30" required onchange="calcTrainingEndTime()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duración</label>
+              <div class="duration-chips">
+                <button type="button" class="duration-chip" data-min="60" onclick="setTrainingDuration(60)">60m</button>
+                <button type="button" class="duration-chip" data-min="75" onclick="setTrainingDuration(75)">75m</button>
+                <button type="button" class="duration-chip active" data-min="90" onclick="setTrainingDuration(90)">90m</button>
+                <button type="button" class="duration-chip" data-min="120" onclick="setTrainingDuration(120)">120m</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen de horario calculado -->
+          <div style="font-size: 0.78rem; color: var(--accent-cyan); margin-bottom: 0.75rem; background: rgba(6,182,212,0.08); padding: 0.35rem 0.65rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem;">
+            <span>⏰</span> <span id="training-time-summary-hint">Franja horaria: 17:30 - 19:00 (90 minutos)</span>
+          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div class="form-group">
               <label class="form-label" for="training-location">Instalación / Campo</label>
-              <input type="text" class="form-input" id="training-location" placeholder="Ej. Campo 1 (Césped)">
+              <input type="text" class="form-input" id="training-location" placeholder="Ej. Campo 1 (Césped)" value="Campo 1 (Césped)" oninput="updateRecurringPreview()">
             </div>
             <div class="form-group">
               <label class="form-label" for="training-coach">Técnico responsable</label>
               <input type="text" class="form-input" id="training-coach" placeholder="Ej. Entrenador principal">
             </div>
           </div>
-          <div class="form-group">
+
+          <div class="form-group" style="margin-bottom: 0.5rem;">
             <label class="form-label" for="training-notes">Notas u objetivos de la sesión</label>
-            <textarea class="form-textarea" id="training-notes" rows="2" placeholder="Aspectos clave a trabajar, material, etc..."></textarea>
+            <textarea class="form-textarea" id="training-notes" rows="1" placeholder="Aspectos clave a trabajar, material, etc..."></textarea>
           </div>
+
+          <!-- Caja de previsualización en vivo para recurrencia -->
+          <div class="preview-schedule-box" id="training-recurring-preview-box" style="display: none;"></div>
         </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-close-modal="modal-training-session">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btn-save-training-session" style="background: #10b981; border-color: #059669; font-weight: 700;">💾 Guardar sesión</button>
+        <button type="button" class="btn btn-primary" id="btn-save-training-session" style="background: #10b981; border-color: #059669; font-weight: 700;">
+          💾 Guardar sesión
+        </button>
       </div>
     </div>
   </div>
@@ -1000,61 +1145,54 @@
 
   <!-- Modal: Pasar Lista / Control de Asistencia -->
   <div class="modal-backdrop" id="modal-attendance" data-no-backdrop-close="true">
-    <div class="modal-window" style="max-width: 820px; width: 96%; height: 92vh; max-height: 92vh; display: flex; flex-direction: column;">
-      <div class="modal-header" style="padding: 0.85rem 1.25rem; flex-shrink: 0;">
-        <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <span style="font-size: 1.3rem;">📋</span>
+    <div class="modal-window modal-attendance-window">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.15rem;">📋</span>
           <div>
-            <h3 style="font-size: 1.1rem; margin: 0; font-weight: 800; color: #fff;">Control de Asistencia a Entrenamientos</h3>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
-              Marca la presencia o falta de cada jugador para la sesión seleccionada.
-            </p>
+            <h3 style="font-size: 1.05rem; margin: 0; font-weight: 800; color: #fff;">Control de Asistencia</h3>
           </div>
         </div>
         <button type="button" class="modal-close-btn" data-close-modal="modal-attendance">&times;</button>
       </div>
 
-      <div class="modal-body" style="padding: 0.75rem 1.25rem; flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; gap: 0.65rem;">
-        <!-- Controles compactos: selector de equipo, fecha y botones rápidos -->
-        <div style="display: flex; gap: 0.6rem; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; background: var(--bg-secondary); padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid var(--border-subtle); flex-shrink: 0;">
-          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; flex: 1; min-width: 250px;">
-            <div class="form-group" style="margin: 0; min-width: 150px; flex: 1.3;">
-              <label class="form-label" for="attendance-team-select" style="font-size: 0.72rem; margin-bottom: 2px;">Grupo / Equipo</label>
-              <select class="form-select" id="attendance-team-select" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;"></select>
-            </div>
-            <div class="form-group" style="margin: 0; min-width: 125px; flex: 1;">
-              <label class="form-label" for="attendance-date-input" style="font-size: 0.72rem; margin-bottom: 2px;">Fecha sesión</label>
-              <input type="date" class="form-input" id="attendance-date-input" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;">
-            </div>
+      <div class="modal-body">
+        <!-- Barra 1: Selector de grupo y fecha en 2 columnas compactas -->
+        <div class="att-controls-bar">
+          <div>
+            <label class="form-label" for="attendance-team-select" style="font-size: 0.7rem; margin-bottom: 2px;">Grupo / Equipo</label>
+            <select class="form-select" id="attendance-team-select" style="padding: 0.3rem 0.5rem; font-size: 0.82rem; height: 34px;"></select>
           </div>
-          <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-attendance-all-present" style="white-space: nowrap; font-weight: 700; color: #34d399; border-color: rgba(16, 185, 129, 0.4); font-size: 0.78rem; padding: 0.38rem 0.65rem;">
+          <div>
+            <label class="form-label" for="attendance-date-input" style="font-size: 0.7rem; margin-bottom: 2px;">Fecha sesión</label>
+            <input type="date" class="form-input" id="attendance-date-input" style="padding: 0.3rem 0.5rem; font-size: 0.82rem; height: 34px;">
+          </div>
+        </div>
+
+        <!-- Barra 2: Acciones rápidas y contadores en una sola línea -->
+        <div class="att-quick-bar">
+          <div style="display: flex; gap: 0.35rem; align-items: center;">
+            <button type="button" class="btn btn-secondary btn-xs" id="btn-attendance-all-present" style="font-weight: 700; color: #34d399; border-color: rgba(16, 185, 129, 0.4); font-size: 0.72rem; padding: 0.25rem 0.5rem;">
               ✔ Todos presentes
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-attendance-all-absent" style="white-space: nowrap; font-weight: 700; color: #f87171; border-color: rgba(239, 68, 68, 0.4); font-size: 0.78rem; padding: 0.38rem 0.65rem;">
+            <button type="button" class="btn btn-secondary btn-xs" id="btn-attendance-all-absent" style="font-weight: 700; color: #f87171; border-color: rgba(239, 68, 68, 0.4); font-size: 0.72rem; padding: 0.25rem 0.5rem;">
               ✖ Todos ausentes
             </button>
           </div>
-        </div>
-
-        <!-- Barra de contadores en vivo compacta -->
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.45rem 0.85rem; font-size: 0.82rem; flex-shrink: 0; gap: 0.5rem; flex-wrap: wrap;">
-          <div style="display: flex; gap: 1rem; align-items: center;">
-            <span style="color: #34d399; font-weight: 700;">✔ Presentes: <strong id="att-count-present" style="font-size: 0.95rem;">0</strong></span>
-            <span style="color: #f87171; font-weight: 700;">✖ Ausentes: <strong id="att-count-absent" style="font-size: 0.95rem;">0</strong></span>
-          </div>
-          <div>
-            <span style="color: var(--text-muted);">👥 Convocados: <strong id="att-count-total" style="color: #fff; font-size: 0.95rem;">0</strong></span>
+          <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.75rem;">
+            <span style="color: #34d399; font-weight: 700;">✔ <strong id="att-count-present">0</strong></span>
+            <span style="color: #f87171; font-weight: 700;">✖ <strong id="att-count-absent">0</strong></span>
+            <span style="color: var(--text-muted); font-size: 0.7rem;">(<span id="att-count-total">0 jug.</span>)</span>
           </div>
         </div>
 
-        <!-- Lista de jugadores: flex 1 y scroll fluido -->
-        <div id="attendance-roster-list" style="flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 4px;"></div>
+        <!-- Lista de jugadores: flex 1 con scroll libre y amplio -->
+        <div id="attendance-roster-list" style="flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;"></div>
       </div>
 
-      <div class="modal-footer" style="padding: 0.85rem 1.25rem; flex-shrink: 0;">
+      <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-close-modal="modal-attendance">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btn-save-attendance" style="background: #10b981; border-color: #059669; font-weight: 700; padding: 0.55rem 1.25rem;">💾 Guardar asistencia</button>
+        <button type="button" class="btn btn-primary" id="btn-save-attendance" style="background: #10b981; border-color: #059669; font-weight: 700;">💾 Guardar asistencia</button>
       </div>
     </div>
   </div>
