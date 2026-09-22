@@ -1310,6 +1310,9 @@ function openPlayerModal(playerId = null) {
   renderCoachNotes();
   updateEquipmentStatusUI();
   checkPlayerModalDorsalConflict();
+  if (typeof renderPlayerModalAttendance === 'function') {
+    renderPlayerModalAttendance(playerId, 30);
+  }
   openModal(document.getElementById('modal-player'));
 }
 

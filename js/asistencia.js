@@ -12,34 +12,133 @@ let tempSessionAttendance = {}; // { [playerId]: 'present' | 'absent' }
  * Devuelve las estadísticas de asistencia de un jugador en los últimos N días
  * @param {string} playerId
  * @param {number} days (por defecto 30 días)
- * @returns {{ totalSessions: number, presentCount: number, percentage: number }}
+/**
+ * Devuelve el historial y estadísticas completas de asistencia de un jugador en los últimos N días
+ * @param {string} playerId
+ * @param {number|null} days (30, 90, o null/0/365 para toda la temporada)
+ * @returns {{
+ *   totalSessions: number,
+ *   presentCount: number,
+ *   absentCount: number,
+ *   percentage: number,
+ *   hasRecords: boolean,
+ *   sessions: Array<{ date: string, parsedDate: Date, status: 'present'|'absent', title: string, location: string }>
+ * }}
  */
-function getPlayerAttendanceStats(playerId, days = 30) {
-  if (!window.JKNoovaData || !window.JKNoovaData.StorageService) {
-    return { totalSessions: 0, presentCount: 0, percentage: 100 };
+function getPlayerAttendanceHistory(playerId, days = 30) {
+  if (!playerId || !window.JKNoovaData || !window.JKNoovaData.StorageService) {
+    return {
+      totalSessions: 0,
+      presentCount: 0,
+      absentCount: 0,
+      percentage: 0,
+      hasRecords: false,
+      sessions: []
+    };
   }
-  const attendance = window.JKNoovaData.StorageService.getAttendance() || {};
-  const now = new Date();
-  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-  let total = 0;
-  let present = 0;
+
+  const storage = window.JKNoovaData.StorageService;
+  const attendance = storage.getAttendance() || {};
+  const trainings = typeof storage.getTrainingSessions === 'function' ? storage.getTrainingSessions() : [];
+
+  // Mapeo rápido de entrenamientos por fecha para enriquecer el historial con el título/lugar
+  const trainingByDate = {};
+  if (Array.isArray(trainings)) {
+    trainings.forEach(tr => {
+      if (tr && tr.date) {
+        if (!trainingByDate[tr.date]) trainingByDate[tr.date] = tr;
+      }
+    });
+  }
+
+  let cutoffDate = null;
+  if (days && days > 0 && days < 3650) {
+    cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    cutoffDate.setHours(0, 0, 0, 0);
+  }
+
+  // Deduplicación por fecha YYYY-MM-DD
+  const sessionMap = {};
 
   for (const tId in attendance) {
-    const datesObj = attendance[tId] || {};
+    const datesObj = attendance[tId];
+    if (!datesObj || typeof datesObj !== 'object') continue;
+
     for (const dStr in datesObj) {
-      const d = new Date(dStr);
-      if (!isNaN(d.getTime()) && d >= cutoff && datesObj[dStr] && datesObj[dStr][playerId]) {
-        const st = datesObj[dStr][playerId];
-        total++;
-        if (st === 'present') {
-          present++;
+      const dayData = datesObj[dStr];
+      if (!dayData || typeof dayData !== 'object') continue;
+
+      if (dayData[playerId]) {
+        const st = dayData[playerId]; // 'present' o 'absent'
+
+        const parts = dStr.split('-');
+        let sessionDate = null;
+        if (parts.length === 3) {
+          sessionDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        } else {
+          sessionDate = new Date(dStr);
+        }
+
+        if (cutoffDate && sessionDate < cutoffDate) {
+          continue;
+        }
+
+        // Si ya existía y este es 'present', o no existía aún, registrarlo
+        if (!sessionMap[dStr] || st === 'present') {
+          const trInfo = trainingByDate[dStr];
+          sessionMap[dStr] = {
+            date: dStr,
+            parsedDate: sessionDate,
+            status: st,
+            title: trInfo ? trInfo.title : 'Entrenamiento',
+            location: trInfo ? trInfo.location : ''
+          };
         }
       }
     }
   }
 
-  const pct = total > 0 ? Math.round((present / total) * 100) : 100;
-  return { totalSessions: total, presentCount: present, percentage: pct };
+  const sessions = Object.values(sessionMap).sort((a, b) => {
+    return (b.parsedDate || 0) - (a.parsedDate || 0); // más reciente primero
+  });
+
+  let presentCount = 0;
+  let absentCount = 0;
+  sessions.forEach(s => {
+    if (s.status === 'present') presentCount++;
+    else if (s.status === 'absent') absentCount++;
+  });
+
+  const totalSessions = sessions.length;
+  const percentage = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : 0;
+  const hasRecords = totalSessions > 0;
+
+  return {
+    totalSessions,
+    presentCount,
+    absentCount,
+    percentage,
+    hasRecords,
+    sessions
+  };
+}
+
+/**
+ * Devuelve las estadísticas de asistencia de un jugador en los últimos N días
+ * @param {string} playerId
+ * @param {number} days (por defecto 30 días)
+ * @returns {{ totalSessions: number, presentCount: number, absentCount: number, percentage: number, hasRecords: boolean }}
+ */
+function getPlayerAttendanceStats(playerId, days = 30) {
+  const history = getPlayerAttendanceHistory(playerId, days);
+  return {
+    totalSessions: history.totalSessions,
+    presentCount: history.presentCount,
+    absentCount: history.absentCount,
+    percentage: history.totalSessions > 0 ? history.percentage : 100,
+    hasRecords: history.hasRecords
+  };
 }
 
 /**
@@ -134,7 +233,10 @@ function openAttendanceModal(defaultTeamId = null, defaultDate = null) {
 
   const dateInput = document.getElementById('attendance-date-input') || document.getElementById('attendance-date');
   if (dateInput) {
-    const targetDate = defaultDate || new Date().toISOString().split('T')[0];
+    const todayLocal = (typeof formatLocalDateToISO === 'function')
+      ? formatLocalDateToISO(new Date())
+      : (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0'));
+    const targetDate = defaultDate || todayLocal;
     activeAttendanceDate = targetDate;
     dateInput.value = targetDate;
   }
@@ -400,7 +502,9 @@ function saveCurrentAttendanceSession() {
   }
 
   if (!activeAttendanceDate) {
-    activeAttendanceDate = new Date().toISOString().split('T')[0];
+    activeAttendanceDate = (typeof formatLocalDateToISO === 'function')
+      ? formatLocalDateToISO(new Date())
+      : (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0'));
   }
   if (!activeAttendanceTeamId) {
     activeAttendanceTeamId = 'all';
@@ -496,8 +600,150 @@ function escapeHTML(str) {
     .replace(/'/g, '&#039;');
 }
 
+function formatSpanishAttendanceDate(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    const dateObj = new Date(y, m, d);
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const dayOfWeek = dayNames[dateObj.getDay()] || '';
+    const month = monthNames[m] || '';
+    return `${dayOfWeek}, ${d} ${month} ${y}`;
+  }
+  return dateStr;
+}
+
+let currentModalPlayerId = null;
+let currentModalAttPeriod = 30;
+
+function initPlayerModalAttendanceEvents() {
+  const section = document.getElementById('player-modal-attendance-section');
+  if (!section || section.dataset.eventsBound) return;
+  section.dataset.eventsBound = 'true';
+
+  section.addEventListener('click', (e) => {
+    const btn = e.target.closest('.att-period-btn');
+    if (!btn) return;
+    const period = parseInt(btn.dataset.period, 10);
+    if (!isNaN(period) && currentModalPlayerId) {
+      renderPlayerModalAttendance(currentModalPlayerId, period);
+    }
+  });
+}
+
+function renderPlayerModalAttendance(playerId = null, days = 30) {
+  currentModalPlayerId = playerId;
+  currentModalAttPeriod = days;
+  initPlayerModalAttendanceEvents();
+
+  const section = document.getElementById('player-modal-attendance-section');
+  if (!section) return;
+
+  const emptyEl = document.getElementById('player-att-empty');
+  const statsContent = document.getElementById('player-att-stats-content');
+  const pctEl = document.getElementById('player-att-pct');
+  const totalEl = document.getElementById('player-att-total');
+  const presentEl = document.getElementById('player-att-present');
+  const absentEl = document.getElementById('player-att-absent');
+  const progressBar = document.getElementById('player-att-progress-bar');
+  const countSummary = document.getElementById('player-att-count-summary');
+  const historyList = document.getElementById('player-att-history-list');
+
+  // Actualizar estilos de los botones de periodo
+  const periodButtons = section.querySelectorAll('.att-period-btn');
+  periodButtons.forEach(btn => {
+    const p = parseInt(btn.dataset.period, 10);
+    if (p === days) {
+      btn.style.background = 'rgba(6, 182, 212, 0.25)';
+      btn.style.borderColor = '#06b6d4';
+      btn.style.color = '#67e8f9';
+      btn.style.fontWeight = '700';
+    } else {
+      btn.style.background = 'var(--bg-secondary)';
+      btn.style.borderColor = 'var(--border-subtle)';
+      btn.style.color = 'var(--text-secondary)';
+      btn.style.fontWeight = '500';
+    }
+  });
+
+  if (!playerId) {
+    if (emptyEl) {
+      emptyEl.style.display = 'block';
+      emptyEl.innerHTML = 'ℹ️ Guarda la ficha del jugador para ver sus estadísticas de asistencia.';
+    }
+    if (statsContent) statsContent.style.display = 'none';
+    return;
+  }
+
+  const att = getPlayerAttendanceHistory(playerId, days);
+
+  if (!att.hasRecords) {
+    if (emptyEl) {
+      emptyEl.style.display = 'block';
+      const periodLabel = days >= 365 ? 'en toda la temporada' : `en los últimos ${days} días`;
+      emptyEl.innerHTML = `ℹ️ No hay sesiones de asistencia registradas para este jugador ${periodLabel}.`;
+    }
+    if (statsContent) statsContent.style.display = 'none';
+    return;
+  }
+
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (statsContent) statsContent.style.display = 'block';
+
+  let color = '#10b981'; // >=80%
+  if (att.percentage < 60) color = '#f87171'; // <60%
+  else if (att.percentage < 80) color = '#fbbf24'; // 60-79%
+
+  if (pctEl) {
+    pctEl.textContent = `${att.percentage}%`;
+    pctEl.style.color = color;
+  }
+  if (totalEl) totalEl.textContent = att.totalSessions;
+  if (presentEl) presentEl.textContent = att.presentCount;
+  if (absentEl) absentEl.textContent = att.absentCount;
+
+  if (progressBar) {
+    progressBar.style.width = `${att.percentage}%`;
+    progressBar.style.background = color;
+  }
+
+  if (countSummary) {
+    countSummary.textContent = `${att.sessions.length} ${att.sessions.length === 1 ? 'sesión' : 'sesiones'} (${days >= 365 ? 'Temporada' : `${days}d`})`;
+  }
+
+  if (historyList) {
+    historyList.innerHTML = att.sessions.map(s => {
+      const isPresent = s.status === 'present';
+      const badgeStyle = isPresent
+        ? 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);'
+        : 'background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);';
+      const icon = isPresent ? '✔ Presente' : '✖ Ausente';
+      const dateFormatted = formatSpanishAttendanceDate(s.date);
+
+      return `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0.65rem; background: var(--bg-secondary); border-radius: 6px; border: 1px solid var(--border-subtle); font-size: 0.78rem;">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-weight: 600; color: #fff;">${dateFormatted}</span>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">${escapeHTML(s.title)}${s.location ? ` • ${escapeHTML(s.location)}` : ''}</span>
+          </div>
+          <span style="padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700; font-size: 0.72rem; ${badgeStyle}">
+            ${icon}
+          </span>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
 // Exponer globalmente
+window.getPlayerAttendanceHistory = getPlayerAttendanceHistory;
 window.getPlayerAttendanceStats = getPlayerAttendanceStats;
+window.renderPlayerModalAttendance = renderPlayerModalAttendance;
+window.formatSpanishAttendanceDate = formatSpanishAttendanceDate;
 window.initAttendanceModal = initAttendanceModal;
 window.openAttendanceModal = openAttendanceModal;
 window.saveCurrentAttendanceSession = saveCurrentAttendanceSession;

@@ -964,7 +964,7 @@ function openEventModal(eventId = null) {
     document.getElementById('event-title-custom').value = '';
     if (document.getElementById('event-tournament-teams')) document.getElementById('event-tournament-teams').value = '';
     if (document.getElementById('event-tournament-schedule')) document.getElementById('event-tournament-schedule').value = '';
-    document.getElementById('event-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('event-date').value = formatLocalDateToISO(new Date());
     document.getElementById('event-time').value = '10:00';
     document.getElementById('event-ishome').value = 'false';
     document.getElementById('event-price-tournament').value = 0;
@@ -1441,13 +1441,37 @@ const WEEKDAY_NAMES = {
   1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 0: 'Domingo'
 };
 
+function formatLocalDateToISO(date) {
+  if (!date) return '';
+  const d = (date instanceof Date) ? date : parseLocalDate(date);
+  if (!d || isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(dateInput) {
+  if (!dateInput) return new Date();
+  if (dateInput instanceof Date) return new Date(dateInput.getTime());
+  if (typeof dateInput === 'string') {
+    const parts = dateInput.split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      return new Date(y, m, d, 12, 0, 0);
+    }
+  }
+  const d = new Date(dateInput);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
+}
+
 function getMonday(d) {
-  const date = new Date(d);
-  const day = date.getDay();
+  const date = parseLocalDate(d);
+  const day = date.getDay(); // 0 = Domingo, 1 = Lunes, ...
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(date.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
-  return monday;
+  return new Date(date.getFullYear(), date.getMonth(), diff, 12, 0, 0);
 }
 
 if (!currentWeekMonday) {
@@ -1496,9 +1520,8 @@ function updateTrainingNavTitle() {
     currentWeekMonday = getMonday(new Date());
   }
 
-  const mon = new Date(currentWeekMonday);
-  const sun = new Date(mon);
-  sun.setDate(mon.getDate() + 6);
+  const mon = new Date(currentWeekMonday.getFullYear(), currentWeekMonday.getMonth(), currentWeekMonday.getDate(), 12, 0, 0);
+  const sun = new Date(currentWeekMonday.getFullYear(), currentWeekMonday.getMonth(), currentWeekMonday.getDate() + 6, 12, 0, 0);
 
   const monDay = mon.getDate();
   const sunDay = sun.getDate();
@@ -1517,7 +1540,12 @@ function navTrainingNav(delta) {
     navCalendarMonth(delta);
   } else {
     if (!currentWeekMonday) currentWeekMonday = getMonday(new Date());
-    currentWeekMonday.setDate(currentWeekMonday.getDate() + delta * 7);
+    currentWeekMonday = new Date(currentWeekMonday.getFullYear(), currentWeekMonday.getMonth(), currentWeekMonday.getDate() + delta * 7, 12, 0, 0);
+    // Preservar el mismo día de la semana seleccionado
+    const prevDate = parseLocalDate(calendarSelectedDate);
+    const dayOfWeek = (prevDate.getDay() === 0 ? 6 : prevDate.getDay() - 1);
+    const newSelected = new Date(currentWeekMonday.getFullYear(), currentWeekMonday.getMonth(), currentWeekMonday.getDate() + dayOfWeek, 12, 0, 0);
+    calendarSelectedDate = formatLocalDateToISO(newSelected);
     renderWeeklyCalendarStrip();
     renderSelectedDayTrainings();
   }
@@ -1541,7 +1569,7 @@ function navTrainingToday() {
   const now = new Date();
   calendarCurrentYear = now.getFullYear();
   calendarCurrentMonth = now.getMonth();
-  calendarSelectedDate = now.toISOString().split('T')[0];
+  calendarSelectedDate = formatLocalDateToISO(now);
   currentWeekMonday = getMonday(now);
 
   if (trainingActiveView === 'week') {
@@ -1605,22 +1633,21 @@ function renderWeeklyCalendarStrip() {
     calFilterTeam.value = filterTrainingTeamId;
   }
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = formatLocalDateToISO(new Date());
   if (!calendarSelectedDate) {
     calendarSelectedDate = todayStr;
   }
 
   if (!currentWeekMonday) {
-    currentWeekMonday = getMonday(new Date(calendarSelectedDate));
+    currentWeekMonday = getMonday(calendarSelectedDate);
   }
 
   const WEEK_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
   strip.innerHTML = '';
 
   for (let i = 0; i < 7; i++) {
-    const dayDate = new Date(currentWeekMonday);
-    dayDate.setDate(currentWeekMonday.getDate() + i);
-    const dateStr = dayDate.toISOString().split('T')[0];
+    const dayDate = new Date(currentWeekMonday.getFullYear(), currentWeekMonday.getMonth(), currentWeekMonday.getDate() + i, 12, 0, 0);
+    const dateStr = formatLocalDateToISO(dayDate);
     const dayNum = dayDate.getDate();
     const letter = WEEK_LETTERS[i];
 
@@ -1689,17 +1716,19 @@ function renderSelectedDayTrainings() {
   const teams = storage ? storage.getTeams() : [];
   const allAttendance = storage ? (storage.getAttendance() || {}) : {};
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = formatLocalDateToISO(new Date());
   if (!calendarSelectedDate) {
     calendarSelectedDate = todayStr;
   }
 
-  // Título con formato idéntico a la imagen (ej: "Martes, 22 Sept 2026")
+  // Título con formato idéntico a la imagen (ej: "Lunes, 21 Sept 2026")
   if (headingEl) {
-    const [y, m, d] = calendarSelectedDate.split('-').map(Number);
-    const dateObj = new Date(y, m - 1, d);
+    const dateObj = parseLocalDate(calendarSelectedDate);
     const dayName = WEEKDAY_NAMES[dateObj.getDay()] || 'Día';
-    const monthShort = SPANISH_MONTHS[m - 1] ? SPANISH_MONTHS[m - 1].substring(0, 4) : '';
+    const d = dateObj.getDate();
+    const m = dateObj.getMonth();
+    const y = dateObj.getFullYear();
+    const monthShort = SPANISH_MONTHS[m] ? SPANISH_MONTHS[m].substring(0, 4) : '';
     headingEl.textContent = `${dayName}, ${d} ${monthShort} ${y}`;
   }
 
@@ -1886,17 +1915,17 @@ function renderMonthlyCalendar() {
   }
 
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = formatLocalDateToISO(today);
   if (!calendarSelectedDate) {
     calendarSelectedDate = todayStr;
   }
 
   // Primer día del mes
-  const firstDay = new Date(calendarCurrentYear, calendarCurrentMonth, 1);
+  const firstDay = new Date(calendarCurrentYear, calendarCurrentMonth, 1, 12, 0, 0);
   // Total días del mes actual
-  const daysInMonth = new Date(calendarCurrentYear, calendarCurrentMonth + 1, 0).getDate();
+  const daysInMonth = new Date(calendarCurrentYear, calendarCurrentMonth + 1, 0, 12, 0, 0).getDate();
   // Total días del mes anterior
-  const daysInPrevMonth = new Date(calendarCurrentYear, calendarCurrentMonth, 0).getDate();
+  const daysInPrevMonth = new Date(calendarCurrentYear, calendarCurrentMonth, 0, 12, 0, 0).getDate();
 
   // Día de la semana del día 1 (0 = Dom, 1 = Lun ... 6 = Sáb)
   let firstDayIndex = firstDay.getDay();
@@ -1943,7 +1972,7 @@ function createCalendarDayCell(dayNum, dateStr, isOtherMonth, teams, allAttendan
   cell.className = 'calendar-day-cell';
   if (isOtherMonth) cell.classList.add('is-other-month');
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = formatLocalDateToISO(new Date());
   if (dateStr === todayStr) cell.classList.add('is-today');
   if (dateStr === calendarSelectedDate) cell.classList.add('is-selected');
 
@@ -1987,6 +2016,7 @@ function createCalendarDayCell(dayNum, dateStr, isOtherMonth, teams, allAttendan
 
   cell.onclick = () => {
     calendarSelectedDate = dateStr;
+    currentWeekMonday = getMonday(calendarSelectedDate);
     document.querySelectorAll('.calendar-day-cell').forEach(c => c.classList.remove('is-selected'));
     cell.classList.add('is-selected');
     renderSelectedDayDetails(dateStr);
@@ -2506,8 +2536,8 @@ function calcTrainingEndTime() {
 function setRecurDuration(type) {
   const startInput = document.getElementById('training-recur-start');
   const endInput = document.getElementById('training-recur-end');
-  const startDateStr = startInput?.value || new Date().toISOString().split('T')[0];
-  const startDate = new Date(startDateStr);
+  const startDateStr = startInput?.value || formatLocalDateToISO(new Date());
+  const startDate = parseLocalDate(startDateStr);
 
   let endDate = new Date(startDate);
   if (type === 1) {
@@ -2516,11 +2546,11 @@ function setRecurDuration(type) {
     endDate.setMonth(endDate.getMonth() + 3);
   } else if (type === 'season') {
     const y = startDate.getMonth() >= 6 ? startDate.getFullYear() + 1 : startDate.getFullYear();
-    endDate = new Date(y, 5, 30); // 30 de Junio
+    endDate = new Date(y, 5, 30, 12, 0, 0); // 30 de Junio
   }
 
   if (endInput) {
-    endInput.value = endDate.toISOString().split('T')[0];
+    endInput.value = formatLocalDateToISO(endDate);
   }
   updateRecurringPreview();
 }
@@ -2634,14 +2664,14 @@ function openEditTrainingModal(sessionId = null, defaultDate = null, forceMode =
     if (editIdInput) editIdInput.value = '';
     if (toggleBar) toggleBar.style.display = 'flex';
 
-    const todayStr = defaultDate || new Date().toISOString().split('T')[0];
+    const todayStr = defaultDate || formatLocalDateToISO(new Date());
     document.getElementById('training-date').value = todayStr;
     document.getElementById('training-recur-start').value = todayStr;
 
     // Fecha fin por defecto: +3 meses
-    const defaultEnd = new Date(todayStr);
+    const defaultEnd = parseLocalDate(todayStr);
     defaultEnd.setMonth(defaultEnd.getMonth() + 3);
-    document.getElementById('training-recur-end').value = defaultEnd.toISOString().split('T')[0];
+    document.getElementById('training-recur-end').value = formatLocalDateToISO(defaultEnd);
 
     document.getElementById('training-title').value = 'Entrenamiento habitual';
     document.getElementById('training-time-start').value = '17:30';
@@ -2796,13 +2826,13 @@ function saveTrainingSession() {
       return;
     }
 
-    let cur = new Date(dStart);
+    let cur = parseLocalDate(dStart);
     let createdCount = 0;
     const tsBase = Date.now();
 
     while (cur <= dEnd) {
       if (selectedWeekdays.has(cur.getDay())) {
-        const dIso = cur.toISOString().split('T')[0];
+        const dIso = formatLocalDateToISO(cur);
         const newSession = {
           id: `tr_${tsBase}_${createdCount}`,
           title,
@@ -2818,7 +2848,7 @@ function saveTrainingSession() {
         trainingSessionsList.push(newSession);
         createdCount++;
       }
-      cur.setDate(cur.getDate() + 1);
+      cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1, 12, 0, 0);
     }
 
     calendarSelectedDate = startStr;
@@ -2916,9 +2946,9 @@ function initAttendanceStatsLogic() {
   }
 
   const now = new Date();
-  const past30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  statsDateTo = now.toISOString().split('T')[0];
-  statsDateFrom = past30.toISOString().split('T')[0];
+  const past30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30, 12, 0, 0);
+  statsDateTo = formatLocalDateToISO(now);
+  statsDateFrom = formatLocalDateToISO(past30);
 
   if (inputFrom) {
     inputFrom.value = statsDateFrom;
@@ -2961,14 +2991,14 @@ function initAttendanceStatsLogic() {
 
 function setStatsDatePreset(preset) {
   const now = new Date();
-  statsDateTo = now.toISOString().split('T')[0];
+  statsDateTo = formatLocalDateToISO(now);
 
   if (preset === '7' || preset === 7) {
-    const d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    statsDateFrom = d.toISOString().split('T')[0];
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 12, 0, 0);
+    statsDateFrom = formatLocalDateToISO(d);
   } else if (preset === '30' || preset === 30) {
-    const d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    statsDateFrom = d.toISOString().split('T')[0];
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30, 12, 0, 0);
+    statsDateFrom = formatLocalDateToISO(d);
   } else if (preset === 'month') {
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -3359,3 +3389,6 @@ window.renderSelectedDayTrainings = renderSelectedDayTrainings;
 window.renderMonthlyCalendar = renderMonthlyCalendar;
 window.renderTrainingCalendarView = renderTrainingCalendarView;
 window.getAttendanceForSession = getAttendanceForSession;
+window.formatLocalDateToISO = formatLocalDateToISO;
+window.parseLocalDate = parseLocalDate;
+window.getMonday = getMonday;

@@ -424,7 +424,24 @@ function renderPlayersList() {
 
     const avatarUrl = player.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name + '+' + player.lastName)}&background=18233c&color=fff&size=120`;
 
-    card.innerHTML = `
+        const attStats = (typeof window.getPlayerAttendanceStats === 'function')
+          ? window.getPlayerAttendanceStats(player.id, 30)
+          : null;
+        let attBadgeHtml = '';
+        if (attStats && attStats.totalSessions > 0) {
+          let badgeColor = '#34d399';
+          let badgeBg = 'rgba(16, 185, 129, 0.15)';
+          if (attStats.percentage < 60) {
+            badgeColor = '#f87171';
+            badgeBg = 'rgba(239, 68, 68, 0.15)';
+          } else if (attStats.percentage < 80) {
+            badgeColor = '#fbbf24';
+            badgeBg = 'rgba(245, 158, 11, 0.15)';
+          }
+          attBadgeHtml = `<span class="tag-badge" style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 700;" title="Asistencia: ${attStats.presentCount}/${attStats.totalSessions} entrenamientos (últimos 30 días)">📊 ${attStats.percentage}% asist.</span>`;
+        }
+
+        card.innerHTML = `
       <label class="player-card-select-wrap" title="Seleccionar jugador">
         <input type="checkbox" class="player-select-checkbox" data-pid="${player.id}" ${isSelected ? 'checked' : ''}>
       </label>
@@ -450,6 +467,7 @@ function renderPlayersList() {
           ${player.secondaryPosition ? `<span class="tag-badge">${player.secondaryPosition}</span>` : ''}
           <span class="tag-badge ${footClass}">${footText}</span>
           <span class="tag-badge">${formatDate(player.birthDate)}</span>
+          ${attBadgeHtml}
           ${kitBadgeHtml}
           ${dorsalBadgeHtml}
         </div>
@@ -1240,6 +1258,9 @@ function openPlayerModal(playerId = null) {
   renderCoachNotes();
   updateEquipmentStatusUI();
   checkPlayerModalDorsalConflict();
+  if (typeof renderPlayerModalAttendance === 'function') {
+    renderPlayerModalAttendance(playerId, 30);
+  }
   openModal(document.getElementById('modal-player'));
 }
 

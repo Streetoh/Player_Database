@@ -541,6 +541,61 @@
               </div>
             </div>
           </div>
+
+          <!-- SECCIÓN 7: Control y Estadísticas de Asistencia -->
+          <div class="modal-section-card" id="player-modal-attendance-section" style="border-color: rgba(16, 185, 129, 0.35);">
+            <div class="modal-section-header" style="color: #34d399; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span>📊</span> <span>Control y Estadísticas de Asistencia</span>
+              </div>
+              <div class="att-period-tabs" style="display: flex; gap: 0.35rem; align-items: center;">
+                <button type="button" class="btn btn-xs att-period-btn" data-period="30" style="font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">30 días</button>
+                <button type="button" class="btn btn-xs att-period-btn" data-period="90" style="font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">90 días</button>
+                <button type="button" class="btn btn-xs att-period-btn" data-period="365" style="font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">Toda la temporada</button>
+              </div>
+            </div>
+
+            <!-- Aviso si es jugador nuevo o no tiene registros en el periodo -->
+            <div id="player-att-empty" style="display: none; padding: 1.15rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; background: var(--bg-secondary); border-radius: 8px; border: 1px dashed var(--border-subtle);">
+              ℹ️ Aún no hay registros de asistencia para este jugador.
+            </div>
+
+            <!-- Contenido de métricas y desglose -->
+            <div id="player-att-stats-content">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 0.6rem; margin-bottom: 0.85rem;">
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center;">
+                  <div style="font-size: 0.7rem; color: #34d399; font-weight: 700; text-transform: uppercase;">Asistencia</div>
+                  <div id="player-att-pct" style="font-size: 1.4rem; font-weight: 800; color: #34d399;">--%</div>
+                </div>
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center;">
+                  <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Sesiones</div>
+                  <div id="player-att-total" style="font-size: 1.4rem; font-weight: 800; color: #fff;">0</div>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center;">
+                  <div style="font-size: 0.7rem; color: #10b981; font-weight: 600; text-transform: uppercase;">Presente</div>
+                  <div id="player-att-present" style="font-size: 1.4rem; font-weight: 800; color: #10b981;">0</div>
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center;">
+                  <div style="font-size: 0.7rem; color: #f87171; font-weight: 600; text-transform: uppercase;">Ausente</div>
+                  <div id="player-att-absent" style="font-size: 1.4rem; font-weight: 800; color: #f87171;">0</div>
+                </div>
+              </div>
+
+              <!-- Barra de progreso -->
+              <div style="background: rgba(255, 255, 255, 0.08); border-radius: 9999px; height: 8px; overflow: hidden; margin-bottom: 0.85rem;">
+                <div id="player-att-progress-bar" style="background: #10b981; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+              </div>
+
+              <!-- Historial de sesiones -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);">Registro detallado de entrenamientos</span>
+                <span id="player-att-count-summary" style="font-size: 0.72rem; color: var(--text-muted);"></span>
+              </div>
+              <div id="player-att-history-list" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.4rem; padding-right: 0.25rem;">
+                <!-- Días generados dinámicamente -->
+              </div>
+            </div>
+          </div>
         </form>
       </div>
       <div class="modal-footer">

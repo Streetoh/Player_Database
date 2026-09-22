@@ -1103,8 +1103,36 @@ const StorageService = {
   }
 };
 
+function formatLocalDateToISO(date) {
+  if (!date) return '';
+  const d = (date instanceof Date) ? date : parseLocalDate(date);
+  if (!d || isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(dateInput) {
+  if (!dateInput) return new Date();
+  if (dateInput instanceof Date) return new Date(dateInput.getTime());
+  if (typeof dateInput === 'string') {
+    const parts = dateInput.split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      return new Date(y, m, d, 12, 0, 0);
+    }
+  }
+  const d = new Date(dateInput);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
+}
+
 // Registro en el entorno global para compatibilidad con carga de archivo local (file://)
 if (typeof window !== 'undefined') {
+  window.formatLocalDateToISO = formatLocalDateToISO;
+  window.parseLocalDate = parseLocalDate;
   window.SafeStorage = SafeStorage;
   window.JKNoovaData = {
     DEFAULT_TEAMS,
@@ -1121,7 +1149,9 @@ if (typeof window !== 'undefined') {
     SHIN_GUARD_SIZES,
     BEANIE_SIZES,
     createDefaultEquipment,
-    checkPlayerOfficialEquipment
+    checkPlayerOfficialEquipment,
+    formatLocalDateToISO,
+    parseLocalDate
   };
 }
 
