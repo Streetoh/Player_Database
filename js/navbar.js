@@ -53,27 +53,27 @@ function initSharedNavbar(activePage) {
     bottomNav.innerHTML = `
       <a href="index.html" class="mobile-nav-item ${isDatabasePage ? 'active' : ''}" data-page="database">
         <span class="mobile-nav-icon">📋</span>
-        <span class="mobile-nav-label" data-i18n="nav.database">Jugadores</span>
+        <span class="mobile-nav-label" data-i18n="nav.mobile.database">Jugadores</span>
       </a>
       <a href="equipos.html" class="mobile-nav-item ${isTeamsPage ? 'active' : ''}" data-page="teams">
         <span class="mobile-nav-icon">🛡️</span>
-        <span class="mobile-nav-label" data-i18n="nav.teams">Equipos</span>
+        <span class="mobile-nav-label" data-i18n="nav.mobile.teams">Equipos</span>
       </a>
       <a href="calendario.html" class="mobile-nav-item ${isCalendarPage ? 'active' : ''}" data-page="calendar">
         <span class="mobile-nav-icon">⚽</span>
-        <span class="mobile-nav-label" data-i18n="nav.calendar">Partidos</span>
+        <span class="mobile-nav-label" data-i18n="nav.mobile.calendar">Partidos</span>
       </a>
       <a href="entrenamientos.html" class="mobile-nav-item ${isTrainingsPage ? 'active' : ''}" data-page="trainings">
         <span class="mobile-nav-icon">🏃</span>
-        <span class="mobile-nav-label" data-i18n="nav.trainings">Entrenos</span>
+        <span class="mobile-nav-label" data-i18n="nav.mobile.trainings">Entrenos</span>
       </a>
       <a href="asistencia.html" class="mobile-nav-item ${isAttendancePage ? 'active' : ''}" data-page="attendance">
         <span class="mobile-nav-icon">📊</span>
-        <span class="mobile-nav-label" data-i18n="nav.attendance">Asistencia</span>
+        <span class="mobile-nav-label" data-i18n="nav.mobile.attendance">Asistencia</span>
       </a>
       <a href="transporte.html" class="mobile-nav-item ${isTransportPage ? 'active' : ''}" data-page="transport">
         <span class="mobile-nav-icon">🚐</span>
-        <span class="mobile-nav-label" data-i18n="nav.transport">Transporte</span>
+        <span class="mobile-nav-label" data-i18n="nav.mobile.transport">Transporte</span>
       </a>
     `;
     document.body.appendChild(bottomNav);
