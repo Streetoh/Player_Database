@@ -7,6 +7,7 @@ function initSharedNavbar(activePage) {
   // Aliases normalizados para páginas activas
   const isCalendarPage = activePage === 'calendar' || activePage === 'events' || activePage === 'calendario' || activePage === 'partidos';
   const isTrainingsPage = activePage === 'trainings' || activePage === 'entrenamientos';
+  const isAttendancePage = activePage === 'attendance' || activePage === 'asistencia';
   const isDatabasePage = activePage === 'database' || activePage === 'jugadores';
   const isTeamsPage = activePage === 'teams' || activePage === 'equipos';
   const isTransportPage = activePage === 'transport' || activePage === 'transporte';
@@ -18,6 +19,7 @@ function initSharedNavbar(activePage) {
     const isActive = (pageTarget === activePage) ||
       ((pageTarget === 'calendar' || pageTarget === 'events') && isCalendarPage) ||
       ((pageTarget === 'trainings' || pageTarget === 'entrenamientos') && isTrainingsPage) ||
+      ((pageTarget === 'attendance' || pageTarget === 'asistencia') && isAttendancePage) ||
       ((pageTarget === 'database' || pageTarget === 'jugadores') && isDatabasePage) ||
       ((pageTarget === 'teams' || pageTarget === 'equipos') && isTeamsPage) ||
       ((pageTarget === 'transport' || pageTarget === 'transporte') && isTransportPage);
@@ -65,6 +67,10 @@ function initSharedNavbar(activePage) {
         <span class="mobile-nav-icon">🏃</span>
         <span class="mobile-nav-label" data-i18n="nav.trainings">Entrenos</span>
       </a>
+      <a href="asistencia.html" class="mobile-nav-item ${isAttendancePage ? 'active' : ''}" data-page="attendance">
+        <span class="mobile-nav-icon">📊</span>
+        <span class="mobile-nav-label" data-i18n="nav.attendance">Asistencia</span>
+      </a>
       <a href="transporte.html" class="mobile-nav-item ${isTransportPage ? 'active' : ''}" data-page="transport">
         <span class="mobile-nav-icon">🚐</span>
         <span class="mobile-nav-label" data-i18n="nav.transport">Transporte</span>
@@ -76,6 +82,7 @@ function initSharedNavbar(activePage) {
       const p = item.getAttribute('data-page');
       const isAct = ((p === 'calendar' || p === 'events') && isCalendarPage) ||
                     ((p === 'trainings' || p === 'entrenamientos') && isTrainingsPage) ||
+                    ((p === 'attendance' || p === 'asistencia') && isAttendancePage) ||
                     ((p === 'database' || p === 'jugadores') && isDatabasePage) ||
                     ((p === 'teams' || p === 'equipos') && isTeamsPage) ||
                     ((p === 'transport' || p === 'transporte') && isTransportPage) ||

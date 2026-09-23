@@ -5475,6 +5475,9 @@ html, body {
   margin: 0 0.3rem;
   letter-spacing: -0.2px;
   white-space: nowrap;
+  width: 210px;
+  text-align: center;
+  display: inline-block;
 }
 
 .week-view-toggle-compact {

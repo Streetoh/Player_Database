@@ -55,8 +55,8 @@ function loadData() {
   const paramEvent = urlParams.get('event');
   if (paramEvent && eventsList.some(e => e.id === paramEvent)) {
     selectedEventId = paramEvent;
-  } else if (eventsList.length > 0) {
-    selectedEventId = eventsList[0].id;
+  } else {
+    selectedEventId = null;
   }
 }
 
@@ -144,10 +144,51 @@ function renderConvocatoriaPanel() {
   if (!container) return;
   container.innerHTML = '';
 
+  const tFn = window.t || ((k, def) => def);
   const event = eventsList.find(e => e.id === selectedEventId);
   if (!event) {
-    document.getElementById('detail-event-title').textContent = 'Selecciona un partido';
-    document.getElementById('detail-event-subtitle').textContent = 'Elige un partido de la lista para ver su convocatoria filtrada';
+    const titleEl = document.getElementById('detail-event-title');
+    if (titleEl) titleEl.textContent = tFn('matches.selectMatchPrompt', 'Selecciona un partido');
+    const subtitleEl = document.getElementById('detail-event-subtitle');
+    if (subtitleEl) subtitleEl.textContent = tFn('matches.selectMatchHelp', 'Elige un partido de la lista para ver su convocatoria y detalles');
+    const badge = document.getElementById('detail-event-badge');
+    if (badge) badge.style.display = 'none';
+
+    const elTourn = document.getElementById('detail-price-tournament');
+    const elTournPerPlayer = document.getElementById('detail-price-tournament-per-player');
+    const elTrans = document.getElementById('detail-price-transport');
+    const elTransPerBus = document.getElementById('detail-price-transport-per-bus');
+    const elSummoned = document.getElementById('detail-total-summoned');
+    const elBreakdownCounts = document.getElementById('detail-total-breakdown-counts');
+    const elPriceBus = document.getElementById('detail-price-per-player-bus');
+    const elBusHint = document.getElementById('detail-bus-breakdown-hint');
+    const elPriceCar = document.getElementById('detail-price-per-player-car');
+    const elCarHint = document.getElementById('detail-car-breakdown-hint');
+
+    if (elTourn) elTourn.textContent = '0 €';
+    if (elTournPerPlayer) elTournPerPlayer.textContent = '0,00 € / convocado';
+    if (elTrans) elTrans.textContent = '0 €';
+    if (elTransPerBus) elTransPerBus.textContent = '0,00 € / plaza bus';
+    if (elSummoned) elSummoned.textContent = '0 jugadores';
+    if (elBreakdownCounts) elBreakdownCounts.textContent = '0 en bus • 0 en coche';
+    if (elPriceBus) elPriceBus.textContent = '0,00 €';
+    if (elBusHint) elBusHint.textContent = 'Desglose: 0,00€ torneo + 0,00€ transporte';
+    if (elPriceCar) elPriceCar.textContent = '0,00 €';
+    if (elCarHint) elCarHint.textContent = 'Desglose: 0,00€ torneo + 0,00€ transporte';
+
+    const chipMinibus = document.getElementById('chip-count-minibus');
+    if (chipMinibus) chipMinibus.innerHTML = '🚐 Furgoneta del club: <strong>0 plazas</strong>';
+    const chipCar = document.getElementById('chip-count-car');
+    if (chipCar) chipCar.innerHTML = '🚗 En coche particular: <strong>0</strong>';
+
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2.5rem; color: var(--text-muted); background: var(--bg-secondary); border-radius: 8px;">
+        ${tFn('matches.selectMatchHelp', 'Elige un partido de la lista para ver su convocatoria y detalles')}
+      </div>
+    `;
+    if (typeof updateCashboxSummaryDOM === 'function') {
+      updateCashboxSummaryDOM(0, 0, 0, 0);
+    }
     return;
   }
 
@@ -163,6 +204,7 @@ function renderConvocatoriaPanel() {
   
   const badge = document.getElementById('detail-event-badge');
   if (badge) {
+    badge.style.display = 'inline-block';
     badge.textContent = event.eventType;
     badge.className = `event-type-badge ${event.eventType === 'Torneo' ? 'badge-torneo' : event.eventType === 'Amistoso' ? 'badge-amistoso' : 'badge-liga'}`;
   }
@@ -1665,7 +1707,21 @@ function renderWeeklyCalendarStrip() {
       });
     }
 
-    const hasSessions = sessions.length > 0;
+    const dayTeamIds = Array.from(new Set(sessions.map(s => s.teamId).filter(Boolean)));
+    let dotsHtml = '';
+    if (dayTeamIds.length === 0) {
+      dotsHtml = `<span class="week-day-dot empty"></span>`;
+    } else {
+      dotsHtml = `<span class="week-day-dots-container" style="display: flex; gap: 3px; justify-content: center; align-items: center; min-height: 8px; flex-wrap: wrap; max-width: 32px;">`;
+      dayTeamIds.forEach(tId => {
+        const team = teamsList.find(t => t.id === tId);
+        const col = team?.color || '#10b981';
+        const teamName = team?.name || 'Equipo';
+        dotsHtml += `<span class="week-day-dot has-team" style="background-color: ${col}; width: 6px; height: 6px; border-radius: 50%; display: inline-block;" title="${escapeHTML(teamName)}"></span>`;
+      });
+      dotsHtml += `</span>`;
+    }
+
     const pill = document.createElement('div');
     pill.className = 'week-day-pill';
     if (dateStr === calendarSelectedDate) pill.classList.add('is-selected');
@@ -1674,7 +1730,7 @@ function renderWeeklyCalendarStrip() {
     pill.innerHTML = `
       <span class="week-day-letter">${letter}</span>
       <span class="week-day-num">${dayNum}</span>
-      <span class="week-day-dot ${hasSessions ? '' : 'empty'}"></span>
+      ${dotsHtml}
     `;
 
     pill.onclick = () => {
@@ -1768,20 +1824,21 @@ function renderSelectedDayTrainings() {
     const dateAtt = getAttendanceForSession(session, allAttendance);
     let attBadgeHtml = '';
 
+    const tFn = window.t || ((k, def) => def);
     if (dateAtt) {
       const pids = Object.keys(dateAtt);
       const presCount = pids.filter(id => dateAtt[id] === 'present').length;
       const totalCount = pids.length;
       const pct = totalCount > 0 ? Math.round((presCount / totalCount) * 100) : 0;
       attBadgeHtml = `
-        <span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
-          ✔ ${presCount}/${totalCount} (${pct}%)
+        <span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 800; display: inline-flex; align-items: center; gap: 0.25rem;">
+          ${tFn('attendance.badgeDone', '✔ Lista pasada')} (${presCount}/${totalCount} • ${pct}%)
         </span>
       `;
     } else {
       attBadgeHtml = `
-        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
-          ⏳ Sin lista
+        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+          ${tFn('attendance.badgePending', '⏳ Sin pasar lista')}
         </span>
       `;
     }
@@ -1838,9 +1895,15 @@ function renderSelectedDayTrainings() {
       ` : ''}
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.55rem; padding-top: 0.55rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-        <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
-          📋 Pasar lista
-        </button>
+        ${dateAtt ? `
+          <button type="button" class="btn btn-secondary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
+            ${tFn('attendance.modifyList', '✏️ Modificar lista')}
+          </button>
+        ` : `
+          <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
+            ${tFn('attendance.takeList', '📋 Pasar lista')}
+          </button>
+        `}
         <div style="display: flex; gap: 0.3rem;">
           <button type="button" class="btn btn-secondary btn-sm btn-session-edit" data-sid="${session.id}" style="font-size: 0.75rem; padding: 0.35rem 0.55rem;" title="Editar entrenamiento">
             ✏️
@@ -1862,7 +1925,7 @@ function renderSelectedDayTrainings() {
       btnAtt.onclick = (e) => {
         e.stopPropagation();
         if (typeof openAttendanceModal === 'function') {
-          openAttendanceModal(session.teamId, session.date);
+          openAttendanceModal(session.teamId, session.date, session);
         }
       };
     }
@@ -2081,20 +2144,21 @@ function renderSelectedDayDetails(dateStr) {
     const dateAtt = getAttendanceForSession(session, allAttendance);
     let attBadgeHtml = '';
 
+    const tFn = window.t || ((k, def) => def);
     if (dateAtt) {
       const pids = Object.keys(dateAtt);
       const presCount = pids.filter(id => dateAtt[id] === 'present').length;
       const totalCount = pids.length;
       const pct = totalCount > 0 ? Math.round((presCount / totalCount) * 100) : 0;
       attBadgeHtml = `
-        <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
-          ✔ ${presCount}/${totalCount} (${pct}%)
+        <span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 800; display: inline-flex; align-items: center; gap: 0.25rem;">
+          ${tFn('attendance.badgeDone', '✔ Lista pasada')} (${presCount}/${totalCount} • ${pct}%)
         </span>
       `;
     } else {
       attBadgeHtml = `
-        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
-          ⏳ Sin pasar lista
+        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+          ${tFn('attendance.badgePending', '⏳ Sin pasar lista')}
         </span>
       `;
     }
@@ -2152,9 +2216,15 @@ function renderSelectedDayDetails(dateStr) {
       ` : ''}
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-        <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
-          📋 Pasar lista
-        </button>
+        ${dateAtt ? `
+          <button type="button" class="btn btn-secondary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
+            ${tFn('attendance.modifyList', '✏️ Modificar lista')}
+          </button>
+        ` : `
+          <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
+            ${tFn('attendance.takeList', '📋 Pasar lista')}
+          </button>
+        `}
         <div style="display: flex; gap: 0.3rem;">
           <button type="button" class="btn btn-secondary btn-sm btn-session-edit" data-sid="${session.id}" style="font-size: 0.75rem; padding: 0.35rem 0.55rem;" title="Editar entrenamiento">
             ✏️
@@ -2176,7 +2246,7 @@ function renderSelectedDayDetails(dateStr) {
       btnAtt.onclick = (e) => {
         e.stopPropagation();
         if (typeof openAttendanceModal === 'function') {
-          openAttendanceModal(session.teamId, session.date);
+          openAttendanceModal(session.teamId, session.date, session);
         }
       };
     }
@@ -2207,6 +2277,7 @@ function initTrainingCalendarLogic() {
   if (!window.JKNoovaData) return;
   const storage = window.JKNoovaData.StorageService;
   trainingSessionsList = storage.getTrainingSessions();
+  initSavedLocationsControls();
 
   const btnAdd = document.getElementById('btn-add-training-session');
   if (btnAdd) {
@@ -2333,20 +2404,21 @@ function renderTrainingSessions() {
     const dateAtt = getAttendanceForSession(session, allAttendance);
     let attBadgeHtml = '';
 
+    const tFn = window.t || ((k, def) => def);
     if (dateAtt) {
       const pids = Object.keys(dateAtt);
       const presCount = pids.filter(id => dateAtt[id] === 'present').length;
       const totalCount = pids.length;
       const pct = totalCount > 0 ? Math.round((presCount / totalCount) * 100) : 0;
       attBadgeHtml = `
-        <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
-          ✔ ${presCount}/${totalCount} (${pct}%)
+        <span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 800; display: inline-flex; align-items: center; gap: 0.25rem;">
+          ${tFn('attendance.badgeDone', '✔ Lista pasada')} (${presCount}/${totalCount} • ${pct}%)
         </span>
       `;
     } else {
       attBadgeHtml = `
-        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
-          ⏳ Sin pasar lista
+        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+          ${tFn('attendance.badgePending', '⏳ Sin pasar lista')}
         </span>
       `;
     }
@@ -2405,9 +2477,15 @@ function renderTrainingSessions() {
       ` : ''}
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-        <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
-          📋 Pasar lista
-        </button>
+        ${dateAtt ? `
+          <button type="button" class="btn btn-secondary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
+            ${tFn('attendance.modifyList', '✏️ Modificar lista')}
+          </button>
+        ` : `
+          <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
+            ${tFn('attendance.takeList', '📋 Pasar lista')}
+          </button>
+        `}
         <div style="display: flex; gap: 0.3rem;">
           <button type="button" class="btn btn-secondary btn-sm btn-session-edit" data-sid="${session.id}" style="font-size: 0.75rem; padding: 0.35rem 0.55rem;" title="Editar entrenamiento">
             ✏️
@@ -2429,7 +2507,7 @@ function renderTrainingSessions() {
       btnAtt.onclick = (e) => {
         e.stopPropagation();
         if (typeof openAttendanceModal === 'function') {
-          openAttendanceModal(session.teamId, session.date);
+          openAttendanceModal(session.teamId, session.date, session);
         }
       };
     }
@@ -2454,6 +2532,283 @@ function renderTrainingSessions() {
   });
 }
 
+function initSavedLocationsControls() {
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage || typeof storage.getSavedLocations !== 'function') return;
+  const saved = storage.getSavedLocations();
+
+  const dlNames = document.getElementById('saved-training-locations-list');
+  const dlAddrs = document.getElementById('saved-training-addresses-list');
+  const selQuick = document.getElementById('quick-saved-locations-select');
+
+  if (dlNames) {
+    dlNames.innerHTML = saved.map(l => `<option value="${escapeHTML(l.name)}">${escapeHTML(l.address || '')}</option>`).join('');
+  }
+  if (dlAddrs) {
+    dlAddrs.innerHTML = saved.filter(l => l.address).map(l => `<option value="${escapeHTML(l.address)}">${escapeHTML(l.name)}</option>`).join('');
+  }
+  if (selQuick) {
+    const tFn = window.t || ((k, def) => def);
+    selQuick.innerHTML = `<option value="">${tFn('trainings.savedLocations', '⭐ Elegir campo habitual...')}</option>` +
+      saved.map((l, i) => `<option value="${i}">📍 ${escapeHTML(l.name)}${l.address ? ` (${escapeHTML(l.address)})` : ''}</option>`).join('');
+  }
+}
+
+function onSelectSavedLocation(indexStr) {
+  if (indexStr === '' || isNaN(indexStr)) return;
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage || typeof storage.getSavedLocations !== 'function') return;
+  const saved = storage.getSavedLocations();
+  const loc = saved[parseInt(indexStr, 10)];
+  if (!loc) return;
+
+  const locInput = document.getElementById('training-location');
+  const addrInput = document.getElementById('training-address');
+  if (locInput) locInput.value = loc.name;
+  if (addrInput) addrInput.value = loc.address || '';
+  updateRecurringPreview();
+}
+
+function onTrainingLocationInput(val) {
+  if (!val) return;
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage || typeof storage.getSavedLocations !== 'function') return;
+  const saved = storage.getSavedLocations();
+  const match = saved.find(l => l.name.toLowerCase() === val.toLowerCase().trim());
+  if (match && match.address) {
+    const addrInput = document.getElementById('training-address');
+    if (addrInput && !addrInput.value) {
+      addrInput.value = match.address;
+    }
+  }
+}
+
+function openSavedLocationsModal() {
+  const modal = document.getElementById('modal-manage-locations');
+  if (!modal) return;
+  cancelLocationEdit();
+  renderSavedLocationsList();
+  if (typeof openModal === 'function') {
+    openModal(modal);
+  } else {
+    modal.classList.add('active');
+  }
+}
+
+function cancelLocationEdit() {
+  const nameInput = document.getElementById('loc-name-input');
+  const addrInput = document.getElementById('loc-address-input');
+  const idxInput = document.getElementById('edit-location-index');
+  const title = document.getElementById('location-editor-title');
+  const btnCancel = document.getElementById('btn-cancel-location-edit');
+  const btnSave = document.getElementById('btn-save-location');
+  const tFn = window.t || ((k, def) => def);
+
+  if (nameInput) nameInput.value = '';
+  if (addrInput) addrInput.value = '';
+  if (idxInput) idxInput.value = '-1';
+  if (title) title.textContent = tFn('trainings.addNewLocation', '➕ Añadir nueva ubicación');
+  if (btnCancel) btnCancel.style.display = 'none';
+  if (btnSave) btnSave.textContent = '💾 ' + tFn('common.save', 'Guardar ubicación');
+}
+
+function renderSavedLocationsList() {
+  const container = document.getElementById('saved-locations-manager-list');
+  if (!container) return;
+
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage || typeof storage.getSavedLocations !== 'function') return;
+  const saved = storage.getSavedLocations();
+  const tFn = window.t || ((k, def) => def);
+
+  container.innerHTML = '';
+  if (saved.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); background: rgba(255,255,255,0.02); border-radius: 8px;">
+        No hay ubicaciones guardadas en la lista. Utiliza el formulario superior para añadir la primera.
+      </div>
+    `;
+    return;
+  }
+
+  saved.forEach((loc, index) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; gap: 0.75rem;';
+    card.innerHTML = `
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-weight: 700; color: #fff; font-size: 0.9rem;">
+          📍 ${escapeHTML(loc.name)}
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">
+          ${escapeHTML(loc.address || 'Sin dirección física especificada')}
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.35rem; align-items: center;">
+        <button type="button" class="btn btn-secondary btn-xs btn-edit-loc" style="font-size: 0.72rem; padding: 0.25rem 0.5rem;" title="${tFn('trainings.editLocation', 'Editar')}">
+          ✏️
+        </button>
+        <button type="button" class="btn btn-danger btn-xs btn-del-loc" style="font-size: 0.72rem; padding: 0.25rem 0.5rem;" title="${tFn('common.delete', 'Eliminar')}">
+          🗑️
+        </button>
+      </div>
+    `;
+
+    const btnEdit = card.querySelector('.btn-edit-loc');
+    if (btnEdit) {
+      btnEdit.onclick = () => editSavedLocation(index);
+    }
+    const btnDel = card.querySelector('.btn-del-loc');
+    if (btnDel) {
+      btnDel.onclick = () => deleteSavedLocation(index);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+function editSavedLocation(index) {
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage || typeof storage.getSavedLocations !== 'function') return;
+  const saved = storage.getSavedLocations();
+  const loc = saved[index];
+  if (!loc) return;
+
+  const nameInput = document.getElementById('loc-name-input');
+  const addrInput = document.getElementById('loc-address-input');
+  const idxInput = document.getElementById('edit-location-index');
+  const title = document.getElementById('location-editor-title');
+  const btnCancel = document.getElementById('btn-cancel-location-edit');
+  const btnSave = document.getElementById('btn-save-location');
+  const tFn = window.t || ((k, def) => def);
+
+  if (nameInput) nameInput.value = loc.name;
+  if (addrInput) addrInput.value = loc.address || '';
+  if (idxInput) idxInput.value = String(index);
+  if (title) title.textContent = `✏️ ${tFn('trainings.editLocation', 'Editar ubicación')}: ${loc.name}`;
+  if (btnCancel) btnCancel.style.display = 'inline-block';
+  if (btnSave) btnSave.textContent = '💾 ' + tFn('common.save', 'Guardar cambios');
+
+  nameInput?.focus();
+}
+
+function saveLocationFromManager() {
+  const nameInput = document.getElementById('loc-name-input');
+  const addrInput = document.getElementById('loc-address-input');
+  const idxInput = document.getElementById('edit-location-index');
+  const name = (nameInput?.value || '').trim();
+  const address = (addrInput?.value || '').trim();
+  const index = parseInt(idxInput?.value, 10);
+  const tFn = window.t || ((k, def) => def);
+
+  if (!name) {
+    showToast(tFn('toast.required', 'Por favor completa el nombre de la instalación'), 'error');
+    return;
+  }
+
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage || typeof storage.getSavedLocations !== 'function') return;
+  const saved = storage.getSavedLocations();
+
+  if (!isNaN(index) && index >= 0 && index < saved.length) {
+    saved[index] = { name, address };
+    showToast(tFn('trainings.locationSaved', 'Ubicación actualizada con éxito'), 'success');
+  } else {
+    const exists = saved.find(l => l.name.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      exists.address = address;
+    } else {
+      saved.push({ name, address });
+    }
+    showToast(tFn('trainings.locationSaved', 'Ubicación guardada con éxito'), 'success');
+  }
+
+  storage.saveSavedLocations(saved);
+  cancelLocationEdit();
+  renderSavedLocationsList();
+  initSavedLocationsControls();
+}
+
+function deleteSavedLocation(index) {
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage || typeof storage.getSavedLocations !== 'function') return;
+  const saved = storage.getSavedLocations();
+  const loc = saved[index];
+  if (!loc) return;
+
+  const tFn = window.t || ((k, def) => def);
+  const confirmMsg = `${tFn('trainings.confirmDeleteLocation', '¿Deseas eliminar esta ubicación guardada?')}\n\n• ${loc.name}`;
+  if (!confirm(confirmMsg)) return;
+
+  saved.splice(index, 1);
+  storage.saveSavedLocations(saved);
+  cancelLocationEdit();
+  renderSavedLocationsList();
+  initSavedLocationsControls();
+  showToast(tFn('trainings.locationDeleted', 'Ubicación eliminada'), 'info');
+}
+
+window.openSavedLocationsModal = openSavedLocationsModal;
+window.cancelLocationEdit = cancelLocationEdit;
+window.saveLocationFromManager = saveLocationFromManager;
+
+function renderRecurringDaysTimeConfig() {
+  const container = document.getElementById('recurring-days-time-config');
+  if (!container) return;
+
+  if (selectedWeekdays.size === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const tFn = window.t || ((k, def) => def);
+  const globalStart = document.getElementById('training-time-start')?.value || '17:30';
+  const { endTime: defaultEnd } = calcTrainingEndTime();
+
+  // Preservar valores ya ingresados por el usuario
+  const existingValues = {};
+  container.querySelectorAll('.recurring-day-time-row').forEach(row => {
+    const day = row.getAttribute('data-day');
+    const sInput = row.querySelector('.recurring-time-start');
+    const eInput = row.querySelector('.recurring-time-end');
+    if (day && sInput && eInput) {
+      existingValues[day] = { start: sInput.value, end: eInput.value };
+    }
+  });
+
+  // Ordenar días: 1 (Lun), 2 (Mar), 3 (Mié), 4 (Jue), 5 (Vie), 6 (Sáb), 0 (Dom)
+  const sortedDays = Array.from(selectedWeekdays).sort((a, b) => {
+    const orderA = a === 0 ? 7 : a;
+    const orderB = b === 0 ? 7 : b;
+    return orderA - orderB;
+  });
+
+  let html = `
+    <div style="font-size: 0.75rem; font-weight: 700; color: #fff; margin-bottom: 0.2rem; display: flex; justify-content: space-between; align-items: center;">
+      <span>⏰ ${tFn('trainings.timeForDay', 'Horario específico por día de entrenamiento:')}</span>
+      <span style="font-size: 0.68rem; color: var(--accent-cyan); font-weight: normal;">(Ajusta la hora para cada día)</span>
+    </div>
+  `;
+
+  sortedDays.forEach(dayNum => {
+    const dayName = WEEKDAY_NAMES[dayNum] || `Día ${dayNum}`;
+    const startVal = existingValues[dayNum]?.start || globalStart;
+    const endVal = existingValues[dayNum]?.end || defaultEnd;
+
+    html += `
+      <div class="recurring-day-time-row" data-day="${dayNum}" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-subtle); padding: 0.45rem 0.75rem; border-radius: 8px;">
+        <span style="font-weight: 700; color: #fff; font-size: 0.82rem; min-width: 90px;">${escapeHTML(dayName)}</span>
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <input type="time" class="form-input form-input-sm recurring-time-start" id="recurring-time-start-${dayNum}" value="${startVal}" style="padding: 0.25rem 0.4rem; font-size: 0.8rem; width: 88px;" onchange="updateRecurringPreview()">
+          <span style="color: var(--text-muted); font-size: 0.75rem;">-</span>
+          <input type="time" class="form-input form-input-sm recurring-time-end" id="recurring-time-end-${dayNum}" value="${endVal}" style="padding: 0.25rem 0.4rem; font-size: 0.8rem; width: 88px;" onchange="updateRecurringPreview()">
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
 function setTrainingCreationMode(mode) {
   trainingCreationMode = mode;
   const btnSingle = document.getElementById('btn-mode-single');
@@ -2463,12 +2818,17 @@ function setTrainingCreationMode(mode) {
   const previewBox = document.getElementById('training-recurring-preview-box');
   const btnSave = document.getElementById('btn-save-training-session');
 
+  const singleTimeContainer = document.getElementById('training-single-time-container');
+  const timeStartInput = document.getElementById('training-time-start');
+
   if (mode === 'single') {
     btnSingle?.classList.add('active');
     btnRecur?.classList.remove('active');
     if (blockSingle) blockSingle.style.display = 'block';
     if (blockRecur) blockRecur.style.display = 'none';
     if (previewBox) previewBox.style.display = 'none';
+    if (singleTimeContainer) singleTimeContainer.style.display = 'block';
+    if (timeStartInput) timeStartInput.required = true;
     if (btnSave) btnSave.textContent = '💾 Guardar sesión';
   } else {
     btnRecur?.classList.add('active');
@@ -2476,7 +2836,10 @@ function setTrainingCreationMode(mode) {
     if (blockSingle) blockSingle.style.display = 'none';
     if (blockRecur) blockRecur.style.display = 'block';
     if (previewBox) previewBox.style.display = 'block';
+    if (singleTimeContainer) singleTimeContainer.style.display = 'none';
+    if (timeStartInput) timeStartInput.required = false;
     if (btnSave) btnSave.textContent = '💾 Guardar sesiones recurrentes';
+    renderRecurringDaysTimeConfig();
     updateRecurringPreview();
   }
 }
@@ -2495,6 +2858,7 @@ function toggleWeekdayChip(el) {
     selectedWeekdays.add(day);
     el.classList.add('active');
   }
+  renderRecurringDaysTimeConfig();
   updateRecurringPreview();
 }
 
@@ -2508,6 +2872,7 @@ function setTrainingDuration(min) {
     }
   });
   calcTrainingEndTime();
+  renderRecurringDaysTimeConfig();
   updateRecurringPreview();
 }
 
@@ -2578,31 +2943,40 @@ function updateRecurringPreview() {
     return;
   }
 
-  const dStart = new Date(startDateStr);
-  const dEnd = new Date(endDateStr);
+  const pStart = parseLocalDate(startDateStr);
+  const pEnd = parseLocalDate(endDateStr);
+  pStart.setHours(12, 0, 0, 0);
+  pEnd.setHours(23, 59, 59, 999);
 
-  if (dStart > dEnd) {
+  if (pStart > pEnd) {
     previewBox.textContent = '⚠️ La fecha de inicio debe ser anterior a la fecha de fin.';
     return;
   }
 
   let count = 0;
-  let cur = new Date(dStart);
-  while (cur <= dEnd) {
+  let cur = new Date(pStart);
+  while (cur <= pEnd) {
     if (selectedWeekdays.has(cur.getDay())) {
       count++;
     }
-    cur.setDate(cur.getDate() + 1);
+    cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1, 12, 0, 0);
   }
 
-  const daysArr = Array.from(selectedWeekdays).sort().map(d => WEEKDAY_NAMES[d]);
+  const sortedDays = Array.from(selectedWeekdays).sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b));
+  const daysArr = sortedDays.map(d => {
+    const sInput = document.getElementById(`recurring-time-start-${d}`);
+    const eInput = document.getElementById(`recurring-time-end-${d}`);
+    if (sInput && eInput && sInput.value && eInput.value) {
+      return `${WEEKDAY_NAMES[d]} (${sInput.value} - ${eInput.value})`;
+    }
+    return WEEKDAY_NAMES[d];
+  });
   const { summaryStr } = calcTrainingEndTime();
 
   previewBox.innerHTML = `
     <strong>📋 Previsualización:</strong><br>
     Se crearán <strong>${count} sesiones</strong> de entrenamiento para <strong>${escapeHTML(teamObj.name)}</strong>.<br>
-    • <strong>Días:</strong> ${daysArr.join(', ')}<br>
-    • <strong>Horario:</strong> ${summaryStr} (${selectedDurationMinutes} min)<br>
+    • <strong>Días y horarios:</strong> ${daysArr.join('; ')}<br>
     • <strong>Lugar:</strong> ${escapeHTML(location)}<br>
     • <strong>Periodo:</strong> Del ${formatDate(startDateStr)} al ${formatDate(endDateStr)}
   `;
@@ -2618,6 +2992,8 @@ function openEditTrainingModal(sessionId = null, defaultDate = null, forceMode =
   const titleHeader = document.getElementById('training-modal-title');
   const editIdInput = document.getElementById('edit-training-id');
   const toggleBar = document.getElementById('training-mode-toggle-bar');
+
+  initSavedLocationsControls();
 
   if (selectTeam) {
     selectTeam.innerHTML = '';
@@ -2702,7 +3078,7 @@ function openEditTrainingModal(sessionId = null, defaultDate = null, forceMode =
             modal.classList.remove('active');
           }
           if (typeof openAttendanceModal === 'function') {
-            openAttendanceModal(session.teamId, session.date);
+            openAttendanceModal(session.teamId, session.date, session);
           }
         };
       } else {
@@ -2819,27 +3195,38 @@ function saveTrainingSession() {
       return;
     }
 
-    const dStart = new Date(startStr);
-    const dEnd = new Date(endStr);
-    if (dStart > dEnd) {
+    const pStart = parseLocalDate(startStr);
+    const pEnd = parseLocalDate(endStr);
+    pStart.setHours(12, 0, 0, 0);
+    pEnd.setHours(23, 59, 59, 999);
+
+    if (pStart > pEnd) {
       showToast('La fecha de inicio debe ser anterior a la de fin', 'error');
       return;
     }
 
-    let cur = parseLocalDate(dStart);
+    let cur = new Date(pStart);
     let createdCount = 0;
     const tsBase = Date.now();
 
-    while (cur <= dEnd) {
-      if (selectedWeekdays.has(cur.getDay())) {
+    while (cur <= pEnd) {
+      const dayNum = cur.getDay();
+      if (selectedWeekdays.has(dayNum)) {
         const dIso = formatLocalDateToISO(cur);
+        const dayStartInput = document.getElementById(`recurring-time-start-${dayNum}`);
+        const dayEndInput = document.getElementById(`recurring-time-end-${dayNum}`);
+        let dayTimeStr = summaryStr;
+        if (dayStartInput && dayEndInput && dayStartInput.value && dayEndInput.value) {
+          dayTimeStr = `${dayStartInput.value} - ${dayEndInput.value}`;
+        }
+
         const newSession = {
           id: `tr_${tsBase}_${createdCount}`,
           title,
           teamId,
           venueType,
           date: dIso,
-          time: summaryStr,
+          time: dayTimeStr,
           location,
           address,
           coach,
@@ -2853,6 +3240,21 @@ function saveTrainingSession() {
 
     calendarSelectedDate = startStr;
     showToast(`¡Se han programado ${createdCount} sesiones de entrenamiento con éxito!`, 'success');
+  }
+
+  // Guardar ubicación en lista de campos guardados si no existe
+  if (location) {
+    const saved = storage.getSavedLocations ? storage.getSavedLocations() : [];
+    const idx = saved.findIndex(l => l.name.toLowerCase() === location.toLowerCase());
+    if (idx === -1) {
+      saved.push({ name: location, address: address || '' });
+      if (storage.saveSavedLocations) storage.saveSavedLocations(saved);
+      initSavedLocationsControls();
+    } else if (address && !saved[idx].address) {
+      saved[idx].address = address;
+      if (storage.saveSavedLocations) storage.saveSavedLocations(saved);
+      initSavedLocationsControls();
+    }
   }
 
   storage.saveTrainingSessions(trainingSessionsList);
@@ -2913,6 +3315,8 @@ window.updateRecurringPreview = updateRecurringPreview;
 window.openEditTrainingModal = openEditTrainingModal;
 window.setVenueType = setVenueType;
 window.testGoogleMapsAddress = testGoogleMapsAddress;
+window.onSelectSavedLocation = onSelectSavedLocation;
+window.onTrainingLocationInput = onTrainingLocationInput;
 
 /* ==========================================================================
    REGISTRO Y ESTADÍSTICAS DE ASISTENCIA A ENTRENAMIENTOS

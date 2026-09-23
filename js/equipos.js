@@ -76,13 +76,16 @@ function renderTeamsBoard() {
       </div>
     ` : '';
 
+    const isInitTeam = !!(team.isInitiation || team.id === 'team_jmk');
+    const initBadgeHtml = isInitTeam ? `<span style="display:inline-block; font-size: 0.68rem; padding: 0.12rem 0.45rem; background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 9999px; margin-left: 0.35rem; font-weight: 700;">${tFn('teams.badgeInitiation', '🐣 Iniciación')}</span>` : '';
+
     col.innerHTML = `
-      <div class="team-column-header" style="cursor: pointer;">
-        <div class="team-header-main">
-          <span class="team-header-title">${escapeHTML(team.name)}</span>
+      <div class="team-column-header">
+        <div class="team-header-main" style="cursor: pointer;" title="Toca para ver la ficha completa de ${escapeHTML(team.name)}">
+          <span class="team-header-title" style="text-decoration: underline dotted rgba(255,255,255,0.45);">${escapeHTML(team.name)}</span>
           <span class="team-header-badge">${teamPlayers.length}</span>
         </div>
-        <div class="team-header-cat">${escapeHTML(team.category || '')}</div>
+        <div class="team-header-cat">${escapeHTML(team.category || '')} ${initBadgeHtml}</div>
         <div class="team-plan-badge ${hasPlan ? 'has-plan' : 'no-plan'}" style="margin: 0.35rem 0 0.25rem 0; width: fit-content;">
           ${hasPlan ? `🟢 Plan activo (${teamTrainings.length} sesiones)` : `⚪ Sin plan de entrenamiento`}
         </div>
@@ -104,9 +107,6 @@ function renderTeamsBoard() {
           </button>
           <button type="button" class="btn btn-secondary btn-xs btn-edit-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(255,255,255,0.06);" title="Editar información del equipo">
             <span>✏️ Editar</span>
-          </button>
-          <button type="button" class="btn btn-secondary btn-xs btn-att-team" data-team-id="${team.id}" style="font-size: 0.72rem; padding: 0.28rem 0.45rem; display: flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.35);" title="Pasar lista para ${escapeHTML(team.name)}">
-            <span>📋 Lista</span>
           </button>
         </div>
       </div>
@@ -151,11 +151,20 @@ function renderTeamsBoard() {
       };
     }
 
-    // Clic en la cabecera para desplegar/plegar (sin interferir con botones)
+    // Clic en el nombre/título del equipo abre directamente la ficha completa del equipo
+    const headerMain = col.querySelector('.team-header-main');
+    if (headerMain) {
+      headerMain.onclick = (e) => {
+        e.stopPropagation();
+        openTeamViewModal(team.id);
+      };
+    }
+
+    // Clic en la cabecera para desplegar/plegar (sin interferir con botones ni título)
     const header = col.querySelector('.team-column-header');
     if (header) {
       header.onclick = (e) => {
-        if (e.target.closest('button')) return;
+        if (e.target.closest('button, .team-header-main')) return;
         toggleFold();
       };
     }
@@ -184,17 +193,6 @@ function renderTeamsBoard() {
       btnEdit.onclick = (e) => {
         e.stopPropagation();
         openEditTeamModal(team.id);
-      };
-    }
-
-    // Botón para pasar lista de este equipo
-    const btnAtt = col.querySelector('.btn-att-team');
-    if (btnAtt) {
-      btnAtt.onclick = (e) => {
-        e.stopPropagation();
-        if (typeof openAttendanceModal === 'function') {
-          openAttendanceModal(team.id);
-        }
       };
     }
 
@@ -322,6 +320,12 @@ function initCustomTeamModalLogic() {
       if (colInput) colInput.value = '#06b6d4';
       const planBox = document.getElementById('team-training-plan-status-box');
       if (planBox) planBox.style.display = 'none';
+      const initCheck = document.getElementById('new-team-is-initiation');
+      if (initCheck) initCheck.checked = false;
+      const btnDelete = document.getElementById('btn-delete-custom-team');
+      if (btnDelete) btnDelete.style.display = 'none';
+      const btnDelTrainings = document.getElementById('btn-edit-team-delete-trainings');
+      if (btnDelTrainings) btnDelTrainings.style.display = 'none';
       openModal(modal);
     };
   }
@@ -329,6 +333,16 @@ function initCustomTeamModalLogic() {
   const btnSave = document.getElementById('btn-save-custom-team');
   if (btnSave) {
     btnSave.onclick = saveCustomTeam;
+  }
+
+  const btnDelete = document.getElementById('btn-delete-custom-team');
+  if (btnDelete) {
+    btnDelete.onclick = () => {
+      const editId = (document.getElementById('edit-team-id')?.value || '').trim();
+      if (editId) {
+        deleteTeam(editId);
+      }
+    };
   }
 }
 
@@ -348,15 +362,20 @@ function openEditTeamModal(teamId) {
   const btnSave = document.getElementById('btn-save-custom-team');
   if (btnSave) btnSave.textContent = '💾 Guardar cambios';
 
+  const btnDelete = document.getElementById('btn-delete-custom-team');
+  if (btnDelete) btnDelete.style.display = 'inline-flex';
+
   const nameInput = document.getElementById('new-team-name');
   const catInput = document.getElementById('new-team-category');
   const colInput = document.getElementById('new-team-color');
   const descInput = document.getElementById('new-team-desc');
+  const initCheck = document.getElementById('new-team-is-initiation');
 
   if (nameInput) nameInput.value = team.name || '';
   if (catInput) catInput.value = team.category || '';
   if (colInput) colInput.value = team.color || '#06b6d4';
   if (descInput) descInput.value = team.description || '';
+  if (initCheck) initCheck.checked = !!(team.isInitiation || team.id === 'team_jmk');
 
   // Configurar estado y acceso al plan de entrenamientos del equipo
   const planBox = document.getElementById('team-training-plan-status-box');
@@ -394,6 +413,19 @@ function openEditTeamModal(teamId) {
         window.location.href = `entrenamientos.html?team=${team.id}&action=recurring`;
       };
     }
+
+    const btnEditDelTrainings = document.getElementById('btn-edit-team-delete-trainings');
+    if (btnEditDelTrainings) {
+      if (hasPlan) {
+        btnEditDelTrainings.style.display = 'block';
+        btnEditDelTrainings.onclick = () => {
+          deleteTeamTrainings(team.id);
+          closeModal(modal);
+        };
+      } else {
+        btnEditDelTrainings.style.display = 'none';
+      }
+    }
   }
 
   openModal(modal);
@@ -405,6 +437,7 @@ function saveCustomTeam() {
   const category = document.getElementById('new-team-category').value.trim();
   const color = document.getElementById('new-team-color').value;
   const description = document.getElementById('new-team-desc').value.trim();
+  const isInitiation = document.getElementById('new-team-is-initiation')?.checked || false;
 
   if (!name) {
     showToast('Ingresa el nombre del equipo', 'error');
@@ -423,6 +456,7 @@ function saveCustomTeam() {
     existing.category = category;
     existing.color = color;
     existing.description = description;
+    existing.isInitiation = isInitiation;
 
     window.JKNoovaData.StorageService.saveTeams(teamsList);
 
@@ -437,7 +471,8 @@ function saveCustomTeam() {
       shortName: name.substring(0, 4).toUpperCase(),
       category,
       color,
-      description
+      description,
+      isInitiation
     };
 
     teamsList.push(newTeam);
@@ -448,6 +483,59 @@ function saveCustomTeam() {
     initSharedNavbar('teams');
     showToast(`Equipo "${name}" creado con éxito`, 'success');
   }
+}
+
+function deleteTeam(teamId) {
+  const team = teamsList.find(t => t.id === teamId);
+  if (!team) return;
+  const tFn = window.t || ((k, def) => def);
+  const teamPlayers = playersList.filter(p => p.teamId === team.id);
+  const confirmMsg = tFn('teams.deleteTeamConfirm', '¿Seguro que deseas eliminar el equipo "{team}"? Hay {count} jugadores asignados que quedarán sin equipo.')
+    .replace('{team}', team.name)
+    .replace('{count}', teamPlayers.length);
+  if (!confirm(confirmMsg)) return;
+
+  // Desvincular jugadores
+  playersList.forEach(p => {
+    if (p.teamId === team.id) {
+      p.teamId = '';
+    }
+  });
+  window.JKNoovaData.StorageService.savePlayers(playersList);
+
+  // Eliminar equipo
+  teamsList = teamsList.filter(t => t.id !== team.id);
+  window.JKNoovaData.StorageService.saveTeams(teamsList);
+
+  closeModal(document.getElementById('modal-custom-team'));
+  closeModal(document.getElementById('modal-team-view'));
+  renderTeamsBoard();
+  initSharedNavbar('teams');
+  showToast(tFn('teams.deleteTeamSuccess', 'Equipo eliminado correctamente'), 'success');
+}
+
+function deleteTeamTrainings(teamId) {
+  const team = teamsList.find(t => t.id === teamId);
+  if (!team) return;
+  const tFn = window.t || ((k, def) => def);
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage) return;
+  const allTrainings = storage.getTrainingSessions();
+  const teamTrainings = allTrainings.filter(s => s.teamId === team.id);
+  if (teamTrainings.length === 0) {
+    showToast(tFn('teams.noTrainings', 'Este equipo no tiene sesiones de entrenamiento programadas.'), 'info');
+    return;
+  }
+  const confirmMsg = tFn('teams.deleteTrainingsConfirm', '¿Seguro que deseas eliminar las {count} sesiones de entrenamiento del equipo "{team}"?')
+    .replace('{count}', teamTrainings.length)
+    .replace('{team}', team.name);
+  if (!confirm(confirmMsg)) return;
+
+  const remainingTrainings = allTrainings.filter(s => s.teamId !== team.id);
+  storage.saveTrainingSessions(remainingTrainings);
+  renderTeamsBoard();
+  showToast(tFn('teams.deleteTrainingsSuccess', 'Entrenamientos del equipo eliminados con éxito'), 'success');
+  openTeamViewModal(team.id);
 }
 
 function openTeamViewModal(teamId) {
@@ -480,6 +568,12 @@ function openTeamViewModal(teamId) {
   const delPlayers = teamPlayers.filter(p => ['ED', 'EI', 'DC'].includes(p.mainPosition));
   const medAlerts = teamPlayers.filter(p => p.hasMedicalAlert).length;
 
+  const storage = window.JKNoovaData?.StorageService;
+  const allTrainings = (storage && typeof storage.getTrainingSessions === 'function')
+    ? storage.getTrainingSessions()
+    : [];
+  const teamTrainings = allTrainings.filter(s => s.teamId === team.id);
+
   const summaryBox = document.getElementById('team-view-summary');
   if (summaryBox) {
     summaryBox.innerHTML = `
@@ -502,6 +596,10 @@ function openTeamViewModal(teamId) {
       <div style="text-align: center; padding: 0.6rem; background: rgba(239, 68, 68, 0.08); border-radius: 8px;">
         <div style="font-size: 0.72rem; color: #fca5a5;">🎯 Delanteros</div>
         <strong style="font-size: 1.3rem; color: #f87171;">${delPlayers.length}</strong>
+      </div>
+      <div style="text-align: center; padding: 0.6rem; background: rgba(16, 185, 129, 0.12); border-radius: 8px;">
+        <div style="font-size: 0.72rem; color: #6ee7b7;">📅 Entrenamientos</div>
+        <strong style="font-size: 1.3rem; color: #34d399;">${teamTrainings.length}</strong>
       </div>
       <div style="text-align: center; padding: 0.6rem; background: rgba(239, 68, 68, 0.12); border-radius: 8px;">
         <div style="font-size: 0.72rem; color: #fca5a5;">⚠️ Alertas médicas</div>
@@ -547,6 +645,51 @@ function openTeamViewModal(teamId) {
         </div>
       `;
       rosterContainer.appendChild(conflictBanner);
+    }
+
+    if (teamTrainings.length > 0) {
+      const trainingsBanner = document.createElement('div');
+      trainingsBanner.style.background = 'rgba(255, 255, 255, 0.03)';
+      trainingsBanner.style.border = '1px solid var(--border-subtle)';
+      trainingsBanner.style.borderRadius = '8px';
+      trainingsBanner.style.padding = '0.65rem 1rem';
+      trainingsBanner.style.marginBottom = '0.85rem';
+      trainingsBanner.style.display = 'flex';
+      trainingsBanner.style.justifyContent = 'space-between';
+      trainingsBanner.style.alignItems = 'center';
+      trainingsBanner.style.flexWrap = 'wrap';
+      trainingsBanner.style.gap = '0.6rem';
+      trainingsBanner.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.15rem;">📅</span>
+          <div>
+            <strong style="color: #fff; font-size: 0.88rem;">Plan de entrenamientos del equipo</strong>
+            <div style="font-size: 0.75rem; color: var(--text-secondary);">${teamTrainings.length} sesiones registradas para este equipo.</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-xs btn-goto-plan-action" style="color: var(--accent-cyan);">
+            🔁 Ir al plan
+          </button>
+          <button type="button" class="btn btn-danger btn-xs btn-delete-trainings-action" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #f87171; font-weight: 700;">
+            🗑️ Eliminar entrenamientos
+          </button>
+        </div>
+      `;
+      rosterContainer.appendChild(trainingsBanner);
+
+      const btnGotoPlan = trainingsBanner.querySelector('.btn-goto-plan-action');
+      if (btnGotoPlan) {
+        btnGotoPlan.onclick = () => {
+          window.location.href = `entrenamientos.html?team=${team.id}&action=recurring`;
+        };
+      }
+      const btnDelTrainingsMid = trainingsBanner.querySelector('.btn-delete-trainings-action');
+      if (btnDelTrainingsMid) {
+        btnDelTrainingsMid.onclick = () => {
+          deleteTeamTrainings(team.id);
+        };
+      }
     }
 
     if (teamPlayers.length === 0) {
@@ -649,13 +792,24 @@ function openTeamViewModal(teamId) {
     }
   }
 
-  const btnTeamAtt = document.getElementById('btn-team-view-attendance');
-  if (btnTeamAtt) {
-    btnTeamAtt.onclick = () => {
-      closeModal(document.getElementById('modal-team-view'));
-      if (typeof openAttendanceModal === 'function') {
-        openAttendanceModal(teamId);
-      }
+  const btnDeleteTrainingsTop = document.getElementById('btn-team-view-delete-trainings-top');
+  if (btnDeleteTrainingsTop) {
+    btnDeleteTrainingsTop.onclick = () => {
+      deleteTeamTrainings(teamId);
+    };
+  }
+
+  const btnDeleteTrainings = document.getElementById('btn-team-view-delete-trainings');
+  if (btnDeleteTrainings) {
+    btnDeleteTrainings.onclick = () => {
+      deleteTeamTrainings(teamId);
+    };
+  }
+
+  const btnDeleteTeam = document.getElementById('btn-team-view-delete-team');
+  if (btnDeleteTeam) {
+    btnDeleteTeam.onclick = () => {
+      deleteTeam(teamId);
     };
   }
 

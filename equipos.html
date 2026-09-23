@@ -58,6 +58,10 @@
           <span data-i18n="nav.trainings">Entrenamientos</span>
           <span class="tab-badge" id="badge-total-trainings">0</span>
         </a>
+        <a href="asistencia.html" class="nav-tab-btn" data-page="attendance">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          <span data-i18n="nav.attendance">Asistencia</span>
+        </a>
         <a href="transporte.html" class="nav-tab-btn" data-page="transport">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
           <span data-i18n="nav.transport">Transporte</span>
@@ -126,6 +130,16 @@
             <textarea class="form-textarea" id="new-team-desc" rows="2" placeholder="Objetivos formativos o competición..."></textarea>
           </div>
 
+          <div class="form-group" style="margin-top: 0.5rem; background: rgba(255, 255, 255, 0.03); padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid var(--border-subtle);">
+            <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="new-team-is-initiation" style="width: 18px; height: 18px; accent-color: #f59e0b;">
+              <div>
+                <span style="font-weight: 700; color: #fbbf24; font-size: 0.85rem;" data-i18n="teams.isInitiation">🐣 Grupo / Equipo de iniciación (Guarderías / Psicomotricidad)</span>
+                <p style="margin: 2px 0 0 0; font-size: 0.72rem; color: var(--text-muted);" data-i18n="teams.isInitiationHelp">Exime a los jugadores de este equipo de alertas de equipación y material oficial.</p>
+              </div>
+            </label>
+          </div>
+
           <!-- SECCIÓN: PLAN DE ENTRENAMIENTOS DEL EQUIPO -->
           <div id="team-training-plan-status-box" style="margin-top: 0.75rem; padding: 0.75rem 0.85rem; border-radius: 8px; font-size: 0.82rem; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; gap: 0.5rem; flex-wrap: wrap;">
@@ -138,12 +152,20 @@
             <button type="button" class="btn btn-secondary btn-sm" id="btn-team-manage-training-plan" style="width: 100%; font-size: 0.78rem; font-weight: 700; background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">
               🔁 Configurar / Crear plan de entrenamientos
             </button>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-edit-team-delete-trainings" data-i18n="teams.deleteTrainings" style="width: 100%; margin-top: 0.45rem; font-size: 0.78rem; font-weight: 700; background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.35);">
+              🗑️ Eliminar entrenamientos del equipo
+            </button>
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-close-modal="modal-custom-team">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btn-save-custom-team">Crear equipo</button>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button type="button" class="btn btn-danger btn-sm" id="btn-delete-custom-team" style="display: none;" data-i18n="teams.deleteTeam">
+          🗑️ Eliminar equipo
+        </button>
+        <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+          <button type="button" class="btn btn-secondary" data-close-modal="modal-custom-team" data-i18n="common.cancel">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-save-custom-team" data-i18n="teams.createTeam">Crear equipo</button>
+        </div>
       </div>
     </div>
   </div>
@@ -156,9 +178,15 @@
           <div id="team-view-badge-color" style="width: 14px; height: 14px; border-radius: 50%; background: #06b6d4;"></div>
           <h3 id="team-view-title" style="margin: 0;">Vista completa del equipo</h3>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
           <button type="button" class="btn btn-secondary btn-sm" id="btn-edit-from-view" style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.25rem;">
             ✏️ Editar equipo
+          </button>
+          <button type="button" class="btn btn-danger btn-sm" id="btn-team-view-delete-trainings-top" data-i18n="teams.deleteTrainings" style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.25rem; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #f87171;">
+            🗑️ Eliminar entrenamientos
+          </button>
+          <button type="button" class="btn btn-danger btn-sm" id="btn-team-view-delete-team" data-i18n="teams.deleteTeam" style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.25rem; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #f87171;">
+            🗑️ Eliminar equipo
           </button>
           <button type="button" class="modal-close-btn" data-close-modal="modal-team-view">&times;</button>
         </div>
@@ -175,11 +203,13 @@
         <!-- Roster del equipo -->
         <div id="team-view-roster-container" style="max-height: 460px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;"></div>
       </div>
-      <div class="modal-footer" style="justify-content: space-between;">
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-team-view-attendance" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.35); color: #34d399; font-weight: 700;">
-          📋 Pasar lista de este equipo
-        </button>
-        <button type="button" class="btn btn-secondary" data-close-modal="modal-team-view">Cerrar</button>
+      <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-danger btn-sm" id="btn-team-view-delete-trainings" data-i18n="teams.deleteTrainings" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #f87171; font-weight: 700;">
+            🗑️ Eliminar entrenamientos
+          </button>
+        </div>
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-team-view" data-i18n="common.close">Cerrar</button>
       </div>
     </div>
   </div>
@@ -279,6 +309,7 @@
                   <option value="ED">Extremo derecho (ED)</option>
                   <option value="EI">Extremo izquierdo (EI)</option>
                   <option value="DC">Delantero centro (DC)</option>
+                  <option value="Jugador" data-i18n="pos.player">Jugador</option>
                 </select>
               </div>
               <div class="form-group">
@@ -295,6 +326,7 @@
                   <option value="ED">Extremo derecho (ED)</option>
                   <option value="EI">Extremo izquierdo (EI)</option>
                   <option value="DC">Delantero centro (DC)</option>
+                  <option value="Jugador" data-i18n="pos.player">Jugador</option>
                 </select>
               </div>
               <div class="form-group">

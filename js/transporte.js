@@ -39,8 +39,8 @@ function loadData() {
   const paramEvent = urlParams.get('event');
   if (paramEvent && eventsList.some(e => e.id === paramEvent)) {
     currentEventId = paramEvent;
-  } else if (eventsList.length > 0) {
-    currentEventId = eventsList[0].id;
+  } else {
+    currentEventId = null;
   }
 
   // Furgoneta asignada al evento o predeterminada
@@ -317,6 +317,13 @@ function renderTransportStage() {
   const eventSelect = document.getElementById('transport-event-select');
   if (eventSelect) {
     eventSelect.innerHTML = '';
+    const tFn = window.t || ((k, def) => def);
+    const optNone = document.createElement('option');
+    optNone.value = '';
+    optNone.textContent = tFn('transport.selectMatchPrompt', '-- Sin partido seleccionado --');
+    if (!currentEventId) optNone.selected = true;
+    eventSelect.appendChild(optNone);
+
     eventsList.forEach(evt => {
       const opt = document.createElement('option');
       opt.value = evt.id;
@@ -356,12 +363,10 @@ function renderTransportStage() {
     vanSelect.appendChild(rentalGroup);
   }
 
-  const currentEvent = eventsList.find(e => e.id === currentEventId) || eventsList[0];
+  const currentEvent = eventsList.find(e => e.id === currentEventId) || null;
   const currentVan = vansList.find(v => v.id === currentVanId) || vansList[0] || {
     id: 'van_1', name: 'Renault Trafic 1 (Club)', plate: '4821 - KLP', capacity: 8
   };
-
-  if (!currentEvent) return;
 
   // Actualizar matrícula en la parte inferior del gráfico
   const plateDisplay = document.getElementById('van-plate-display');
@@ -382,23 +387,34 @@ function renderTransportStage() {
     if (currentVan.capacity === 19) chassisStage.classList.add('capacity-19');
   }
 
-  const eventCallUp = currentEvent.callUp || [];
+  const eventCallUp = currentEvent ? (currentEvent.callUp || []) : [];
   const minibusConvocados = eventCallUp
     .filter(c => c.transport === 'minibus')
     .map(c => playersList.find(p => p.id === c.playerId))
     .filter(Boolean);
 
-  if (!transportConfig[currentEvent.id]) {
-    transportConfig[currentEvent.id] = { driver: 'Entrenador David' };
+  let seatMap = {};
+  if (currentEvent) {
+    if (!transportConfig[currentEvent.id]) {
+      transportConfig[currentEvent.id] = { driver: 'Entrenador David' };
+    }
+    seatMap = transportConfig[currentEvent.id];
+  } else {
+    seatMap = { driver: 'Entrenador David' };
   }
-  const seatMap = transportConfig[currentEvent.id];
 
   // 2. Columna izquierda: Lista de convocados en viaje
   const poolContainer = document.getElementById('minibus-pool-container');
   if (poolContainer) {
     poolContainer.innerHTML = '';
 
-    if (minibusConvocados.length === 0) {
+    if (!currentEvent) {
+      poolContainer.innerHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem; border: 1px dashed var(--border-subtle); border-radius: 8px;">
+          ${(window.t ? window.t('transport.selectMatchPrompt', 'Selecciona un partido arriba para ver los convocados y asignarlos a las plazas de este vehículo.') : 'Selecciona un partido arriba para ver los convocados y asignarlos a las plazas de este vehículo.')}
+        </div>
+      `;
+    } else if (minibusConvocados.length === 0) {
       poolContainer.innerHTML = `
         <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem; border: 1px dashed var(--border-subtle); border-radius: 8px;">
           No hay jugadores con transporte asignado en la convocatoria de este partido. Modifícalo en la pestaña Calendario.
@@ -910,14 +926,23 @@ function openSeatAssignModal(seatId) {
   const currentEvent = eventsList.find(e => e.id === currentEventId);
 
   if (seatId === 'driver') {
-    const driverInput = prompt('Nombre del conductor o miembro del cuerpo técnico:', transportConfig[currentEvent?.id]?.driver || 'Entrenador David');
+    const defaultDriver = (currentEvent && transportConfig[currentEvent.id]?.driver) || 'Entrenador David';
+    const driverInput = prompt('Nombre del conductor o miembro del cuerpo técnico:', defaultDriver);
     if (driverInput !== null && driverInput.trim() !== '') {
-      if (!transportConfig[currentEvent.id]) transportConfig[currentEvent.id] = {};
-      transportConfig[currentEvent.id].driver = driverInput.trim();
-      window.JKNoovaData.StorageService.saveTransport(transportConfig);
+      if (currentEvent) {
+        if (!transportConfig[currentEvent.id]) transportConfig[currentEvent.id] = {};
+        transportConfig[currentEvent.id].driver = driverInput.trim();
+        window.JKNoovaData.StorageService.saveTransport(transportConfig);
+      }
       renderTransportStage();
       showToast(`Conductor actualizado: ${driverInput}`, 'success');
     }
+    return;
+  }
+
+  if (!currentEvent) {
+    const tFn = window.t || ((k, def) => def);
+    showToast(tFn('transport.selectMatchPrompt', 'Selecciona un partido arriba para poder asignar jugadores a esta plaza.'), 'info');
     return;
   }
 

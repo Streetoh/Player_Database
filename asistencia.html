@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Asistencia | JK Noova Gestión Deportiva</title>
+  <link rel="stylesheet" type="text/css" href="css/style.css">
+  <style>
+    :root { --bg-darkest: #070a12; --text-primary: #f8fafc; }
+    html, body { background-color: #070a12 !important; color: #f8fafc !important; }
+    .modal-overlay { display: none !important; }
+    .modal-overlay.active { display: flex !important; }
+    
+    .att-team-accordion {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .att-team-accordion-header {
+      padding: 1rem 1.25rem;
+      border-top: 4px solid var(--team-accent, #10b981);
+      background: rgba(0, 0, 0, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      transition: background 0.2s ease;
+    }
+    .att-team-accordion-header:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .att-team-accordion-body {
+      padding: 0.85rem 1.25rem 1.25rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .att-team-accordion.is-collapsed .att-team-accordion-body {
+      display: none !important;
+    }
+    .att-player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.65rem 0.85rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      transition: all 0.15s ease;
+    }
+    .att-player-row:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.04);
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d1322">
+  <link rel="icon" type="image/png" href="icons/app-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/app-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JK Noova">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Barra de navegación superior -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-crest">JK</div>
+        <div class="brand-text">
+          <h1>JK NOOVA <span class="brand-badge">Academy</span></h1>
+          <p class="brand-sub">Gestión integral de fútbol base</p>
+        </div>
+      </div>
+
+      <!-- Enlaces de navegación -->
+      <nav class="nav-tabs" role="navigation">
+        <a href="jugadores.html" class="nav-tab-btn" data-page="database">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span data-i18n="nav.database">Base de datos</span>
+          <span class="tab-badge" id="badge-total-players">0</span>
+        </a>
+        <a href="equipos.html" class="nav-tab-btn" data-page="teams">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span data-i18n="nav.teams">Equipos</span>
+          <span class="tab-badge" id="badge-total-teams">0</span>
+        </a>
+        <a href="calendario.html" class="nav-tab-btn" data-page="calendar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span data-i18n="nav.calendar">Partidos</span>
+          <span class="tab-badge" id="badge-total-events">0</span>
+        </a>
+        <a href="entrenamientos.html" class="nav-tab-btn" data-page="trainings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span data-i18n="nav.trainings">Entrenamientos</span>
+          <span class="tab-badge" id="badge-total-trainings">0</span>
+        </a>
+        <a href="asistencia.html" class="nav-tab-btn active" data-page="attendance">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          <span data-i18n="nav.attendance">Asistencia</span>
+        </a>
+        <a href="transporte.html" class="nav-tab-btn" data-page="transport">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          <span data-i18n="nav.transport">Transporte</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-open-settings" data-i18n="nav.settings" data-i18n-title="nav.settingsTitle" title="Copias de seguridad y datos">
+          ⚙️ Config
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido principal: Panel de Asistencia -->
+  <main class="main-content">
+    <div class="section-header" style="margin-bottom: 1.25rem;">
+      <div class="section-header-title">
+        <h2>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          <span data-i18n="attendance.title">Control y Estadísticas de Asistencia</span>
+        </h2>
+        <p data-i18n="attendance.subtitle">Estadísticas globales por equipo y desglose individual por jugador con porcentajes y ratios de asistencia.</p>
+      </div>
+      <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary" id="btn-dash-open-attendance" style="background: #10b981; border-color: #059669; font-weight: 700;">
+          📋 Pasar lista
+        </button>
+      </div>
+    </div>
+
+    <!-- Banner de Alerta de Sesiones Anteriores Sin Pasar Lista -->
+    <div id="attendance-past-pending-banner" style="display: none; margin-bottom: 1.25rem;"></div>
+
+    <!-- Barra de Filtros y Periodo -->
+    <div class="toolbar-bar" style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+        <div class="att-period-tabs" style="display: flex; gap: 0.35rem; align-items: center; background: rgba(255, 255, 255, 0.05); padding: 3px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+          <button type="button" class="btn btn-xs att-dash-period-btn active" data-period="30" style="font-size: 0.76rem; padding: 0.35rem 0.75rem; border-radius: 6px; cursor: pointer;">30 días</button>
+          <button type="button" class="btn btn-xs att-dash-period-btn" data-period="90" style="font-size: 0.76rem; padding: 0.35rem 0.75rem; border-radius: 6px; cursor: pointer;">90 días</button>
+          <button type="button" class="btn btn-xs att-dash-period-btn" data-period="365" style="font-size: 0.76rem; padding: 0.35rem 0.75rem; border-radius: 6px; cursor: pointer;" data-i18n="attendance.allSeason">Toda la temporada</button>
+        </div>
+
+        <select class="custom-select" id="att-dash-team-select" style="min-width: 170px; height: 36px; font-size: 0.82rem;">
+          <option value="all">🌟 Todos los equipos</option>
+        </select>
+      </div>
+
+      <div class="search-box" style="min-width: 220px; max-width: 320px;">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="att-dash-search-input" placeholder="Buscar jugador por nombre o dorsal..." style="font-size: 0.82rem;">
+      </div>
+    </div>
+
+    <!-- Banda de métricas globales -->
+    <div class="stats-strip" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 1.5rem;">
+      <div class="stat-card" style="--card-accent: #10b981;">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <div class="stat-num" id="stat-att-global-pct">--%</div>
+          <div class="stat-label" data-i18n="attendance.avgAttendance">Asistencia media global</div>
+        </div>
+      </div>
+      <div class="stat-card" style="--card-accent: #06b6d4;">
+        <div class="stat-icon">📅</div>
+        <div class="stat-info">
+          <div class="stat-num" id="stat-att-total-sessions">0</div>
+          <div class="stat-label">Sesiones registradas</div>
+        </div>
+      </div>
+      <div class="stat-card" style="--card-accent: #34d399;">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-info">
+          <div class="stat-num" id="stat-att-top-players">0</div>
+          <div class="stat-label">Asistencia óptima (≥80%)</div>
+        </div>
+      </div>
+      <div class="stat-card" style="--card-accent: #ef4444;">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-info">
+          <div class="stat-num" id="stat-att-low-players">0</div>
+          <div class="stat-label">Baja asistencia (&lt;60%)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor del Acordeón por Equipos -->
+    <div id="attendance-teams-accordion-container"></div>
+  </main>
+
+  <!-- Modal: Pasar Lista - Entrenamientos de Hoy -->
+  <div class="modal-backdrop" id="modal-today-sessions-attendance" data-no-backdrop-close="true">
+    <div class="modal-window" style="max-width: 680px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.25rem;">📋</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem; color: #fff;" data-i18n="attendance.todayTrainingsTitle">Pasar lista - Entrenamientos de hoy</h3>
+            <div id="today-sessions-modal-date" style="font-size: 0.78rem; color: var(--accent-cyan); font-weight: 600; margin-top: 2px;">--</div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-today-sessions-attendance">&times;</button>
+      </div>
+
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <!-- Lista de entrenamientos de hoy -->
+        <div id="today-sessions-container" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+
+        <!-- Sección de sesiones anteriores pendientes de pasar lista -->
+        <div id="today-modal-past-pending-section" style="margin-top: 1.5rem; display: none;">
+          <div style="display: flex; align-items: center; gap: 0.4rem; padding-bottom: 0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(239, 68, 68, 0.3);">
+            <span style="font-size: 1.1rem;">⚠️</span>
+            <strong style="color: #f87171; font-size: 0.9rem;" data-i18n="attendance.pastPendingAlert">Sesiones de días anteriores pendientes de pasar lista</strong>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.65rem;" data-i18n="attendance.pastPendingDesc">
+            Tienes sesiones de días anteriores en las que aún no se ha registrado la asistencia:
+          </p>
+          <div id="today-modal-past-pending-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-today-sessions-attendance" data-i18n="common.close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Pasar Lista / Control de Asistencia -->
+  <div class="modal-backdrop" id="modal-attendance" data-no-backdrop-close="true">
+    <div class="modal-window modal-attendance-window">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary btn-xs" id="btn-attendance-back-to-today" style="display: none; font-weight: 700; padding: 0.25rem 0.55rem; font-size: 0.76rem; border-color: rgba(6,182,212,0.4); color: var(--accent-cyan);">
+            ← <span data-i18n="common.back">Volver</span>
+          </button>
+          <span style="font-size: 1.15rem;">📋</span>
+          <div>
+            <h3 style="font-size: 1.05rem; margin: 0; font-weight: 800; color: #fff;" data-i18n="attendance.title">Control de Asistencia</h3>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-attendance">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="attendance-session-info-badge" style="display: none; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3); border-radius: 8px; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; font-size: 0.82rem; color: #fff;"></div>
+        <div class="att-controls-bar">
+          <div>
+            <label class="form-label" for="attendance-team-select" style="font-size: 0.7rem; margin-bottom: 2px;">Grupo / Equipo</label>
+            <select class="form-select" id="attendance-team-select" style="padding: 0.3rem 0.5rem; font-size: 0.82rem; height: 34px;"></select>
+          </div>
+          <div>
+            <label class="form-label" for="attendance-date-input" style="font-size: 0.7rem; margin-bottom: 2px;">Fecha sesión</label>
+            <input type="date" class="form-input" id="attendance-date-input" style="padding: 0.3rem 0.5rem; font-size: 0.82rem; height: 34px;">
+          </div>
+        </div>
+
+        <div class="att-quick-bar">
+          <div class="att-quick-actions">
+            <button type="button" class="btn btn-secondary btn-xs" id="btn-attendance-all-present" style="font-weight: 700; color: #34d399; border-color: rgba(16, 185, 129, 0.4); font-size: 0.72rem; padding: 0.25rem 0.45rem;">
+              ✔ Todos
+            </button>
+            <button type="button" class="btn btn-secondary btn-xs" id="btn-attendance-all-absent" style="font-weight: 700; color: #f87171; border-color: rgba(239, 68, 68, 0.4); font-size: 0.72rem; padding: 0.25rem 0.45rem;">
+              ✖ Ninguno
+            </button>
+          </div>
+          <div class="att-quick-counters">
+            <span style="color: #34d399; font-weight: 700;">✔ <strong id="att-count-present">0</strong></span>
+            <span style="color: #f87171; font-weight: 700;">✖ <strong id="att-count-absent">0</strong></span>
+            <span style="color: var(--text-muted); font-size: 0.7rem;">(<span id="att-count-total">0</span>)</span>
+          </div>
+        </div>
+
+        <div id="attendance-roster-list" style="flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;"></div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-attendance-back-to-today-footer" style="display: none; font-weight: 700; color: var(--accent-cyan); border-color: rgba(6,182,212,0.4);">
+          ← <span data-i18n="attendance.backToToday">Volver a entrenamientos de hoy</span>
+        </button>
+        <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+          <button type="button" class="btn btn-secondary" data-close-modal="modal-attendance" data-i18n="common.cancel">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-save-attendance" onclick="saveCurrentAttendanceSession()" style="background: #10b981; border-color: #059669; font-weight: 700;">💾 Guardar asistencia</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Configuración y copias de seguridad -->
+  <div class="modal-backdrop" id="modal-settings">
+    <div class="modal-window" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>Gestión de datos y copias de seguridad</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">
+          Los datos se guardan de forma local. Puedes exportar una copia o restaurar los datos iniciales de JK Noova.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.85rem 1rem; border-radius: 8px;">
+            <div>
+              <strong style="font-size: 0.9rem;">Exportar copia de seguridad</strong>
+              <p style="font-size: 0.75rem; color: var(--text-muted);">Descarga un archivo JSON con todos los datos</p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-export-backup">Descargar JSON</button>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.85rem 1rem; border-radius: 8px;">
+            <div>
+              <strong style="font-size: 0.9rem;">Importar copia de seguridad</strong>
+              <p style="font-size: 0.75rem; color: var(--text-muted);">Carga un archivo JSON previo</p>
+            </div>
+            <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+              Cargar JSON
+              <input type="file" id="file-import-input" accept=".json" style="display: none;">
+            </label>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.85rem 1rem; border-radius: 8px;">
+            <div>
+              <strong style="font-size: 0.9rem; color: #fca5a5;">Restablecer demostración</strong>
+              <p style="font-size: 0.75rem; color: #f87171;">Restaura la plantilla inicial de JK Noova</p>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-reset-demo-data">Restablecer</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-settings">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/asistencia.js"></script>
+</body>
+</html>

@@ -8,6 +8,15 @@ const STORAGE_KEY_EVENTS = 'jknoova_events_v1';
 const STORAGE_KEY_TRANSPORT = 'jknoova_transport_v1';
 const STORAGE_KEY_ATTENDANCE = 'jknoova_attendance_v1';
 const STORAGE_KEY_TRAININGS = 'jknoova_trainings_v1';
+const STORAGE_KEY_SAVED_LOCATIONS = 'jknoova_saved_locations_v1';
+
+// Sedes e instalaciones deportivas habituales guardadas
+const DEFAULT_SAVED_LOCATIONS = [
+  { name: 'Campo 1 (Césped)', address: 'Sede JK Noova - Campo 1' },
+  { name: 'Campo 2 (Fútbol 11)', address: 'Instalaciones Deportivas JK Noova - Campo 2' },
+  { name: 'Campo 3 (Fútbol 7)', address: 'Complejo Deportivo Municipal' },
+  { name: 'Pabellón Central (Interior)', address: 'Polideportivo Municipal Central' }
+];
 
 // Equipos y grupos de entrenamiento predeterminados con sus códigos de color oficiales
 const DEFAULT_TEAMS = [
@@ -17,7 +26,8 @@ const DEFAULT_TEAMS = [
     shortName: 'JMK',
     category: 'Iniciación (4-5 años)',
     color: '#f97316', // Naranja
-    description: 'Grupo formativo y psicomotricidad de iniciación.'
+    description: 'Grupo formativo y psicomotricidad de iniciación.',
+    isInitiation: true
   },
   {
     id: 'team_u8',
@@ -757,6 +767,25 @@ function createDefaultEquipment() {
 
 function checkPlayerOfficialEquipment(player) {
   if (!player) return { complete: false, missing: [] };
+
+  // Comprobar si el equipo del jugador es de iniciación (guarderías/psicomotricidad)
+  if (player.teamId) {
+    try {
+      const teams = (typeof StorageService !== 'undefined' && typeof StorageService.getTeams === 'function')
+        ? StorageService.getTeams()
+        : (typeof DEFAULT_TEAMS !== 'undefined' ? DEFAULT_TEAMS : []);
+      const tObj = teams.find(t => t.id === player.teamId);
+      if (tObj && (tObj.isInitiation === true || tObj.id === 'team_jmk')) {
+        return {
+          complete: true,
+          missing: [],
+          hasAlert: false,
+          isInitiation: true
+        };
+      }
+    } catch (e) {}
+  }
+
   if (!player.equipment || !player.equipment.official) {
     return {
       complete: false,
@@ -775,7 +804,8 @@ function checkPlayerOfficialEquipment(player) {
   return {
     complete: missing.length === 0,
     missing: missing,
-    hasAlert: missing.length > 0
+    hasAlert: missing.length > 0,
+    isInitiation: false
   };
 }
 
@@ -1054,6 +1084,23 @@ const StorageService = {
         }).catch(() => {});
       } catch (e) {}
     }
+  },
+
+  getSavedLocations() {
+    const data = SafeStorage.getItem(STORAGE_KEY_SAVED_LOCATIONS);
+    if (data === null || data === undefined) {
+      this.saveSavedLocations(DEFAULT_SAVED_LOCATIONS);
+      return JSON.parse(JSON.stringify(DEFAULT_SAVED_LOCATIONS));
+    }
+    try {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {}
+    return [];
+  },
+
+  saveSavedLocations(locations) {
+    SafeStorage.setItem(STORAGE_KEY_SAVED_LOCATIONS, JSON.stringify(locations));
   },
 
   resetAllToDefault() {
