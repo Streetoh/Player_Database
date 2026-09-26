@@ -3983,6 +3983,12 @@ const StorageService = {
     return JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
   },
 
+  _notifySync() {
+    if (typeof window !== 'undefined' && window.GoogleDriveSync && typeof window.GoogleDriveSync.scheduleAutoUpload === 'function') {
+      window.GoogleDriveSync.scheduleAutoUpload();
+    }
+  },
+
   savePlayers(players) {
     SafeStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(players));
     if (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
@@ -3994,6 +4000,7 @@ const StorageService = {
         }).catch(() => {});
       } catch (e) {}
     }
+    this._notifySync();
   },
 
   getTeams() {
@@ -4030,6 +4037,7 @@ const StorageService = {
         }).catch(() => {});
       } catch (e) {}
     }
+    this._notifySync();
   },
 
   getEvents() {
@@ -4060,6 +4068,7 @@ const StorageService = {
         }).catch(() => {});
       } catch (e) {}
     }
+    this._notifySync();
   },
 
   getTransport() {
@@ -4092,6 +4101,7 @@ const StorageService = {
         }).catch(() => {});
       } catch (e) {}
     }
+    this._notifySync();
   },
 
   getVans() {
@@ -4173,6 +4183,7 @@ const StorageService = {
         }).catch(() => {});
       } catch (e) {}
     }
+    this._notifySync();
   },
 
   getAttendance() {
@@ -4197,6 +4208,7 @@ const StorageService = {
         }).catch(() => {});
       } catch (e) {}
     }
+    this._notifySync();
   },
 
   getTrainingSessions() {
@@ -4227,6 +4239,7 @@ const StorageService = {
         }).catch(() => {});
       } catch (e) {}
     }
+    this._notifySync();
   },
 
   getSavedLocations() {
@@ -4263,6 +4276,7 @@ const StorageService = {
         }).catch(() => {});
       } catch (e) {}
     }
+    this._notifySync();
   },
 
   resetLocationsToDefault() {

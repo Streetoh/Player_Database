@@ -3480,13 +3480,52 @@
   ],
   "events": [
     {
-      "id": "ev_1790166357089",
-      "teamId": "team_u8",
-      "eventType": "Liga",
-      "rival": "123",
-      "title": "123",
-      "date": "2026-09-23",
-      "time": "10:00"
+      "id": "ev_1790369966494",
+      "teamId": "team_u10",
+      "eventType": "Torneo",
+      "rival": "Torneo: Lõuna-Läänemaa Jalgpalliklubi, Vilj",
+      "title": "EMV 2017-C",
+      "tournamentTeams": "Lõuna-Läänemaa Jalgpalliklubi, Viljandi JK Tulevik Sinine, Kohtla-Järve JK Noova, Jõhvi JK Noova Sinine",
+      "tournamentSchedule": "12:00 vs Kohtla-Järve JK Noova, 12:45 vs Viljandi JK Tulevik Sinine, 13:30 vs Lõuna-Läänemaa Jalgpalliklubi",
+      "date": "2026-09-27",
+      "time": "12:00",
+      "isHome": false,
+      "tournamentPrice": 0,
+      "transportPrice": 0,
+      "vanId": "van_1",
+      "location": "Riia tn 95, Viljandi",
+      "meetingPoint": "Punto de encuentro: 1 h antes",
+      "notes": "Soidame kell 08:30 Jõhvi Kunstikooli Parklast",
+      "callUp": [
+        {
+          "playerId": "p_custom_1790365767628",
+          "transport": "minibus"
+        },
+        {
+          "playerId": "p_custom_1790365833602",
+          "transport": "minibus"
+        },
+        {
+          "playerId": "p_custom_1790366185475",
+          "transport": "minibus"
+        },
+        {
+          "playerId": "p_custom_1790366255034",
+          "transport": "minibus"
+        },
+        {
+          "playerId": "p_custom_1790366419260",
+          "transport": "minibus"
+        },
+        {
+          "playerId": "p_custom_1790366486766",
+          "transport": "minibus"
+        },
+        {
+          "playerId": "p_custom_1790366549358",
+          "transport": "minibus"
+        }
+      ]
     }
   ],
   "transport": {
@@ -3500,13 +3539,48 @@
       "p4": "p_u10_6",
       "p5": "p_u10_7",
       "p6": "p_u10_10"
+    },
+    "ev_1789917269614": {
+      "driver": "Entrenador David",
+      "s_1": "p_u10_1",
+      "s_2": "p_u10_2",
+      "s_3": "p_u10_3",
+      "s_4": "p_u10_5",
+      "s_5": "p_u10_6",
+      "s_6": "p_u10_7",
+      "s_7": "p_u10_8"
+    },
+    "ev_1789924898312": {
+      "driver": "Entrenador David"
+    },
+    "ev_1790368878914": {
+      "driver": "Konstantin Kremenevski",
+      "front_1": "p_custom_1790366549358",
+      "front_2": "p_custom_1790366486766",
+      "p1": "p_custom_1790366419260",
+      "p2": "p_custom_1790366255034",
+      "p3": "p_custom_1790366185475",
+      "p4": "p_custom_1790365833602",
+      "p5": "p_custom_1790365767628",
+      "p6": "acc_1790368944078__Daniel"
+    },
+    "ev_1790369966494": {
+      "driver": "Konstantin Kremenevski",
+      "front_1": "p_custom_1790365767628",
+      "front_2": "p_custom_1790365833602",
+      "p1": "p_custom_1790366185475",
+      "p2": "p_custom_1790366255034",
+      "p3": "p_custom_1790366419260",
+      "p4": "p_custom_1790366486766",
+      "p5": "p_custom_1790366549358",
+      "p6": "acc_1790370049978__Daniel"
     }
   },
   "vans": [
     {
       "id": "van_1",
       "name": "Renault Trafic 1 (Club)",
-      "plate": "4821 - KLP",
+      "plate": "316 - MHP",
       "capacity": 8,
       "model": "trafic_8",
       "isRental": false
@@ -3514,7 +3588,7 @@
     {
       "id": "van_2",
       "name": "Renault Trafic 2 (Club)",
-      "plate": "9304 - MZX",
+      "plate": "978 - TNB",
       "capacity": 8,
       "model": "trafic_8",
       "isRental": false
@@ -3620,5 +3694,5 @@
       "address": "Narva mnt. 16"
     }
   ],
-  "updatedAt": "2026-09-25T20:51:20.797Z"
+  "updatedAt": "2026-09-25T21:00:57.057Z"
 }

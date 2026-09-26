@@ -142,9 +142,37 @@ function initSharedNavbar(activePage) {
     };
   }
 
+  // 2.2 Botón indicador de Google Drive en la cabecera
+  let syncBtn = document.getElementById('header-sync-indicator');
+  if (!syncBtn) {
+    const headerActions = document.querySelector('.header-actions');
+    if (headerActions) {
+      syncBtn = document.createElement('button');
+      syncBtn.type = 'button';
+      syncBtn.id = 'header-sync-indicator';
+      syncBtn.className = 'btn btn-secondary btn-sm';
+      syncBtn.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer; border-radius: 6px;';
+      syncBtn.innerHTML = '☁️ <span style="font-size: 0.72rem; color: #94a3b8;">Nube</span>';
+      syncBtn.title = 'Sincronización en la Nube con Google Drive';
+      const settingsBtn = document.getElementById('btn-open-settings');
+      if (settingsBtn) {
+        headerActions.insertBefore(syncBtn, settingsBtn);
+      } else {
+        headerActions.appendChild(syncBtn);
+      }
+    }
+  }
+
   // 3. Modal de Configuración / Backup (presente en todas las páginas)
   const btnSettings = document.getElementById('btn-open-settings');
   const modalSettings = document.getElementById('modal-settings');
+
+  if (syncBtn && modalSettings) {
+    syncBtn.onclick = (e) => {
+      e.preventDefault();
+      openModal(modalSettings);
+    };
+  }
 
   if (btnSettings && modalSettings) {
     btnSettings.onclick = (e) => {
@@ -223,6 +251,39 @@ function initSharedNavbar(activePage) {
       }
     };
   }
+
+  // 3.1 Manejo de evento de sincronización desde la nube o archivo
+  window.addEventListener('jknoova_storage_synced', () => {
+    if (window.JKNoovaData && window.JKNoovaData.StorageService) {
+      const storage = window.JKNoovaData.StorageService;
+      const bPlayers = document.getElementById('badge-total-players');
+      const bTeams = document.getElementById('badge-total-teams');
+      const bEvents = document.getElementById('badge-total-events');
+      const bTrainings = document.getElementById('badge-total-trainings');
+      if (bPlayers) bPlayers.textContent = storage.getPlayers().length;
+      if (bTeams) bTeams.textContent = storage.getTeams().length;
+      if (bEvents) bEvents.textContent = storage.getEvents().length;
+      if (bTrainings) bTrainings.textContent = (storage.getTrainingSessions ? storage.getTrainingSessions() : []).length;
+    }
+
+    if (window.GoogleDriveSync) {
+      window.GoogleDriveSync.updateUi();
+    }
+
+    if (typeof renderAll === 'function') {
+      renderAll();
+    } else if (typeof renderPlayers === 'function') {
+      renderPlayers();
+    } else if (typeof renderCalendarEvents === 'function') {
+      renderCalendarEvents();
+    } else if (typeof renderTransportView === 'function') {
+      renderTransportView();
+    } else if (typeof renderAttendance === 'function') {
+      renderAttendance();
+    } else if (typeof renderTrainingList === 'function') {
+      renderTrainingList();
+    }
+  });
 
   // 4. Cerrar modales con botones de cierre
   document.querySelectorAll('[data-close-modal]').forEach(btn => {
