@@ -515,8 +515,16 @@
         <div id="saved-locations-manager-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-close-modal="modal-manage-locations" data-i18n="common.close">Cerrar</button>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.4rem; align-items: center;">
+          <button type="button" class="btn btn-secondary btn-xs" onclick="clearAllSavedLocations()" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4); font-size: 0.75rem; padding: 0.35rem 0.6rem;">
+            🗑️ <span data-i18n="trainings.clearAllLocations">Vaciar todas</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-xs" onclick="resetSavedLocationsToDefault()" style="color: var(--text-muted); font-size: 0.72rem; padding: 0.35rem 0.55rem;">
+            ↺ <span data-i18n="trainings.resetLocations">De fábrica</span>
+          </button>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" data-close-modal="modal-manage-locations" data-i18n="common.close">Cerrar</button>
       </div>
     </div>
   </div>

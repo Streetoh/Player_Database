@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('languageChanged', () => {
     renderTeamsBoard();
   });
+
+  window.addEventListener('jknoova_storage_synced', () => {
+    loadData();
+    renderTeamsBoard();
+  });
 });
 
 function loadData() {

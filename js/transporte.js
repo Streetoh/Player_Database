@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('languageChanged', () => {
     renderTransportStage();
   });
+
+  window.addEventListener('jknoova_storage_synced', () => {
+    loadData();
+    renderTransportStage();
+  });
 });
 
 function loadData() {
@@ -39,6 +44,8 @@ function loadData() {
   const paramEvent = urlParams.get('event');
   if (paramEvent && eventsList.some(e => e.id === paramEvent)) {
     currentEventId = paramEvent;
+  } else if (eventsList.length > 0) {
+    currentEventId = eventsList[0].id;
   } else {
     currentEventId = null;
   }

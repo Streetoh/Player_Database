@@ -4052,16 +4052,16 @@ html, body {
   right: 0;
   width: 100%;
   max-width: 100vw;
-  height: 60px;
+  height: 58px;
   background: rgba(13, 19, 34, 0.98);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   z-index: 999;
-  padding: 0.2rem 2px;
-  padding-bottom: max(0.2rem, env(safe-area-inset-bottom));
+  padding: 2px 0;
+  padding-bottom: max(2px, env(safe-area-inset-bottom));
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
-  justify-content: space-evenly;
+  justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
   overflow: hidden;
@@ -4072,36 +4072,36 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   color: var(--text-secondary);
-  font-size: 0.62rem;
-  font-weight: 700;
   text-decoration: none;
-  padding: 0.3rem 1px;
-  border-radius: 8px;
+  padding: 3px 0 !important;
+  border-radius: 6px;
   transition: all 0.15s ease;
-  flex: 1 1 0px;
-  min-width: 0;
-  max-width: none;
+  flex: 1 1 0px !important;
+  width: calc(100% / 6) !important;
+  min-width: 0 !important;
+  max-width: calc(100% / 6) !important;
   text-align: center;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .mobile-nav-item .mobile-nav-icon {
-  font-size: 1.18rem;
+  font-size: 1.15rem;
   line-height: 1;
   transition: transform 0.15s ease;
 }
 
 .mobile-nav-item .mobile-nav-label {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   display: block;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
   font-weight: 700;
 }
 
@@ -4112,6 +4112,7 @@ html, body {
 .mobile-nav-item.active {
   color: #38bdf8;
   background: rgba(56, 189, 248, 0.12);
+  border-radius: 6px;
 }
 
 .mobile-nav-item.active .mobile-nav-icon {
@@ -4122,20 +4123,22 @@ html, body {
   color: #38bdf8;
 }
 
-@media (max-width: 360px) {
+@media (max-width: 380px) {
   .mobile-bottom-nav {
+    height: 56px;
     padding-left: 0;
     padding-right: 0;
   }
   .mobile-nav-item {
-    padding: 0.25rem 0;
+    padding: 2px 0 !important;
+    gap: 1px;
   }
   .mobile-nav-item .mobile-nav-icon {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
   }
   .mobile-nav-item .mobile-nav-label {
-    font-size: 0.58rem;
-    letter-spacing: -0.35px;
+    font-size: 0.54rem;
+    letter-spacing: -0.4px;
   }
 }
 

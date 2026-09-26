@@ -86,7 +86,13 @@
         </h2>
         <p data-i18n="players.subtitle">Fichas técnicas completas, contactos familiares y notas de evolución deportiva</p>
       </div>
-      <div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <button type="button" class="btn btn-secondary" id="btn-quick-export" data-i18n-title="backup.saveBtnTitle" title="Descargar archivo de copia de seguridad con todos los jugadores" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 700;">
+          💾 <span data-i18n="backup.saveBtn">Guardar copia</span>
+        </button>
+        <button type="button" class="btn btn-secondary" id="btn-import-player-ocr" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa; font-weight: 700;">
+          📸 <span data-i18n="ocr.importBtn">Importar desde captura</span>
+        </button>
         <button type="button" class="btn btn-primary" id="btn-add-player-main" data-i18n="nav.registerPlayer">
           ➕ Registrar jugador
         </button>
@@ -675,6 +681,141 @@
     </div>
   </div>
 
+  <!-- Modal: Importación Inteligente de Jugador desde Captura (OCR) -->
+  <div class="modal-backdrop" id="modal-ocr-import">
+    <div class="modal-window" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+          <span>📸</span>
+          <span data-i18n="ocr.modalTitle">Importar jugador desde captura de pantalla</span>
+        </h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-ocr-import">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.25rem;">
+        
+        <!-- Estado 1: Dropzone y subida -->
+        <div id="ocr-dropzone" style="border: 2px dashed rgba(59, 130, 246, 0.4); border-radius: 12px; padding: 2rem 1.5rem; text-align: center; background: rgba(59, 130, 246, 0.04); cursor: pointer; transition: all 0.2s ease;">
+          <input type="file" id="ocr-file-input" accept="image/*" style="display: none;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;">📋</div>
+          <h4 style="font-size: 1.05rem; margin-bottom: 0.35rem; color: #f8fafc;" data-i18n="ocr.dropTitle">Arrastra aquí una captura o haz clic para seleccionarla</h4>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="ocr.dropSub">Compatible con capturas de Sportlyzer, fichas federativas y capturas de móvil</p>
+          
+          <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-ocr-browse-file" style="pointer-events: none;">
+              📁 <span data-i18n="ocr.chooseFile">Elegir imagen</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-ocr-paste-clipboard" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 700;">
+              📋 <span data-i18n="ocr.pasteClipboard">Pegar del portapapeles (Ctrl+V)</span>
+            </button>
+          </div>
+          <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 1rem; background: rgba(255, 255, 255, 0.04); display: inline-block; padding: 0.35rem 0.75rem; border-radius: 6px;">
+            💡 <strong data-i18n="ocr.tipKey">Consejo rápido:</strong> <span data-i18n="ocr.tipDesc">Haz una captura (Win+Shift+S) y pulsa Ctrl+V directamente en cualquier momento</span>
+          </div>
+        </div>
+
+        <!-- Estado 2: Escaneando / Barra de progreso -->
+        <div id="ocr-loading-wrap" style="display: none; padding: 2.5rem 1rem; text-align: center;">
+          <div class="ocr-spinner" style="width: 48px; height: 48px; border: 4px solid rgba(59, 130, 246, 0.2); border-top-color: #3b82f6; border-radius: 50%; margin: 0 auto 1.25rem; animation: spin 0.8s linear infinite;"></div>
+          <h4 id="ocr-progress-text" style="font-size: 1rem; color: #f8fafc; margin-bottom: 0.75rem;">Procesando captura...</h4>
+          <div style="background: rgba(255, 255, 255, 0.08); border-radius: 9999px; height: 8px; max-width: 380px; margin: 0 auto; overflow: hidden;">
+            <div id="ocr-progress-bar" style="background: linear-gradient(90deg, #3b82f6, #10b981); height: 100%; width: 20%; transition: width 0.3s ease;"></div>
+          </div>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.75rem;" data-i18n="ocr.detectingFields">Extrayendo nombre, dorsal, fecha de nacimiento y contactos...</p>
+        </div>
+
+        <!-- Estado 3: Resultados extraídos y verificación -->
+        <div id="ocr-results-wrap" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 0.65rem 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; color: #34d399; font-size: 0.85rem; font-weight: 700;">
+              <span>✅</span> <span data-i18n="ocr.dataExtracted">Datos extraídos automáticamente. Revisa o ajusta si es necesario:</span>
+            </div>
+            <button type="button" class="btn btn-link btn-xs" id="btn-ocr-scan-another" style="color: var(--text-muted); text-decoration: underline; padding: 0;">
+              🔄 <span data-i18n="ocr.scanAnother">Escanear otra imagen</span>
+            </button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+            <!-- Fila 1: Nombre, Apellidos y Dorsal -->
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label" for="ocr-res-name"><span data-i18n="common.name">Nombre</span> *</label>
+                <input type="text" class="form-input" id="ocr-res-name" placeholder="Nombre">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ocr-res-lastname"><span data-i18n="common.lastName">Apellidos</span> *</label>
+                <input type="text" class="form-input" id="ocr-res-lastname" placeholder="Apellidos">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ocr-res-dorsal"><span data-i18n="players.dorsal">Dorsal</span></label>
+                <input type="number" class="form-input" id="ocr-res-dorsal" min="1" max="99" placeholder="Ej. 19">
+              </div>
+            </div>
+
+            <!-- Fila 2: Fecha de nacimiento y Equipo -->
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" for="ocr-res-birthdate"><span data-i18n="players.birthDate">Fecha de nacimiento</span> *</label>
+                <input type="date" class="form-input" id="ocr-res-birthdate">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ocr-res-team"><span data-i18n="players.teamCategory">Equipo / Categoría</span></label>
+                <select class="form-select" id="ocr-res-team"></select>
+              </div>
+            </div>
+
+            <!-- Fila 3: Contacto del Padre/Madre/Tutor -->
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.85rem;">
+              <div style="font-size: 0.82rem; font-weight: 700; color: #60a5fa; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.4rem;">
+                <span>👨‍👩‍👧</span> <span data-i18n="ocr.guardianTitle">Contacto de Padre / Madre / Tutor</span>
+              </div>
+              <div class="form-grid-3">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.75rem;" data-i18n="ocr.guardianRel">Parentesco</label>
+                  <select class="form-select" id="ocr-res-guardian-rel" style="font-size: 0.82rem;">
+                    <option value="Madre">Madre</option>
+                    <option value="Padre">Padre</option>
+                    <option value="Tutor legal">Tutor/a legal</option>
+                    <option value="Familiar">Familiar</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.75rem;" data-i18n="ocr.guardianName">Nombre del tutor</label>
+                  <input type="text" class="form-input" id="ocr-res-guardian-name" placeholder="Ej. Pille Toomsalu" style="font-size: 0.82rem;">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.75rem;" data-i18n="ocr.guardianPhone">Teléfono de contacto</label>
+                  <input type="tel" class="form-input" id="ocr-res-guardian-phone" placeholder="Ej. 56732894" style="font-size: 0.82rem;">
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 0.6rem; margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem;" data-i18n="ocr.guardianEmail">Correo electrónico del tutor</label>
+                <input type="email" class="form-input" id="ocr-res-guardian-email" placeholder="Ej. pille.toomsalu@gmail.com" style="font-size: 0.82rem;">
+              </div>
+            </div>
+
+            <!-- Miniatura de la captura -->
+            <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+              <img id="ocr-res-image-preview" src="" alt="Captura escaneada" style="max-height: 55px; max-width: 90px; border-radius: 4px; object-fit: cover; border: 1px solid var(--border-subtle);">
+              <span style="font-size: 0.74rem; color: var(--text-muted);" data-i18n="ocr.previewNotice">Captura escaneada con éxito. Puedes guardar ahora o abrir la ficha para añadir foto y tallas.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-ocr-import" data-i18n="common.cancel">Cancelar</button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" id="btn-ocr-continue-form" style="display: none; font-weight: 700; color: #60a5fa; border-color: rgba(59, 130, 246, 0.4);">
+            ✏️ <span data-i18n="ocr.continueToForm">Continuar a ficha completa</span>
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-ocr-save-direct" style="display: none; background: #10b981; border-color: #059669; font-weight: 700;">
+            💾 <span data-i18n="ocr.saveDirect">Guardar jugador</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
@@ -682,6 +823,9 @@
   <script src="js/i18n.js"></script>
   <script src="js/navbar.js"></script>
   <script src="js/photo-cropper.js"></script>
+  <script src="js/libs/tesseract.min.js"></script>
+  <script src="js/ocr-parser.js"></script>
+  <script src="js/ocr-scanner.js"></script>
   <script src="js/asistencia.js"></script>
   <script src="js/jugadores.js"></script>
 </body>

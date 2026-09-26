@@ -500,6 +500,10 @@ function openAttendanceModal(defaultTeamId = null, defaultDate = null, sessionIn
     openTodayTrainingsAttendanceModal();
   };
 
+  const btnCancel = modal.querySelector('.modal-footer [data-close-modal="modal-attendance"]');
+  const btnCloseX = modal.querySelector('.modal-header .modal-close-btn[data-close-modal="modal-attendance"]');
+  const tFn = window.t || ((k, def) => def);
+
   if (btnBackHeader) {
     if (fromTodayModal) {
       btnBackHeader.style.display = 'inline-flex';
@@ -517,6 +521,32 @@ function openAttendanceModal(defaultTeamId = null, defaultDate = null, sessionIn
     } else {
       btnBackFooter.style.display = 'none';
       btnBackFooter.onclick = null;
+    }
+  }
+
+  if (fromTodayModal) {
+    if (btnCancel) {
+      btnCancel.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onBackClick();
+      };
+      btnCancel.innerHTML = `← ${tFn('common.back', 'Volver')}`;
+    }
+    if (btnCloseX) {
+      btnCloseX.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onBackClick();
+      };
+    }
+  } else {
+    if (btnCancel) {
+      btnCancel.onclick = null;
+      btnCancel.innerHTML = tFn('common.cancel', 'Cancelar');
+    }
+    if (btnCloseX) {
+      btnCloseX.onclick = null;
     }
   }
 

@@ -31,6 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPlayersList();
     updateTopStats();
   });
+
+  window.addEventListener('jknoova_storage_synced', () => {
+    loadData();
+    renderCategoryPills();
+    renderPlayersList();
+    updateTopStats();
+  });
 });
 
 function loadData() {
@@ -1263,6 +1270,43 @@ function openPlayerModal(playerId = null) {
   }
   openModal(document.getElementById('modal-player'));
 }
+
+function openPlayerModalWithData(data) {
+  openPlayerModal(null);
+  if (!data) return;
+
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.value = val;
+  };
+
+  if (data.name) setVal('player-name', data.name);
+  if (data.lastName) setVal('player-lastname', data.lastName);
+  if (data.birthDate) setVal('player-birthdate', data.birthDate);
+  if (data.dorsal) setVal('player-dorsal-main', data.dorsal);
+  if (data.teamId) setVal('player-team', data.teamId);
+
+  if (data.guardianName || data.guardianPhone || data.guardianEmail) {
+    const parser = window.JKNoovaOCRParser;
+    const cleanPhone = (parser && typeof parser.formatEstonianPhone === 'function')
+      ? parser.formatEstonianPhone(data.guardianPhone)
+      : (data.guardianPhone || '');
+
+    tempFamilyContacts = [{
+      relation: data.guardianRelation || 'Madre',
+      name: data.guardianName || '',
+      phone: cleanPhone,
+      email: data.guardianEmail || '',
+      isEmergency: true
+    }];
+    renderFamilyContactsList();
+  }
+
+  updateHeroProfileCard();
+  checkPlayerModalDorsalConflict();
+}
+
+window.openPlayerModalWithData = openPlayerModalWithData;
 
 function renderCoachNotes() {
   const container = document.getElementById('player-coach-notes-history');

@@ -153,20 +153,41 @@ function initSharedNavbar(activePage) {
     };
   }
 
-  const btnExport = document.getElementById('btn-export-backup');
-  if (btnExport && window.JKNoovaData) {
-    btnExport.onclick = () => {
-      const dataStr = window.JKNoovaData.StorageService.exportAllData();
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `JK_Noova_Backup_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Copia de seguridad descargada', 'success');
-    };
+  function triggerBackupDownload() {
+    if (!window.JKNoovaData || !window.JKNoovaData.StorageService) {
+      showToast('Error al acceder a los datos para exportar', 'error');
+      return;
+    }
+    const dataStr = window.JKNoovaData.StorageService.exportAllData();
+    const filename = `JK_Noova_Backup_${new Date().toISOString().split('T')[0]}.json`;
+
+    // Si se ejecuta dentro de la app Android nativa con puente exportador
+    if (window.AndroidBridge && typeof window.AndroidBridge.exportBackup === 'function') {
+      window.AndroidBridge.exportBackup(dataStr, filename);
+      showToast('Copia de seguridad guardada en el dispositivo', 'success');
+      return;
+    }
+
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    showToast('Copia de seguridad descargada con éxito', 'success');
   }
+
+  window.triggerBackupDownload = triggerBackupDownload;
+
+  document.querySelectorAll('#btn-export-backup, #btn-quick-export, .btn-trigger-backup').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      triggerBackupDownload();
+    };
+  });
 
   const fileImport = document.getElementById('file-import-input');
   if (fileImport && window.JKNoovaData) {
@@ -175,13 +196,17 @@ function initSharedNavbar(activePage) {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const res = window.JKNoovaData.StorageService.importData(event.target.result);
-        if (res.success) {
-          showToast('Datos restaurados correctamente. Recargando...', 'success');
-          setTimeout(() => window.location.reload(), 800);
-        } else {
-          showToast('Error al importar archivo JSON', 'error');
+      reader.onload = async (event) => {
+        try {
+          const res = await window.JKNoovaData.StorageService.importDataAsync(event.target.result);
+          if (res.success) {
+            showToast('Datos restaurados correctamente. Recargando...', 'success');
+            setTimeout(() => window.location.reload(), 800);
+          } else {
+            showToast('Error al importar archivo JSON: ' + (res.error || 'formato incorrecto'), 'error');
+          }
+        } catch (err) {
+          showToast('Error al procesar el archivo JSON', 'error');
         }
       };
       reader.readAsText(file);

@@ -62,6 +62,13 @@ function initApp() {
     renderTransportModule();
 
     showToast('Sistema JK Noova cargado correctamente', 'success');
+
+    window.addEventListener('jknoova_storage_synced', () => {
+      loadDataFromStorage();
+      renderHeaderStats();
+      renderPlayers();
+      renderTeamsBoard();
+    });
   } catch (err) {
     console.error('Error al inicializar la aplicación JK Noova:', err);
   }
@@ -1867,14 +1874,24 @@ function initSettingsModal() {
   const btnExport = document.getElementById('btn-export-backup');
   if (btnExport) {
     btnExport.addEventListener('click', () => {
-      const dataStr = StorageService.exportAllData();
+      const dataStr = (window.JKNoovaData && window.JKNoovaData.StorageService) ? window.JKNoovaData.StorageService.exportAllData() : StorageService.exportAllData();
+      const filename = `JK_Noova_Backup_${new Date().toISOString().split('T')[0]}.json`;
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.exportBackup === 'function') {
+        window.AndroidBridge.exportBackup(dataStr, filename);
+        showToast('Copia de seguridad guardada en el dispositivo', 'success');
+        return;
+      }
+
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `JK_Noova_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = filename;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
       showToast('Copia de seguridad descargada', 'success');
     });
   }
@@ -1887,19 +1904,21 @@ function initSettingsModal() {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const res = StorageService.importData(event.target.result);
+      reader.onload = async (event) => {
+        const sService = (window.JKNoovaData && window.JKNoovaData.StorageService) ? window.JKNoovaData.StorageService : StorageService;
+        const res = sService.importDataAsync ? await sService.importDataAsync(event.target.result) : sService.importData(event.target.result);
         if (res.success) {
-          loadDataFromStorage();
-          renderCategoryPills();
-          renderPlayers();
-          renderTeamsBoard();
-          renderEventsList();
-          renderConvocatoriaDetails();
-          renderTransportModule();
-          renderHeaderStats();
-          closeModal(DOM.modalSettings);
+          if (typeof loadDataFromStorage === 'function') loadDataFromStorage();
+          if (typeof renderCategoryPills === 'function') renderCategoryPills();
+          if (typeof renderPlayers === 'function') renderPlayers();
+          if (typeof renderTeamsBoard === 'function') renderTeamsBoard();
+          if (typeof renderEventsList === 'function') renderEventsList();
+          if (typeof renderConvocatoriaDetails === 'function') renderConvocatoriaDetails();
+          if (typeof renderTransportModule === 'function') renderTransportModule();
+          if (typeof renderHeaderStats === 'function') renderHeaderStats();
+          if (DOM && DOM.modalSettings) closeModal(DOM.modalSettings);
           showToast('Datos restaurados correctamente', 'success');
+          setTimeout(() => window.location.reload(), 600);
         } else {
           showToast('Error al importar archivo JSON', 'error');
         }

@@ -950,6 +950,71 @@ function renderModalCallUpRoster(filterMode = 'team') {
 
     container.appendChild(group);
   });
+
+  // Conectar buscador interactivo de participantes
+  const searchInput = document.getElementById('modal-callup-search-input');
+  if (searchInput) {
+    if (searchInput.value.trim()) {
+      filterCallupRosterByText(searchInput.value.trim());
+    }
+    searchInput.oninput = (e) => {
+      const q = e.target.value.trim();
+      if (q && filterMode === 'team') {
+        const btnAll = document.getElementById('filter-btn-all');
+        const btnTeam = document.getElementById('filter-btn-team');
+        if (btnAll && btnTeam) {
+          btnAll.classList.add('active');
+          btnAll.style.background = 'var(--accent-blue)';
+          btnAll.style.color = '#fff';
+          btnTeam.classList.remove('active');
+          btnTeam.style.background = 'transparent';
+          btnTeam.style.color = 'var(--text-secondary)';
+          renderModalCallUpRoster('all');
+          return;
+        }
+      }
+      filterCallupRosterByText(q);
+    };
+  }
+}
+
+function filterCallupRosterByText(query) {
+  const container = document.getElementById('modal-event-callup-roster');
+  if (!container) return;
+  const q = (query || '').toLowerCase().trim();
+
+  const groups = container.querySelectorAll('.callup-group-card-pro');
+  groups.forEach(group => {
+    let matchCount = 0;
+    const rows = group.querySelectorAll('.callup-player-row');
+    rows.forEach(row => {
+      const pId = row.getAttribute('data-player-id');
+      const player = playersList.find(p => p.id === pId);
+      if (!player) return;
+      const textToSearch = `${player.name} ${player.lastName} ${player.nickname || ''} ${player.mainDorsal || ''} ${player.mainPosition || ''}`.toLowerCase();
+      if (!q || textToSearch.includes(q)) {
+        row.style.display = 'flex';
+        matchCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (!q) {
+      group.style.display = '';
+      const teamId = group.getAttribute('data-team-id');
+      const activeTeamId = document.getElementById('event-team')?.value || teamsList[0]?.id;
+      const hasSummoned = group.classList.contains('has-summoned');
+      group.classList.toggle('is-open', teamId === activeTeamId || hasSummoned);
+    } else {
+      if (matchCount > 0) {
+        group.style.display = 'block';
+        group.classList.add('is-open');
+      } else {
+        group.style.display = 'none';
+      }
+    }
+  });
 }
 
 // REQUISITO ESTRICTO: Unifica la ventana de creación y modificación de convocatorias permitiendo ajustar el precio
@@ -1024,6 +1089,8 @@ function openEventModal(eventId = null) {
   }
 
   handleEventTypeChange();
+  const searchInput = document.getElementById('modal-callup-search-input');
+  if (searchInput) searchInput.value = '';
   renderModalCallUpRoster();
   updateModalPriceCalculation();
   openModal(document.getElementById('modal-event'));
@@ -1822,25 +1889,13 @@ function renderSelectedDayTrainings() {
     const teamColor = team.color || '#3b82f6';
 
     const dateAtt = getAttendanceForSession(session, allAttendance);
-    let attBadgeHtml = '';
-
     const tFn = window.t || ((k, def) => def);
+    let presCount = 0;
+    let totalCount = 0;
     if (dateAtt) {
       const pids = Object.keys(dateAtt);
-      const presCount = pids.filter(id => dateAtt[id] === 'present').length;
-      const totalCount = pids.length;
-      const pct = totalCount > 0 ? Math.round((presCount / totalCount) * 100) : 0;
-      attBadgeHtml = `
-        <span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 800; display: inline-flex; align-items: center; gap: 0.25rem;">
-          ${tFn('attendance.badgeDone', '✔ Lista pasada')} (${presCount}/${totalCount} • ${pct}%)
-        </span>
-      `;
-    } else {
-      attBadgeHtml = `
-        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
-          ${tFn('attendance.badgePending', '⏳ Sin pasar lista')}
-        </span>
-      `;
+      presCount = pids.filter(id => dateAtt[id] === 'present').length;
+      totalCount = pids.length;
     }
 
     const isIndoor = session.venueType === 'indoor_hall';
@@ -1869,14 +1924,13 @@ function renderSelectedDayTrainings() {
             ${escapeHTML(session.title)}
           </div>
         </div>
-        ${attBadgeHtml}
+        ${venueBadgeHtml}
       </div>
 
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.45rem; flex-wrap: wrap; font-size: 0.85rem;">
         <div style="color: #60a5fa; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
           <span>⏰</span> <span>${escapeHTML(session.time || '17:30 - 19:00')}</span>
         </div>
-        ${venueBadgeHtml}
       </div>
 
       ${(session.location || session.address) ? `
@@ -1897,7 +1951,7 @@ function renderSelectedDayTrainings() {
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.55rem; padding-top: 0.55rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
         ${dateAtt ? `
           <button type="button" class="btn btn-secondary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
-            ${tFn('attendance.modifyList', '✏️ Modificar lista')}
+            ✔ ${tFn('attendance.badgeDone', 'Lista pasada')} (${presCount}/${totalCount}) • ✏️
           </button>
         ` : `
           <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
@@ -2142,25 +2196,13 @@ function renderSelectedDayDetails(dateStr) {
     const teamColor = team.color || '#06b6d4';
 
     const dateAtt = getAttendanceForSession(session, allAttendance);
-    let attBadgeHtml = '';
-
     const tFn = window.t || ((k, def) => def);
+    let presCount = 0;
+    let totalCount = 0;
     if (dateAtt) {
       const pids = Object.keys(dateAtt);
-      const presCount = pids.filter(id => dateAtt[id] === 'present').length;
-      const totalCount = pids.length;
-      const pct = totalCount > 0 ? Math.round((presCount / totalCount) * 100) : 0;
-      attBadgeHtml = `
-        <span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 800; display: inline-flex; align-items: center; gap: 0.25rem;">
-          ${tFn('attendance.badgeDone', '✔ Lista pasada')} (${presCount}/${totalCount} • ${pct}%)
-        </span>
-      `;
-    } else {
-      attBadgeHtml = `
-        <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
-          ${tFn('attendance.badgePending', '⏳ Sin pasar lista')}
-        </span>
-      `;
+      presCount = pids.filter(id => dateAtt[id] === 'present').length;
+      totalCount = pids.length;
     }
 
     const isIndoor = session.venueType === 'indoor_hall';
@@ -2190,14 +2232,13 @@ function renderSelectedDayDetails(dateStr) {
             ${escapeHTML(session.title)}
           </div>
         </div>
-        ${attBadgeHtml}
+        ${venueBadgeHtml}
       </div>
 
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.45rem; flex-wrap: wrap; font-size: 0.85rem;">
         <div style="color: #60a5fa; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
           <span>⏰</span> <span>${escapeHTML(session.time || 'Horario a confirmar')}</span>
         </div>
-        ${venueBadgeHtml}
       </div>
 
       ${(session.location || session.address) ? `
@@ -2218,7 +2259,7 @@ function renderSelectedDayDetails(dateStr) {
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
         ${dateAtt ? `
           <button type="button" class="btn btn-secondary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
-            ${tFn('attendance.modifyList', '✏️ Modificar lista')}
+            ✔ ${tFn('attendance.badgeDone', 'Lista pasada')} (${presCount}/${totalCount}) • ✏️
           </button>
         ` : `
           <button type="button" class="btn btn-primary btn-sm btn-session-attendance" data-sid="${session.id}" style="background: #10b981; border-color: #059669; font-size: 0.78rem; padding: 0.35rem 0.75rem; font-weight: 700;">
@@ -2747,9 +2788,40 @@ function deleteSavedLocation(index) {
   showToast(tFn('trainings.locationDeleted', 'Ubicación eliminada'), 'info');
 }
 
+function clearAllSavedLocations() {
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage || typeof storage.saveSavedLocations !== 'function') return;
+  const tFn = window.t || ((k, def) => def);
+  if (!confirm(tFn('trainings.confirmClearAllLocations', '¿Deseas eliminar todas las ubicaciones guardadas? La lista quedará completamente vacía.'))) return;
+  storage.saveSavedLocations([]);
+  cancelLocationEdit();
+  renderSavedLocationsList();
+  initSavedLocationsControls();
+  showToast(tFn('trainings.allLocationsCleared', 'Todas las ubicaciones han sido eliminadas'), 'info');
+}
+
+function resetSavedLocationsToDefault() {
+  const storage = window.JKNoovaData?.StorageService;
+  if (!storage) return;
+  const tFn = window.t || ((k, def) => def);
+  if (!confirm(tFn('trainings.confirmResetLocations', '¿Restablecer la lista de instalaciones a las sedes de fábrica?'))) return;
+  if (typeof storage.resetLocationsToDefault === 'function') {
+    storage.resetLocationsToDefault();
+  } else {
+    SafeStorage.removeItem('jknoova_locations_customized_v1');
+    storage.saveSavedLocations(DEFAULT_SAVED_LOCATIONS);
+  }
+  cancelLocationEdit();
+  renderSavedLocationsList();
+  initSavedLocationsControls();
+  showToast(tFn('trainings.locationsReset', 'Instalaciones de fábrica restablecidas'), 'success');
+}
+
 window.openSavedLocationsModal = openSavedLocationsModal;
 window.cancelLocationEdit = cancelLocationEdit;
 window.saveLocationFromManager = saveLocationFromManager;
+window.clearAllSavedLocations = clearAllSavedLocations;
+window.resetSavedLocationsToDefault = resetSavedLocationsToDefault;
 
 function renderRecurringDaysTimeConfig() {
   const container = document.getElementById('recurring-days-time-config');
